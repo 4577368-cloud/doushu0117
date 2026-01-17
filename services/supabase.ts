@@ -72,3 +72,18 @@ export const safeAuth = {
     return await supabase.auth.updateUser(payload);
   }
 };
+
+export const uploadAvatar = async (userId: string, profileId: string, file: File) => {
+  if (!supabaseReady) {
+    return { url: null, error: { message: '离线模式无法上传头像' } } as any;
+  }
+  const ext = (file.type.split('/')[1] || 'png').toLowerCase();
+  const path = `${userId}/${profileId}-${Date.now()}.${ext}`;
+  const bucket = supabase.storage.from('avatars');
+  const { error: uploadError } = await bucket.upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) {
+    return { url: null, error: uploadError } as any;
+  }
+  const { data } = bucket.getPublicUrl(path);
+  return { url: data.publicUrl, error: null } as any;
+};

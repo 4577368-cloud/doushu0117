@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers } from 'lucide-react';
 import { UserProfile } from '../types';
 import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive } from '../services/storageService';
+import { uploadAvatar } from '../services/supabase';
 
 interface ArchiveViewProps {
     archives: UserProfile[];
@@ -45,6 +46,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     const [syncStatus, setSyncStatus] = useState<'idle'|'loading'|'success'|'error'>('idle');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<{ name: string; tags: string }>({ name: '', tags: '' });
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string>('');
+    const selfProfile = useMemo(() => archives.find(p => p.isSelf), [archives]);
 
     // 1. 动态计算顶部标签统计
     const tagStats = useMemo(() => {
@@ -127,6 +131,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         e.stopPropagation();
         setEditingId(profile.id);
         setEditForm({ name: profile.name, tags: profile.tags?.join(' ') || '' });
+        setAvatarPreview(profile.avatar || '');
+        setAvatarFile(null);
     };
 
     const addTag = (e: React.MouseEvent, tag: string) => {
@@ -142,15 +148,26 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         if (!editingProfile) return;
         if (!editForm.name.trim()) return alert("姓名不能为空");
 
-        const updatedProfile = {
+        let updatedProfile = {
             ...editingProfile,
             name: editForm.name,
             tags: editForm.tags.split(' ').map(t => t.trim()).filter(t => t !== '')
         };
 
+        if (avatarFile && session?.user) {
+            const res = await uploadAvatar(session.user.id, editingProfile.id, avatarFile);
+            if (res.url) {
+                updatedProfile = { ...updatedProfile, avatar: res.url } as UserProfile;
+            } else {
+                alert('头像上传失败: ' + (res.error?.message || '未知错误'));
+            }
+        }
+
         const newList = await updateArchive(updatedProfile);
         setArchives(newList);
         setEditingId(null);
+        setAvatarFile(null);
+        setAvatarPreview('');
     };
 
     return (
@@ -163,11 +180,15 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                 {/* 头部用户信息 */}
                 <div className="relative flex justify-between items-start z-10">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50">
+                        {selfProfile?.avatar ? (
+                          <img src={selfProfile.avatar} alt="avatar" className="w-14 h-14 rounded-full object-cover border border-amber-500/40 shadow-lg" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50">
                             <div className="w-full h-full rounded-full bg-[#1c1917] flex items-center justify-center">
                                 <User size={24} className="text-amber-400" />
                             </div>
-                        </div>
+                          </div>
+                        )}
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-stone-100 font-bold text-lg tracking-wide font-serif">
@@ -273,9 +294,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
                             <div className="flex justify-between items-start relative z-10">
                                 <div className="flex items-start gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : (profile.gender === 'male' ? 'bg-indigo-500 text-white' : 'bg-rose-400 text-white')}`}>
-                                        {profile.name[0]}
-                                    </div>
+                                    {profile.avatar ? (
+                                        <img src={profile.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                                    ) : (
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : (profile.gender === 'male' ? 'bg-indigo-500 text-white' : 'bg-rose-400 text-white')}`}>
+                                            {profile.name[0]}
+                                        </div>
+                                    )}
                                     
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -346,21 +371,32 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                             <h3 className="font-black text-stone-100 text-lg flex items-center gap-2"><Edit3 size={18} className="text-amber-500"/> 编辑档案</h3>
                             <button onClick={() => setEditingId(null)} className="p-2 text-stone-500 hover:text-stone-300"><X size={20}/></button>
                         </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-stone-500 ml-1">姓名</label>
-                                <input autoFocus value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-stone-900/50 rounded-xl px-4 py-3 text-sm font-bold text-stone-200 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-stone-500 ml-1 flex items-center gap-1"><Tag size={12}/> 标签</label>
-                                <input value={editForm.tags} onChange={e => setEditForm({...editForm, tags: e.target.value})} className="w-full bg-stone-900/50 rounded-xl px-4 py-3 text-sm text-stone-300 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                    {PRESET_TAGS.map(tag => (
-                                        <button key={tag} onClick={(e) => addTag(e, tag)} className="flex items-center gap-1 px-3 py-1.5 bg-stone-800 hover:bg-amber-500 hover:text-[#1c1917] border border-stone-700 hover:border-amber-400 rounded-lg text-xs text-stone-400 font-medium transition-all active:scale-95"><Plus size={10}/> {tag}</button>
-                                    ))}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-stone-500 ml-1">姓名</label>
+                                    <input autoFocus value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-stone-900/50 rounded-xl px-4 py-3 text-sm font-bold text-stone-200 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-stone-500 ml-1">头像</label>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} alt="preview" className="w-12 h-12 rounded-full object-cover border border-stone-700" />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-stone-800 border border-stone-700" />
+                                        )}
+                                        <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0] || null; setAvatarFile(f); setAvatarPreview(f ? URL.createObjectURL(f) : avatarPreview); }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-stone-500 ml-1 flex items-center gap-1"><Tag size={12}/> 标签</label>
+                                    <input value={editForm.tags} onChange={e => setEditForm({...editForm, tags: e.target.value})} className="w-full bg-stone-900/50 rounded-xl px-4 py-3 text-sm text-stone-300 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {PRESET_TAGS.map(tag => (
+                                            <button key={tag} onClick={(e) => addTag(e, tag)} className="flex items-center gap-1 px-3 py-1.5 bg-stone-800 hover:bg-amber-500 hover:text-[#1c1917] border border-stone-700 hover:border-amber-400 rounded-lg text-xs text-stone-400 font-medium transition-all active:scale-95"><Plus size={10}/> {tag}</button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         <div className="flex gap-3 pt-2">
                             <button onClick={() => setEditingId(null)} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-stone-400 bg-stone-800 hover:bg-stone-700">取消</button>
                             <button onClick={saveEdit} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-[#1c1917] bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-900/20">保存修改</button>
