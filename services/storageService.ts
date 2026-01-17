@@ -1,5 +1,5 @@
 import { UserProfile, HistoryItem } from '../types';
-import { supabase } from './supabase';
+import { supabase, supabaseReady } from './supabase';
 
 const STORAGE_KEY = 'bazi_archives';
 
@@ -313,11 +313,28 @@ export const saveAiReportToArchive = async (pid: string, content: string, type: 
 // VIP 状态管理
 export const getVipStatus = async (): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const meta = session?.user?.user_metadata as any;
+    if (meta && typeof meta.is_vip_user !== 'undefined') {
+      return !!meta.is_vip_user;
+    }
+  } catch {}
   return localStorage.getItem('is_vip_user') === 'true';
 };
 
 export const activateVipOnCloud = async (): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
+  try {
+    if (supabaseReady) {
+      const { error } = await supabase.auth.updateUser({ data: { is_vip_user: true } });
+      if (error) {
+        localStorage.setItem('is_vip_user', 'true');
+        return true;
+      }
+      return true;
+    }
+  } catch {}
   localStorage.setItem('is_vip_user', 'true');
   return true;
 };

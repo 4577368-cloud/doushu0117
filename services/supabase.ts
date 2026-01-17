@@ -77,10 +77,34 @@ export const uploadAvatar = async (userId: string, profileId: string, file: File
   if (!supabaseReady) {
     return { url: null, error: { message: '离线模式无法上传头像' } } as any;
   }
-  const ext = (file.type.split('/')[1] || 'png').toLowerCase();
+  const compressImage = (f: File) => new Promise<Blob>((resolve, reject) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 256;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('ctx'));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/jpeg', 0.85);
+      };
+      img.onerror = reject;
+      const url = URL.createObjectURL(f);
+      img.src = url;
+    } catch (e) {
+      reject(e as any);
+    }
+  });
+
+  let blob: Blob = file;
+  try { blob = await compressImage(file); } catch {}
+  const ext = 'jpg';
   const path = `${userId}/${profileId}-${Date.now()}.${ext}`;
   const bucket = supabase.storage.from('avatars');
-  const { error: uploadError } = await bucket.upload(path, file, { upsert: true, contentType: file.type });
+  const { error: uploadError } = await bucket.upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
   if (uploadError) {
     return { url: null, error: uploadError } as any;
   }

@@ -19,14 +19,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
 
   return (
     <div className="h-[80px] bg-white border-t border-stone-200 flex items-start justify-around px-2 pb-6 pt-2 relative z-50">
-      {navItems.map((item) => {
+      {navItems.map((item, idx) => {
         const isActive = currentTab === item.id;
         // 如果是中间的“对话”按钮，可以给它特殊的样式（可选，这里保持统一风格但加重颜色）
         const isCenter = item.id === AppTab.CHAT;
         
         return (
           <button
-            key={item.id}
+            key={`${item.id}-${idx}`}
             onClick={() => onTabChange(item.id)}
             className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 ${
               isActive 

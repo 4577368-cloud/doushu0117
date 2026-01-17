@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers } from 'lucide-react';
+import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers, Loader2 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive } from '../services/storageService';
 import { uploadAvatar } from '../services/supabase';
@@ -49,6 +49,23 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string>('');
     const selfProfile = useMemo(() => archives.find(p => p.isSelf), [archives]);
+    const [savingEdit, setSavingEdit] = useState(false);
+    const emojiForProfile = (p: UserProfile) => p.gender === 'female' ? '👩' : p.gender === 'male' ? '🧑' : '🙂';
+    const [avatarGenerated, setAvatarGenerated] = useState<string>('');
+    const ZODIAC = ['🐭','🐮','🐯','🐰','🐲','🐍','🐴','🐑','🐵','🐔','🐶','🐷'];
+    const zodiacFromYear = (y: number) => ZODIAC[(y - 4) % 12];
+    const makeEmojiAvatar = async (emoji: string, size = 96) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.fill();
+        ctx.font = `${Math.floor(size*0.55)}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, size/2, size/2);
+        return canvas.toDataURL('image/png');
+    };
 
     // 1. 动态计算顶部标签统计
     const tagStats = useMemo(() => {
@@ -61,6 +78,12 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
             }
         });
         return Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    }, [archives]);
+
+    const uniqueTagsCount = useMemo(() => {
+        const s = new Set<string>();
+        archives.forEach(p => p.tags?.forEach(t => { if (t) s.add(t); }));
+        return s.size;
     }, [archives]);
 
     // 🔥 2. 核心优化：过滤 + 置顶排序
@@ -133,6 +156,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         setEditForm({ name: profile.name, tags: profile.tags?.join(' ') || '' });
         setAvatarPreview(profile.avatar || '');
         setAvatarFile(null);
+        setAvatarGenerated('');
     };
 
     const addTag = (e: React.MouseEvent, tag: string) => {
@@ -147,45 +171,61 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         const editingProfile = archives.find(p => p.id === editingId);
         if (!editingProfile) return;
         if (!editForm.name.trim()) return alert("姓名不能为空");
+        setSavingEdit(true);
+        try {
+            let updatedProfile = {
+                ...editingProfile,
+                name: editForm.name,
+                tags: editForm.tags.split(' ').map(t => t.trim()).filter(t => t !== '')
+            };
 
-        let updatedProfile = {
-            ...editingProfile,
-            name: editForm.name,
-            tags: editForm.tags.split(' ').map(t => t.trim()).filter(t => t !== '')
-        };
-
-        if (avatarFile && session?.user) {
-            const res = await uploadAvatar(session.user.id, editingProfile.id, avatarFile);
-            if (res.url) {
-                updatedProfile = { ...updatedProfile, avatar: res.url } as UserProfile;
-            } else {
-                alert('头像上传失败: ' + (res.error?.message || '未知错误'));
+            if (avatarFile && session?.user) {
+                const res = await uploadAvatar(session.user.id, editingProfile.id, avatarFile);
+                if (res.url) {
+                    updatedProfile = { ...updatedProfile, avatar: res.url } as UserProfile;
+                } else {
+                    alert('头像上传失败: ' + (res.error?.message || '未知错误'));
+                }
+            } else if (avatarGenerated) {
+                updatedProfile = { ...updatedProfile, avatar: avatarGenerated } as UserProfile;
+            } else if (!editingProfile.avatar) {
+                let emoji = emojiForProfile(editingProfile);
+                const y = parseInt((editingProfile.birthDate || '').slice(0,4), 10);
+                if (Number.isFinite(y)) {
+                    try { emoji = zodiacFromYear(y); } catch {}
+                }
+                const url = await makeEmojiAvatar(emoji);
+                if (url) updatedProfile = { ...updatedProfile, avatar: url } as UserProfile;
             }
-        }
 
-        const newList = await updateArchive(updatedProfile);
-        setArchives(newList);
-        setEditingId(null);
-        setAvatarFile(null);
-        setAvatarPreview('');
+            const newList = await updateArchive(updatedProfile);
+            setArchives(newList);
+            setEditingId(null);
+            setAvatarFile(null);
+            setAvatarPreview('');
+            setAvatarGenerated('');
+        } catch (e) {
+        } finally {
+            setSavingEdit(false);
+        }
     };
 
     return (
         <div className="h-full flex flex-col bg-[#f5f5f4] relative">
             
             {/* 顶部黑金会员卡 */}
-            <div className="bg-[#1c1917] p-6 pb-12 rounded-b-[2.5rem] shadow-2xl relative overflow-hidden shrink-0 z-10">
-                <div className="absolute top-[-50%] right-[-10%] w-[80%] h-[200%] bg-gradient-to-b from-amber-500/10 via-transparent to-transparent rotate-12 pointer-events-none blur-3xl"></div>
+            <div className="bg-[#1c1917] p-4 pb-4 shadow-2xl relative shrink-0 z-10">
+                <div className="absolute top-[-50%] right-[-10%] w-[60%] h-[160%] bg-gradient-to-b from-amber-500/10 via-transparent to-transparent rotate-12 pointer-events-none blur-2xl"></div>
                 
                 {/* 头部用户信息 */}
                 <div className="relative flex justify-between items-start z-10">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         {selfProfile?.avatar ? (
-                          <img src={selfProfile.avatar} alt="avatar" className="w-14 h-14 rounded-full object-cover border border-amber-500/40 shadow-lg" />
+                          <img src={selfProfile.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover border border-amber-500/40 shadow-lg" />
                         ) : (
-                          <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50">
-                            <div className="w-full h-full rounded-full bg-[#1c1917] flex items-center justify-center">
-                                <User size={24} className="text-amber-400" />
+                          <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50">
+                            <div className="w-full h-full rounded-full bg-[#1c1917] flex items-center justify-center text-xl">
+                                {selfProfile ? emojiForProfile(selfProfile) : '🙂'}
                             </div>
                           </div>
                         )}
@@ -200,8 +240,20 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                     </span>
                                 ) : (
                                     <span onClick={onVipClick} className="flex items-center gap-1 bg-stone-800 text-stone-500 border border-stone-700 text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer hover:text-stone-300">
-                                        普通
+                                        普通用户
                                     </span>
+                                )}
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">档案 {archives.length}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">标签 {uniqueTagsCount}</span>
+                                {session && (
+                                    <button 
+                                        onClick={handleSync}
+                                        disabled={syncStatus === 'loading' || syncStatus === 'success'}
+                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all border ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200'}`}
+                                    >
+                                        <RefreshCw size={10} className={syncStatus === 'loading' ? 'animate-spin' : ''} />
+                                        {syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '同步'}
+                                    </button>
                                 )}
                             </div>
                             <p className="text-stone-500 text-xs mt-1 font-medium tracking-wide">
@@ -216,62 +268,28 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                     )}
                 </div>
 
-                {/* 动态统计栏 */}
-                <div className="mt-8 flex items-end gap-6 relative z-10 overflow-x-auto no-scrollbar pb-1">
-                    <div>
-                        <div className="text-2xl font-black text-stone-200 font-serif leading-none">{archives.length}</div>
-                        <div className="text-[9px] text-stone-500 uppercase tracking-widest mt-1.5">总档案</div>
-                    </div>
-                    <div className="w-px h-6 bg-stone-800 mb-1"></div>
+                
+            </div>
 
-                    {tagStats.length > 0 ? (
-                        tagStats.map(([tag, count], idx) => (
-                            <div key={tag} className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-500" style={{animationDelay: `${idx * 100}ms`}}>
-                                <div className="text-2xl font-black text-amber-500 font-serif leading-none">{count}</div>
-                                <div className="text-[9px] text-stone-500 uppercase tracking-widest mt-1.5 truncate max-w-[4em]">{tag}</div>
+            {!isVip && session && (
+                <div className="px-4 mt-2 z-20">
+                    <div className="rounded-2xl p-4 bg-[#1c1917] border border-amber-700/30 shadow-xl">
+                        <div className="flex items-center gap-3">
+                            <div className="relative w-10 h-10 rounded-full bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 flex items-center justify-center shadow-md">
+                                <Crown size={18} className="text-[#1c1917]" />
                             </div>
-                        ))
-                    ) : (
-                        <div className="flex flex-col opacity-50">
-                            <div className="text-2xl font-black text-stone-600 font-serif leading-none">-</div>
-                            <div className="text-[9px] text-stone-600 uppercase tracking-widest mt-1.5">无标签</div>
+                            <div className="flex-1">
+                                <div className="text-sm font-black text-amber-200">升级 VIP 解锁更多能力</div>
+                                <div className="text-xs text-stone-400">无限次 AI 深度分析、更多报告与云备份</div>
+                            </div>
+                            <button onClick={onVipClick} className="px-4 py-2 rounded-full text-xs font-bold border border-amber-400 text-amber-300 hover:bg-amber-500/10 hover:border-amber-300 transition-colors">立即解锁</button>
                         </div>
-                    )}
-
-                    <div className="flex-1"></div>
-
-                    {session && (
-                        <button 
-                            onClick={handleSync}
-                            disabled={syncStatus === 'loading' || syncStatus === 'success'}
-                            className={`
-                                flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-lg border shrink-0 mb-1
-                                ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200'}
-                            `}
-                        >
-                            <RefreshCw size={10} className={syncStatus === 'loading' ? 'animate-spin' : ''} />
-                            {syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '云同步'}
-                        </button>
-                    )}
+                    </div>
                 </div>
-            </div>
-
-            {/* 搜索框 */}
-            <div className="px-5 -mt-6 z-20">
-                <div className="bg-white rounded-2xl shadow-lg shadow-stone-200/50 p-1.5 flex items-center border border-stone-100">
-                    <Search className="ml-3 text-stone-400" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="搜索姓名、日期或标签..." 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-transparent text-stone-800 text-sm py-2.5 px-3 outline-none font-medium placeholder:text-stone-300"
-                    />
-                </div>
-            </div>
+            )}
 
             {/* 列表内容区 */}
-            <div className="flex-1 overflow-y-auto p-4 pt-4 space-y-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 pt-3 space-y-3 custom-scrollbar">
                 {displayList.map((profile, index) => {
                     const isSelf = profile.isSelf;
                     return (
@@ -297,8 +315,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                     {profile.avatar ? (
                                         <img src={profile.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover shadow-sm" />
                                     ) : (
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : (profile.gender === 'male' ? 'bg-indigo-500 text-white' : 'bg-rose-400 text-white')}`}>
-                                            {profile.name[0]}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : 'bg-stone-200 text-stone-800'}`}>
+                                            {emojiForProfile(profile)}
                                         </div>
                                     )}
                                     
@@ -384,7 +402,15 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                         ) : (
                                             <div className="w-12 h-12 rounded-full bg-stone-800 border border-stone-700" />
                                         )}
-                                        <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0] || null; setAvatarFile(f); setAvatarPreview(f ? URL.createObjectURL(f) : avatarPreview); }} />
+                                        <label htmlFor="avatar_input" className="px-3 py-2 rounded-lg text-xs font-bold bg-amber-500 text-[#1c1917] hover:bg-amber-400 shadow-lg shadow-amber-900/20 cursor-pointer">选择头像</label>
+                                        <input id="avatar_input" type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0] || null; setAvatarGenerated(''); setAvatarFile(f); setAvatarPreview(f ? URL.createObjectURL(f) : avatarPreview); }} />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <button onClick={async()=>{ const url = await makeEmojiAvatar('👩'); setAvatarGenerated(url); setAvatarFile(null); setAvatarPreview(url); }} className="px-2 py-1 rounded-md text-xs bg-stone-800 text-stone-300 border border-stone-700">女性头像</button>
+                                        <button onClick={async()=>{ const url = await makeEmojiAvatar('🧑'); setAvatarGenerated(url); setAvatarFile(null); setAvatarPreview(url); }} className="px-2 py-1 rounded-md text-xs bg-stone-800 text-stone-300 border border-stone-700">男性头像</button>
+                                        {ZODIAC.map((z, i) => (
+                                            <button key={i} onClick={async()=>{ const url = await makeEmojiAvatar(z); setAvatarGenerated(url); setAvatarFile(null); setAvatarPreview(url); }} className="px-2 py-1 rounded-md text-xs bg-stone-800 text-stone-300 border border-stone-700">{z}</button>
+                                        ))}
                                     </div>
                                 </div>
                                 <div>
@@ -398,8 +424,10 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                 </div>
                             </div>
                         <div className="flex gap-3 pt-2">
-                            <button onClick={() => setEditingId(null)} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-stone-400 bg-stone-800 hover:bg-stone-700">取消</button>
-                            <button onClick={saveEdit} className="flex-1 py-3.5 rounded-xl text-sm font-bold text-[#1c1917] bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-900/20">保存修改</button>
+                            <button onClick={() => setEditingId(null)} disabled={savingEdit} className={`flex-1 py-3.5 rounded-xl text-sm font-bold ${savingEdit?'opacity-60 cursor-not-allowed':''} text-stone-400 bg-stone-800 hover:bg-stone-700`}>取消</button>
+                            <button onClick={saveEdit} disabled={savingEdit} className={`flex-1 py-3.5 rounded-xl text-sm font-bold text-[#1c1917] bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-900/20 ${savingEdit?'opacity-60 cursor-not-allowed':''}`}>
+                                {savingEdit ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin"/> 保存中...</span> : '保存修改'}
+                            </button>
                         </div>
                     </div>
                 </div>

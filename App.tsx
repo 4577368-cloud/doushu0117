@@ -155,6 +155,7 @@ const App: React.FC = () => {
             setBaziChart(null); 
             setCurrentProfile(null);
             setCurrentTab(AppTab.HOME);
+            try { localStorage.removeItem('is_vip_user'); } catch {}
         }
     });
     return () => subscription.unsubscribe();
@@ -224,6 +225,7 @@ useEffect(() => {
     } else if (event === 'SIGNED_OUT') {
       // 🔥 关键修复：退出登录时立即清空本地档案，防止数据泄露给下一个使用者
       localStorage.removeItem('bazi_archives');
+      try { localStorage.removeItem('is_vip_user'); } catch {}
       setArchives([]);
       console.log("已退出登录，清空本地数据");
     }
@@ -363,7 +365,7 @@ useEffect(() => {
           
           case AppTab.ARCHIVE:
               if (!session) return <div className="flex flex-col items-center justify-center h-full p-6 bg-[#f5f5f4]"><Auth onLoginSuccess={()=>{}} /></div>;
-              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { localStorage.removeItem('bazi_archives'); setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>;
+              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { localStorage.removeItem('bazi_archives'); try { localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>; 
           
           default:
               return <HomeView onGenerate={handleGenerate} archives={archives} />;
