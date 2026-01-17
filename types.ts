@@ -91,7 +91,8 @@ export interface UserProfile {
   createdAt: number;
   avatar?: string;
   tags?: string[]; 
-  aiReports?: { id: string; date: number; content: string; type: 'bazi' | 'ziwei' }[];
+  isSelf?: boolean;
+  aiReports?: HistoryItem[];
 }
 
 export interface ModalData {
@@ -158,7 +159,7 @@ export interface PillarInterpretation {
 // Ziwei placeholder types to satisfy main App imports if needed
 export interface HistoryItem {
   id: string;
-  birthData: any;
-  generatedAt: number;
+  date: number;
   content: string;
+  type: 'bazi' | 'ziwei';
 }

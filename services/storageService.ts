@@ -259,30 +259,20 @@ export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
   // 2. 云端更新（使用 update 而不是 upsert，更安全且只更新必要字段）
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user) {
-    const promises = [];
+    try {
+      // 先将该用户的其他所有档案取消本人标记
+      await supabase
+        .from('archives')
+        .update({ is_self: false, updated_at: new Date().toISOString() })
+        .eq('user_id', session.user.id)
+        .neq('id', id);
 
-    // 将新的本人设为 true
-    promises.push(
-      supabase
+      // 再将目标档案设为本人
+      await supabase
         .from('archives')
         .update({ is_self: true, updated_at: new Date().toISOString() })
         .eq('id', id)
-        .eq('user_id', session.user.id)
-    );
-
-    // 将旧的本人设为 false
-    if (oldSelf && oldSelf.id !== id) {
-      promises.push(
-        supabase
-          .from('archives')
-          .update({ is_self: false, updated_at: new Date().toISOString() })
-          .eq('id', oldSelf.id)
-          .eq('user_id', session.user.id)
-      );
-    }
-
-    try {
-      await Promise.all(promises);
+        .eq('user_id', session.user.id);
       console.log("✅ [Self] 云端状态已更新");
     } catch (e: any) {
       console.error("❌ [Self] 云端更新失败", e);
