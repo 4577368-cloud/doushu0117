@@ -29,6 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
     return res.status(200).send('success');
   }
+  if (req.method === 'GET') {
+    return res.status(200).send('ok');
+  }
   const ct = String(req.headers['content-type'] || '');
   let bodyText = typeof req.body === 'string' ? req.body : '';
   if (!bodyText && ct.includes('application/x-www-form-urlencoded')) {

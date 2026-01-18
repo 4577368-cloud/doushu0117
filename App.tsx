@@ -18,6 +18,7 @@ import { BottomNav } from './components/Layout';
 import { AppHeader } from './components/ui/AppHeader'; 
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { VipActivationModal } from './components/modals/VipActivationModal';
+import { PayResultModal } from './components/modals/PayResultModal';
 import { DetailModal } from './components/modals/DetailModal';
 
 import { HomeView } from './views/HomeView';
@@ -114,6 +115,7 @@ const App: React.FC = () => {
   const [isVip, setIsVip] = useState(false);
   
   const [showVipModal, setShowVipModal] = useState(false);
+  const [showPayResultModal, setShowPayResultModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [isGlobalSaving, setIsGlobalSaving] = useState(false); 
@@ -159,6 +161,14 @@ const App: React.FC = () => {
         }
     });
     return () => subscription.unsubscribe();
+  }, []);
+
+  // 显示支付结果页：当 URL 携带 out_trade_no/trade_no 时
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('out_trade_no') || sp.get('trade_no')) {
+      setShowPayResultModal(true);
+    }
   }, []);
 
   // VIP 状态加载
@@ -379,6 +389,7 @@ useEffect(() => {
       <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
       {modalData && <DetailModal data={modalData} chart={baziChart} onClose={() => setModalData(null)} />}
       {showVipModal && <VipActivationModal onClose={() => setShowVipModal(false)} onActivate={handleActivateVip} />}
+      {showPayResultModal && <PayResultModal onClose={() => { setShowPayResultModal(false); try { window.history.replaceState(null, '', window.location.pathname); } catch {} }} />}
       {showWelcomeModal && <WelcomeModal onClose={() => setShowWelcomeModal(false)} />}
       {showPasswordResetModal && <PasswordResetModal onClose={() => setShowPasswordResetModal(false)} />}
     </div>

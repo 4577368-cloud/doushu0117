@@ -10,6 +10,10 @@ const buildQuery = (params: Record<string, string>) => {
   const keys = Object.keys(params).sort();
   return keys.map(k => `${k}=${params[k]}`).join('&');
 };
+const buildEncodedQuery = (params: Record<string, string>) => {
+  const keys = Object.keys(params).sort();
+  return keys.map(k => `${k}=${encodeURIComponent(params[k])}`).join('&');
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -54,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const outTradeNo = `vip_${Date.now()}_${Math.floor(Math.random()*100000)}`;
   const timestamp = new Date().toISOString().slice(0,19).replace('T', ' ');
 
-  const passback = encodeURIComponent(JSON.stringify({ user_id }));
+  const passbackRaw = JSON.stringify({ user_id });
 
   const bizContent = JSON.stringify({
     subject,
@@ -74,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return_url: returnUrl,
     notify_url: notifyUrl,
     biz_content: bizContent,
-    passback_params: passback
+    passback_params: passbackRaw
   };
 
   const signContent = buildQuery(commonParams);
@@ -94,7 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Sign error', detail: lastErr?.message || String(lastErr) || 'invalid private key' });
   }
 
-  const payUrl = `${GATEWAY}?${signContent}&sign=${encodeURIComponent(sign)}`;
+  const requestQuery = buildEncodedQuery(commonParams);
+  const payUrl = `${GATEWAY}?${requestQuery}&sign=${encodeURIComponent(sign)}`;
   try {
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
