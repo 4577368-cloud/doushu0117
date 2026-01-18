@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { user_id } = (req.body || {}) as { user_id?: string };
   const missing: string[] = [];
   if (!appId) missing.push('ALIPAY_APP_ID');
-  if (!privateKey) missing.push('ALIPAY_PRIVATE_KEY');
+  if (!normalizedRaw) missing.push('ALIPAY_PRIVATE_KEY');
   if (!notifyUrl) missing.push('ALIPAY_NOTIFY_URL');
   if (!returnUrl) missing.push('ALIPAY_RETURN_URL');
   if (missing.length) {
