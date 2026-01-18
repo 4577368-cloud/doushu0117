@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Crown, Sparkles } from 'lucide-react';
+import { supabase } from '../../services/supabase';
+import { startAlipayVip } from '../../services/payService';
 
 export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () => void }> = ({ onClose, onActivate }) => {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
+    const [paying, setPaying] = useState(false);
 
     const handleSubmit = () => {
         if (code === '202612345') {
@@ -11,6 +14,25 @@ export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () 
             onClose();
         } else {
             setError('密钥无效，请核对后重试');
+        }
+    };
+
+    const handleAlipay = async () => {
+        setError('');
+        setPaying(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const uid = session?.user?.id;
+            if (!uid) {
+                setError('请先登录账号后再进行支付');
+                setPaying(false);
+                return;
+            }
+            await startAlipayVip(uid);
+        } catch (e) {
+            setError('支付创建失败，请稍后重试');
+        } finally {
+            setPaying(false);
         }
     };
 
@@ -47,7 +69,12 @@ export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () 
                         <input type="text" value={code} onChange={(e) => { setCode(e.target.value); setError(''); }} placeholder="在此输入专属密钥激活" className="w-full bg-stone-50 border-2 border-stone-200 rounded-xl px-4 py-4 font-mono font-bold text-center text-base focus:border-amber-400 focus:bg-white outline-none transition-all placeholder:font-sans placeholder:text-stone-300 text-stone-800 shadow-inner"/>
                         {error && <p className="text-xs text-rose-500 text-center font-bold animate-pulse">{error}</p>}
                     </div>
-                    <button onClick={handleSubmit} className="w-full py-4 bg-[#1c1917] text-white rounded-xl font-black text-sm shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-stone-800"><Sparkles size={16} className="text-amber-400" /> 立即激活永久 VIP</button>
+                    <div className="grid grid-cols-1 gap-2">
+                        <button onClick={handleAlipay} disabled={paying} className={`w-full py-4 ${paying?'bg-stone-300 text-stone-500':'bg-[#1677FF] text-white hover:bg-[#1a7cff]'} rounded-xl font-black text-sm shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2`}>
+                            <img src="https://gw.alipayobjects.com/mdn/rms_3831c8/afts/img/A*RZcVQYJX8fwAAAAAAAAAAAAAARQIAAQ/original" alt="Alipay" className="w-4 h-4" /> 使用支付宝支付开通
+                        </button>
+                        <button onClick={handleSubmit} className="w-full py-4 bg-[#1c1917] text-white rounded-xl font-black text-sm shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-stone-800"><Sparkles size={16} className="text-amber-400" /> 我有密钥，立即激活</button>
+                    </div>
                 </div>
             </div>
         </div>
