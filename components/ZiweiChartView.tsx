@@ -193,15 +193,8 @@ export const ZiweiChartView: React.FC<ZiweiChartViewProps> = ({
             <div key={gridIdx} onClick={() => onPalaceClick(palace.name)} 
                  className={`relative overflow-hidden cursor-pointer transition-all duration-300 ${bgClass} ${borderClass}`}>
                 
-                {/* 宫位干支 & 大限 */}
-                <div className="absolute top-1 left-1.5 z-30 flex flex-col items-start leading-none pointer-events-none">
-                  <span className={`text-[10px] sm:text-[11px] font-serif font-black ${isActive ? 'text-amber-100/80' : 'text-stone-600 opacity-60'}`}>
-                      {palace.stem}{palace.zhi}
-                  </span>
-                  <span className={`text-[7px] sm:text-[8px] font-sans font-bold ${isActive ? 'text-white/40' : 'text-stone-400'}`}>
-                      {palace.daXian}
-                  </span>
-                </div>
+                {/* 宫位干支 & 大限（移至左下） */}
+                
 
                 {/* 星曜列 */}
                 <div className="absolute top-2 right-1.5 bottom-10 left-1.5 flex flex-row-reverse items-start justify-start gap-x-3.5 sm:gap-x-5 z-20 overflow-y-auto no-scrollbar pt-1 pl-2">
@@ -226,11 +219,17 @@ export const ZiweiChartView: React.FC<ZiweiChartViewProps> = ({
                 
                 {/* 底部宫位名 */}
                 <div className={`absolute bottom-0 left-0 right-0 h-9 z-10 flex items-center justify-center pointer-events-none bg-gradient-to-t ${isActive ? 'from-indigo-900 via-indigo-900/90' : 'from-white via-white/95'} to-transparent`}>
+                  <span className={`absolute left-1.5 text-[10px] sm:text-[11px] font-serif font-black ${isActive ? 'text-amber-100/80' : 'text-stone-600 opacity-60'}`}>
+                    {palace.stem}{palace.zhi}
+                  </span>
                   <div className={`text-[11px] sm:text-[12px] font-black px-3 py-1 rounded transition-all duration-300 ${
                     isActive ? 'text-amber-300 scale-110 tracking-widest' : 'text-red-900 opacity-80'
                   }`}>
                     {palace.name}
                   </div>
+                  <span className={`absolute right-1.5 text-[7px] sm:text-[8px] font-sans font-bold ${isActive ? 'text-white/50' : 'text-stone-400'}`}>
+                    {palace.daXian}
+                  </span>
                 </div>
 
                 {/* 长生状态 */}
