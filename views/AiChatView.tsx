@@ -107,7 +107,7 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                 return parts[1].split(/[;；]/).map(s => s.trim()).filter(s => s);
             }
         }
-        if (messages.length <= 1) return ['我的事业运如何？', '最近财运怎么样？', '感情方面有桃花吗？'];
+        if (messages.length <= 1) return ['以当前时间起盘', '流月注意事项', '今日适合关注哪些股票'];
         return [];
     }, [messages, loading]);
 
