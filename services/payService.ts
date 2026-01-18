@@ -13,7 +13,8 @@ export const startAlipayVip = async (userId: string): Promise<{ ok: boolean; err
       window.location.href = data.payUrl;
       return { ok: true };
     }
-    return { ok: false, error: data?.error ? `支付创建失败：${data.error}` : '支付创建失败' };
+    const detail = data?.detail ? `（${data.detail}）` : '';
+    return { ok: false, error: data?.error ? `支付创建失败：${data.error}${detail}` : '支付创建失败' };
   } catch (e) {
     return { ok: false, error: '网络异常，稍后再试' };
   }

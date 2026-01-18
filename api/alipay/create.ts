@@ -23,7 +23,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const appId = process.env.ALIPAY_APP_ID || '';
-  const privateKey = (process.env.ALIPAY_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  const rawKey = process.env.ALIPAY_PRIVATE_KEY || '';
+  const normalizedRaw = rawKey.includes('\\n') ? rawKey.replace(/\\n/g, '\n') : rawKey;
+  const wrap64 = (s: string) => s.replace(/\s+/g, '').match(/.{1,64}/g)?.join('\n') || s;
+  const candidates: string[] = [];
+  if (normalizedRaw.includes('BEGIN')) {
+    candidates.push(normalizedRaw);
+  } else if (normalizedRaw) {
+    candidates.push(`-----BEGIN PRIVATE KEY-----\n${wrap64(normalizedRaw)}\n-----END PRIVATE KEY-----`);
+    candidates.push(`-----BEGIN RSA PRIVATE KEY-----\n${wrap64(normalizedRaw)}\n-----END RSA PRIVATE KEY-----`);
+  }
   const notifyUrl = process.env.ALIPAY_NOTIFY_URL || '';
   const returnUrl = process.env.ALIPAY_RETURN_URL || '';
   const subject = process.env.VIP_SUBJECT || '玄枢命理VIP开通';
@@ -69,13 +78,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   const signContent = buildQuery(commonParams);
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(signContent, 'utf8');
-  let sign: string;
-  try {
-    sign = signer.sign(privateKey, 'base64');
-  } catch (e: any) {
-    return res.status(500).json({ error: 'Sign error', detail: e?.message || String(e) });
+  let sign = '';
+  let lastErr: any = null;
+  for (const pk of candidates.length ? candidates : ['']) {
+    try {
+      const signer = crypto.createSign('RSA-SHA256');
+      signer.update(signContent, 'utf8');
+      sign = signer.sign(pk, 'base64');
+      if (sign) break;
+    } catch (e: any) {
+      lastErr = e;
+    }
+  }
+  if (!sign) {
+    return res.status(500).json({ error: 'Sign error', detail: lastErr?.message || String(lastErr) || 'invalid private key' });
   }
 
   const payUrl = `${GATEWAY}?${signContent}&sign=${encodeURIComponent(sign)}`;
