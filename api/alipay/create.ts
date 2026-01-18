@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-// 支付宝网关地址
 const GATEWAY = (process.env.ALIPAY_USE_SANDBOX === 'true')
   ? 'https://openapi.alipaydev.com/gateway.do'
   : 'https://openapi.alipay.com/gateway.do';
@@ -10,18 +9,48 @@ const GATEWAY = (process.env.ALIPAY_USE_SANDBOX === 'true')
 // 辅助函数：构建待签名字符串
 const buildQuery = (params: Record<string, string>) => {
   const keys = Object.keys(params).sort();
-  // 过滤掉空值
   return keys.filter(k => params[k]).map(k => `${k}=${params[k]}`).join('&');
 };
 
-// 辅助函数：构建 URL 编码后的查询字符串
 const buildEncodedQuery = (params: Record<string, string>) => {
   const keys = Object.keys(params).sort();
   return keys.filter(k => params[k]).map(k => `${k}=${encodeURIComponent(params[k])}`).join('&');
 };
 
+/**
+ * 核心诊断与修复函数
+ */
+function formatAndCheckKey(rawKey: string) {
+  if (!rawKey) throw new Error('错误：环境变量 ALIPAY_PRIVATE_KEY 为空');
+
+  // 1. 暴力清洗：只保留 Base64 字符
+  // 去掉头尾、去掉空格、去掉换行、去掉转义符
+  const cleanBody = rawKey
+    .replace(/(-+BEGIN.*?-+)/g, '')
+    .replace(/(-+END.*?-+)/g, '')
+    .replace(/\\n/g, '')
+    .replace(/\s+/g, '');
+
+  // 2. 诊断：长度检查
+  console.log(`[Key Debug] 清洗后密钥长度: ${cleanBody.length} 字符`);
+  
+  if (cleanBody.length < 1000) {
+    // RSA 2048位私钥通常在 1600 字符左右。公钥只有 200-400 字符。
+    throw new Error(`[致命错误] 密钥太短 (${cleanBody.length}字符)！你是不是填成了【公钥】？请务必检查使用的是【应用私钥 (App Private Key)】`);
+  }
+
+  // 3. 重建 PEM 格式
+  const formattedBody = cleanBody.match(/.{1,64}/g)?.join('\n');
+  
+  // 4. 返回两种尝试格式
+  return {
+    pkcs8: `-----BEGIN PRIVATE KEY-----\n${formattedBody}\n-----END PRIVATE KEY-----`,
+    pkcs1: `-----BEGIN RSA PRIVATE KEY-----\n${formattedBody}\n-----END RSA PRIVATE KEY-----`
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1. 设置 CORS 头
+  // 设置 CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,92 +58,104 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // 2. 检查环境变量
-  const appId = process.env.ALIPAY_APP_ID;
-  const rawKey = process.env.ALIPAY_PRIVATE_KEY; // 这里拿到的是原始字符串
-  const notifyUrl = process.env.ALIPAY_NOTIFY_URL;
-  const returnUrl = process.env.ALIPAY_RETURN_URL;
-  
-  if (!appId || !rawKey || !notifyUrl || !returnUrl) {
-    console.error('环境变量缺失');
-    return res.status(500).json({ error: 'Missing ALIPAY env config' });
-  }
-
-  // 3. 【关键修复】处理私钥格式 (并确保变量 privateKey 在此处定义)
-  let privateKey = ''; 
-  const normalizedRaw = rawKey.includes('\\n') ? rawKey.replace(/\\n/g, '\n') : rawKey;
-  
-  if (!normalizedRaw.includes('BEGIN PRIVATE KEY')) {
-    // 如果没有头尾，尝试手动拼接
-    // 移除所有空格和换行，重新按 64 字符切分
-    const cleanKey = normalizedRaw.replace(/\s+/g, '');
-    const wrapped = cleanKey.match(/.{1,64}/g)?.join('\n');
-    privateKey = `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----`;
-  } else {
-    privateKey = normalizedRaw;
-  }
-
-  // 4. 获取请求参数
-  const subject = process.env.VIP_SUBJECT || '玄枢命理VIP开通';
-  const amountStr = process.env.VIP_AMOUNT || '39.9';
-  const { user_id } = (req.body || {}) as { user_id?: string };
-
-  if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
-
-  const outTradeNo = `vip_${Date.now()}_${Math.floor(Math.random()*100000)}`;
-
-  // 5. 生成北京时间戳 (UTC+8)
-  const now = new Date();
-  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  const timestamp = beijingTime.toISOString().slice(0,19).replace('T', ' ');
-
-  // 6. 组装业务参数
-  // passback_params 建议进行简单的 JSON 序列化
-  const passbackRaw = JSON.stringify({ user_id });
-
-  const bizContent = JSON.stringify({
-    subject,
-    out_trade_no: outTradeNo,
-    total_amount: amountStr,
-    product_code: 'QUICK_WAP_WAY',
-  });
-
-  // 7. 组装公共参数
-  const commonParams: Record<string, string> = {
-    app_id: appId,
-    method: 'alipay.trade.wap.pay',
-    format: 'JSON',
-    charset: 'utf-8',
-    sign_type: 'RSA2',
-    timestamp, // 使用修复后的北京时间
-    version: '1.0',
-    return_url: returnUrl,
-    notify_url: notifyUrl,
-    biz_content: bizContent,
-    passback_params: passbackRaw 
-  };
-
   try {
-    // 8. 签名 (使用前面定义好的 privateKey)
-    const signContent = buildQuery(commonParams);
-    const signer = crypto.createSign('RSA-SHA256');
-    signer.update(signContent, 'utf8');
+    // 1. 环境变量与基础检查
+    const appId = process.env.ALIPAY_APP_ID;
+    const rawKey = process.env.ALIPAY_PRIVATE_KEY;
+    const notifyUrl = process.env.ALIPAY_NOTIFY_URL;
+    const returnUrl = process.env.ALIPAY_RETURN_URL;
     
-    // 这里就是你报错的地方，现在 privateKey 一定有值了
-    const sign = signer.sign(privateKey, 'base64');
+    if (!appId || !rawKey || !notifyUrl || !returnUrl) {
+      return res.status(500).json({ error: 'Missing ALIPAY env config' });
+    }
 
-    // 9. 生成最终 URL
+    // 2. 准备私钥 (带诊断)
+    let keyPair;
+    try {
+      keyPair = formatAndCheckKey(rawKey);
+    } catch (e: any) {
+      console.error(e.message);
+      return res.status(500).json({ error: '私钥配置错误', details: e.message });
+    }
+
+    // 3. 准备订单参数
+    const subject = process.env.VIP_SUBJECT || '玄枢命理VIP开通';
+    const amountStr = process.env.VIP_AMOUNT || '39.9';
+    const { user_id } = (req.body || {}) as { user_id?: string };
+
+    if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
+
+    const outTradeNo = `vip_${Date.now()}_${Math.floor(Math.random()*100000)}`;
+
+    // 时间戳修正 (UTC+8)
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const timestamp = beijingTime.toISOString().slice(0,19).replace('T', ' ');
+
+    const passbackRaw = JSON.stringify({ user_id });
+    const bizContent = JSON.stringify({
+      subject,
+      out_trade_no: outTradeNo,
+      total_amount: amountStr,
+      product_code: 'QUICK_WAP_WAY',
+    });
+
+    const commonParams: Record<string, string> = {
+      app_id: appId,
+      method: 'alipay.trade.wap.pay',
+      format: 'JSON',
+      charset: 'utf-8',
+      sign_type: 'RSA2',
+      timestamp,
+      version: '1.0',
+      return_url: returnUrl,
+      notify_url: notifyUrl,
+      biz_content: bizContent,
+      passback_params: encodeURIComponent(passbackRaw)
+    };
+
+    // 4. 尝试签名
+    const signContent = buildQuery(commonParams);
+    let sign = '';
+    let signErrorDetails = '';
+
+    // 尝试 PKCS#8 (Java格式)
+    try {
+      const signer = crypto.createSign('RSA-SHA256');
+      signer.update(signContent, 'utf8');
+      sign = signer.sign(keyPair.pkcs8, 'base64');
+      console.log('签名成功: 使用 PKCS#8 格式');
+    } catch (e1: any) {
+      // 失败则尝试 PKCS#1 (非Java格式)
+      try {
+        const signer = crypto.createSign('RSA-SHA256');
+        signer.update(signContent, 'utf8');
+        sign = signer.sign(keyPair.pkcs1, 'base64');
+        console.log('签名成功: 使用 PKCS#1 格式');
+      } catch (e2: any) {
+        console.error('PKCS#8 失败:', e1.message);
+        console.error('PKCS#1 失败:', e2.message);
+        signErrorDetails = `OpenSSL Error: ${e2.message}`;
+      }
+    }
+
+    if (!sign) {
+      // 如果还失败，抛出详细错误给前端
+      return res.status(500).json({ 
+        error: '签名计算失败', 
+        tips: '请检查 Vercel 后台日志查看[Key Debug]信息。通常是因为填成了支付宝公钥，或者私钥格式损坏。',
+        debug_info: signErrorDetails
+      });
+    }
+
+    // 5. 生成支付链接
     const requestQuery = buildEncodedQuery(commonParams);
-    // 注意：sign 也必须编码
     const payUrl = `${GATEWAY}?${requestQuery}&sign=${encodeURIComponent(sign)}`;
 
-    // 10. 写入数据库 (非阻塞)
+    // 6. 存库 (异步)
     try {
-      const supabaseUrl = process.env.SUPABASE_URL;
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (supabaseUrl && supabaseServiceKey) {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        // 不使用 await，让它异步执行，提高接口响应速度
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
         supabase.from('alipay_orders').insert({
           out_trade_no: outTradeNo,
           user_id,
@@ -124,19 +165,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           pay_url: payUrl,
           created_at: new Date().toISOString()
         }).then(({ error }) => {
-            if (error) console.error('Supabase async insert error:', error);
+            if (error) console.error('Supabase Error:', error);
         });
       }
-    } catch (dbError) {
-      console.error('Supabase setup error:', dbError);
-    }
+    } catch (err) {}
 
-    // 11. 返回结果
     return res.status(200).json({ payUrl, out_trade_no: outTradeNo });
 
   } catch (e: any) {
-    console.error('Sign Error Stack:', e);
-    // 返回具体错误信息，方便调试
-    return res.status(500).json({ error: 'Signing failed', details: e.message });
+    console.error('Fatal Error:', e);
+    return res.status(500).json({ error: 'Server Error', message: e.message });
   }
 }
