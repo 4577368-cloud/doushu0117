@@ -111,7 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return_url: returnUrl,
       notify_url: notifyUrl,
       biz_content: bizContent,
-      passback_params: encodeURIComponent(passbackRaw)
+      passback_params: passbackRaw
     };
 
     // 4. 尝试签名
@@ -121,20 +121,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 尝试 PKCS#8 (Java格式)
     try {
-      const signer = crypto.createSign('RSA-SHA256');
-      signer.update(signContent, 'utf8');
-      sign = signer.sign(keyPair.pkcs8, 'base64');
-      console.log('签名成功: 使用 PKCS#8 格式');
+      const keyObj8 = crypto.createPrivateKey({ key: keyPair.pkcs8, format: 'pem' });
+      const signer8 = crypto.createSign('RSA-SHA256');
+      signer8.update(signContent, 'utf8');
+      sign = signer8.sign({ key: keyObj8, padding: (crypto as any).constants.RSA_PKCS1_PADDING }, 'base64');
     } catch (e1: any) {
-      // 失败则尝试 PKCS#1 (非Java格式)
       try {
-        const signer = crypto.createSign('RSA-SHA256');
-        signer.update(signContent, 'utf8');
-        sign = signer.sign(keyPair.pkcs1, 'base64');
-        console.log('签名成功: 使用 PKCS#1 格式');
+        const keyObj1 = crypto.createPrivateKey({ key: keyPair.pkcs1, format: 'pem' });
+        const signer1 = crypto.createSign('RSA-SHA256');
+        signer1.update(signContent, 'utf8');
+        sign = signer1.sign({ key: keyObj1, padding: (crypto as any).constants.RSA_PKCS1_PADDING }, 'base64');
       } catch (e2: any) {
-        console.error('PKCS#8 失败:', e1.message);
-        console.error('PKCS#1 失败:', e2.message);
         signErrorDetails = `OpenSSL Error: ${e2.message}`;
       }
     }
