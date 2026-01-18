@@ -113,6 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       biz_content: bizContent,
       passback_params: passbackRaw
     };
+    const appAuthToken = process.env.ALIPAY_APP_AUTH_TOKEN || '';
+    if (appAuthToken) commonParams.app_auth_token = appAuthToken;
 
     // 4. 尝试签名
     const signContent = buildQuery(commonParams);
@@ -167,7 +169,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } catch (err) {}
 
-    return res.status(200).json({ payUrl, out_trade_no: outTradeNo });
+    const isSandbox = process.env.ALIPAY_USE_SANDBOX === 'true';
+    const maskedAppId = appId ? `${appId.slice(0,4)}****${appId.slice(-4)}` : '';
+    const env_info = {
+      isSandbox,
+      gateway: GATEWAY,
+      appId_masked: maskedAppId,
+      hasAppAuthToken: !!process.env.ALIPAY_APP_AUTH_TOKEN
+    };
+    return res.status(200).json({ payUrl, out_trade_no: outTradeNo, env_info });
 
   } catch (e: any) {
     console.error('Fatal Error:', e);
