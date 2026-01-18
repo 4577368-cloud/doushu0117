@@ -62,9 +62,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
         if (!ctx) return '';
-        ctx.fillStyle = '#1c1917';
-        ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI*2); ctx.fill();
-        ctx.font = `${Math.floor(size*0.55)}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+        ctx.clearRect(0, 0, size, size);
+        ctx.font = `${Math.floor(size*0.7)}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(emoji, size/2, size/2);
         return canvas.toDataURL('image/png');
@@ -319,8 +318,10 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                             className={`
                                 group relative border rounded-2xl p-4 shadow-sm active:scale-[0.99] transition-all duration-500 cursor-pointer overflow-hidden
                                 ${isSelf 
-                                    ? 'bg-[#1c1917] border-amber-500/30 shadow-lg shadow-amber-900/20 ring-1 ring-amber-500/20 order-first' // 黑金样式
-                                    : 'bg-white border-stone-200 hover:border-amber-200 hover:shadow-md' // 普通样式
+                                    ? 'bg-[#1c1917] border-amber-500/30 shadow-lg shadow-amber-900/20 ring-1 ring-amber-500/20 order-first'
+                                    : (profile.gender === 'male' 
+                                        ? 'bg-indigo-50/70 border-indigo-200 hover:border-indigo-300 hover:shadow-md'
+                                        : 'bg-rose-50/70 border-rose-200 hover:border-rose-300 hover:shadow-md')
                                 }
                             `}
                             // 为置顶添加动画效果
@@ -335,7 +336,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                     {profile.avatar ? (
                                         <img src={profile.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover shadow-sm" />
                                     ) : (
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-base shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : 'bg-stone-200 text-stone-800'}`}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm ${isSelf ? 'bg-gradient-to-br from-amber-300 to-amber-600 text-[#1c1917]' : (profile.gender==='male' ? 'bg-indigo-100 text-indigo-800' : 'bg-rose-100 text-rose-800')}`}>
                                             {emojiForProfile(profile)}
                                         </div>
                                     )}
@@ -357,7 +358,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                         {profile.tags && profile.tags.length > 0 && (
                                             <div className="flex gap-1 mt-2">
                                                 {profile.tags.map((tag, i) => (
-                                                    <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelf ? 'bg-stone-800 text-stone-400 border border-stone-700' : 'bg-stone-100 text-stone-500'}`}>
+                                                    <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelf ? 'bg-stone-800 text-stone-400 border border-stone-700' : (profile.gender==='male' ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700')}`}>
                                                         #{tag}
                                                     </span>
                                                 ))}
@@ -366,7 +367,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
                                         {profile.aiReports && profile.aiReports.length > 0 && (
                                             <div className="mt-2">
-                                                <button onClick={(e)=>{ e.stopPropagation(); setReportModalProfileId(profile.id); setReportToView(null); }} className={`text-[10px] px-2 py-1 rounded-full border ${isSelf ? 'bg-stone-800 text-stone-300 border-stone-700 hover:text-amber-300' : 'bg-stone-100 text-stone-600 border-stone-200 hover:text-indigo-600'} transition-colors`}>历史报告 {profile.aiReports.length}</button>
+                                                <button onClick={(e)=>{ e.stopPropagation(); setReportModalProfileId(profile.id); setReportToView(null); }} className={`text-[10px] px-2 py-1 rounded-full border ${isSelf ? 'bg-stone-800 text-stone-300 border-stone-700 hover:text-amber-300' : (profile.gender==='male' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:text-indigo-900' : 'bg-rose-50 text-rose-700 border-rose-200 hover:text-rose-900')} transition-colors`}>历史报告 {profile.aiReports.length}</button>
                                             </div>
                                         )}
                                         </div>
@@ -387,13 +388,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                     <div className="flex items-center gap-1">
                                         <button 
                                             onClick={(e) => startEdit(e, profile)}
-                                            className={`p-1.5 rounded-full transition-colors ${isSelf ? 'text-stone-500 hover:text-amber-400 hover:bg-stone-800' : 'text-stone-300 hover:text-indigo-500 hover:bg-indigo-50'}`}
+                                            className={`p-1.5 rounded-full transition-colors ${isSelf ? 'text-amber-300 bg-stone-800 hover:bg-stone-700' : 'text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100'}`}
                                         >
                                             <Edit3 size={14} />
                                         </button>
                                         <button 
                                             onClick={(e) => handleDelete(e, profile.id)}
-                                            className={`p-1.5 rounded-full transition-colors ${isSelf ? 'text-stone-500 hover:text-rose-400 hover:bg-stone-800' : 'text-stone-300 hover:text-rose-500 hover:bg-rose-50'}`}
+                                            className={`p-1.5 rounded-full transition-colors ${isSelf ? 'text-rose-400 bg-stone-800 hover:bg-stone-700' : 'text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100'}`}
                                         >
                                             <Trash2 size={14} />
                                         </button>

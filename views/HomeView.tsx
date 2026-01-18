@@ -42,6 +42,25 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
    
   const citiesForProvince = CHINA_LOCATIONS.find(p => p.name === province)?.cities || [];
 
+  const makeEmojiAvatar = async (emoji: string, size = 96) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.clearRect(0, 0, size, size);
+    ctx.font = `${Math.floor(size*0.7)}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, size/2, size/2);
+    return canvas.toDataURL('image/png');
+  };
+
+  const pickDefaultEmoji = (g: Gender) => {
+    const male = ['🧑','👨','🧑🏻','🧑🏽','🧑🏿'];
+    const female = ['👩','👩🏻','👩🏽','👩🏿'];
+    const pool = g === 'female' ? female : male;
+    return pool[Math.floor(Math.random()*pool.length)];
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#fafaf9] overflow-y-auto no-scrollbar">
        <div className="min-h-full flex flex-col justify-center p-6 pb-10 max-w-md mx-auto w-full">
@@ -53,7 +72,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
              <p className="text-[10px] text-stone-400 mt-1 tracking-[0.25em] uppercase font-sans font-bold">Ancient Wisdom · AI Insights</p>
            </div>
            
-           <form onSubmit={e => { e.preventDefault(); if (!parsed) return; onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: `${hourInput.padStart(2, '0')}:${minuteInput.padStart(2, '0')}`, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar: 'default' }); }} className="space-y-6">
+           <form onSubmit={async e => { e.preventDefault(); if (!parsed) return; const emoji = pickDefaultEmoji(gender); const avatar = await makeEmojiAvatar(emoji); onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: `${hourInput.padStart(2, '0')}:${minuteInput.padStart(2, '0')}`, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar }); }} className="space-y-6">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                     <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">姓名</label>
