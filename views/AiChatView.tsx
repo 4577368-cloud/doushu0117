@@ -99,17 +99,9 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
     const [loading, setLoading] = useState(false);
     
     const activeSuggestions = useMemo(() => {
-        if (loading) return []; 
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg && lastMsg.role === 'assistant') {
-            const parts = lastMsg.content.split('|||');
-            if (parts.length > 1) {
-                return parts[1].split(/[;；]/).map(s => s.trim()).filter(s => s);
-            }
-        }
-        if (messages.length <= 1) return ['以当前时间起盘', '流月注意事项', '今日适合关注哪些股票'];
-        return [];
-    }, [messages, loading]);
+        if (loading) return [];
+        return ['以当前时间起盘', '流月注意事项', '今日适合关注哪些股票'];
+    }, [loading]);
 
     const [mode, setMode] = useState<ChatMode>('bazi'); 
     
