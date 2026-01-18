@@ -8,5 +8,14 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom']
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'https://doushu.us.kg',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 });

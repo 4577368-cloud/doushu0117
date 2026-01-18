@@ -28,7 +28,10 @@ export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () 
                 setPaying(false);
                 return;
             }
-            await startAlipayVip(uid);
+            const r = await startAlipayVip(uid);
+            if (!r.ok) {
+                setError(r.error || '支付创建失败');
+            }
         } catch (e) {
             setError('支付创建失败，请稍后重试');
         } finally {
@@ -71,7 +74,10 @@ export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () 
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                         <button onClick={handleAlipay} disabled={paying} className={`w-full py-4 ${paying?'bg-stone-300 text-stone-500':'bg-[#1677FF] text-white hover:bg-[#1a7cff]'} rounded-xl font-black text-sm shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2`}>
-                            <img src="https://gw.alipayobjects.com/mdn/rms_3831c8/afts/img/A*RZcVQYJX8fwAAAAAAAAAAAAAARQIAAQ/original" alt="Alipay" className="w-4 h-4" /> 使用支付宝支付开通
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-white/10 ring-1 ring-white/30">
+                              <span className="w-4 h-4 rounded-sm bg-white flex items-center justify-center text-[#1677FF] text-[10px] font-black">支</span>
+                            </span>
+                            使用支付宝支付开通
                         </button>
                         <button onClick={handleSubmit} className="w-full py-4 bg-[#1c1917] text-white rounded-xl font-black text-sm shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-stone-800"><Sparkles size={16} className="text-amber-400" /> 我有密钥，立即激活</button>
                     </div>
