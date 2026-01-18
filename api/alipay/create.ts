@@ -91,8 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return_url: returnUrl,
     notify_url: notifyUrl,
     biz_content: bizContent,
-    // 对 passback_params 编码，防止特殊字符破坏签名
-    passback_params: encodeURIComponent(passbackRaw) 
+    passback_params: passbackRaw 
   };
 
   try {
