@@ -89,7 +89,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
 
               <div className="grid grid-cols-5 gap-4">
                  <div className="col-span-3 space-y-1.5">
-                     <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">生诞 (YYYYMMDD)</label>
+                     <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">生日 (YYYYMMDD)</label>
                      <div className="relative">
                          <input type="text" inputMode="numeric" maxLength={8} value={dateInput} onChange={e => setDateInput(e.target.value.replace(/\D/g, ''))} className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none font-sans text-base tracking-widest focus:border-stone-400 shadow-sm" placeholder="19900101" />
                          <Calendar size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300" />
@@ -100,13 +100,13 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                      <div className="grid grid-cols-2 gap-2">
                          <div className="relative">
                              <select value={hourInput} onChange={e => setHourInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
-                                 {Array.from({length: 24}).map((_, i) => (<option key={i} value={i}>{i.toString().padStart(2, '0')} 时</option>))}
+                                 {Array.from({length: 24}).map((_, i) => (<option key={i} value={i}>{i.toString().padStart(2, '0')}</option>))}
                              </select>
                              <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 pointer-events-none" />
                          </div>
                          <div>
                              <select value={minuteInput} onChange={e => setMinuteInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
-                                 {Array.from({length: 60}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2, '0')} 分</option>))}
+                                 {Array.from({length: 60}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2, '0')}</option>))}
                              </select>
                          </div>
                      </div>

@@ -255,6 +255,37 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
   return archives;
 };
 
+export const saveArchiveFast = async (profile: UserProfile): Promise<UserProfile[]> => {
+  let archives = await getArchives();
+  const existingIndex = archives.findIndex(p => p.id === profile.id);
+  let finalProfile = { ...profile };
+  finalProfile.birthDate = normalizeDate(finalProfile.birthDate);
+  finalProfile.birthTime = normalizeTime(finalProfile.birthTime);
+
+  if (existingIndex > -1) {
+    finalProfile = { ...archives[existingIndex], ...profile };
+    archives[existingIndex] = finalProfile;
+  } else {
+    const dupIndex = archives.findIndex(p => 
+      p.birthDate === finalProfile.birthDate && 
+      p.birthTime === finalProfile.birthTime && 
+      p.gender === finalProfile.gender
+    );
+    if (dupIndex > -1) {
+      return archives;
+    }
+    finalProfile.id = profile.id || generateId();
+    finalProfile.createdAt = Date.now();
+    archives.unshift(finalProfile);
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+
+  (async () => { try { await saveArchive(finalProfile); } catch {} })();
+
+  return archives;
+};
+
 // 4. 设为本人
 export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
   let archives = await getArchives();

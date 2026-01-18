@@ -8,6 +8,7 @@ import { analyzeBaziStructured } from './services/geminiService';
 import { 
   getArchives, 
   saveArchive, 
+  saveArchiveFast,
   saveAiReportToArchive, 
   getVipStatus, 
   activateVipOnCloud, 
@@ -244,7 +245,7 @@ useEffect(() => {
 }, []);
       setIsGlobalSaving(true);
       try {
-          const updatedList = await saveArchive(currentProfile);
+          const updatedList = await saveArchiveFast(currentProfile);
           setArchives(updatedList);
           const latest = updatedList.find(p => p.name === currentProfile.name && p.birthDate === currentProfile.birthDate);
           if (latest) setCurrentProfile(latest);

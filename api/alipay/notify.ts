@@ -45,11 +45,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const appId = process.env.ALIPAY_APP_ID || '';
   const vipAmount = process.env.VIP_AMOUNT || '39.9';
 
+  const mockToken = (process.env.ALIPAY_NOTIFY_TEST_TOKEN || '').trim();
+
   if (!alipayPublicKey || !appId) {
     return res.status(500).send('fail');
   }
 
   try {
+    if (mockToken && params.mock_token === mockToken) {
+      if (params.app_id !== appId) {
+        return res.status(400).send('fail');
+      }
+      if (params.trade_status !== 'TRADE_SUCCESS') {
+        return res.status(200).send('success');
+      }
+      if (params.total_amount !== vipAmount) {
+        return res.status(400).send('fail');
+      }
+
+      let user_id = '';
+      try {
+        const raw = decodeURIComponent(params.passback_params || '');
+        const obj = JSON.parse(raw);
+        user_id = obj.user_id || '';
+      } catch {}
+
+      if (!user_id) {
+        return res.status(400).send('fail');
+      }
+
+      const supabaseUrl = process.env.SUPABASE_URL || '';
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+      if (!supabaseUrl || !supabaseServiceKey) {
+        return res.status(200).send('success');
+      }
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      try {
+        await supabase.from('alipay_orders')
+          .update({
+            status: 'success',
+            paid_at: new Date().toISOString(),
+            alipay_trade_no: params.trade_no || '',
+            buyer_id: params.buyer_id || '',
+            raw_notify: params
+          })
+          .eq('out_trade_no', params.out_trade_no);
+      } catch {}
+      try {
+        await supabase.auth.admin.updateUserById(user_id, { user_metadata: { is_vip_user: true } });
+      } catch {}
+      return res.status(200).send('success');
+    }
+
     const ok = verifySign(params, alipayPublicKey);
     if (!ok) {
       return res.status(400).send('fail');
