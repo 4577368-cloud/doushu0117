@@ -9,6 +9,9 @@ export const startAlipayVip = async (userId: string): Promise<{ ok: boolean; err
     });
     let data: any = {};
     try { data = await resp.json(); } catch {}
+    if (data?.env_info) {
+      try { console.log('env_info', data.env_info); } catch {}
+    }
     if (data?.payUrl) {
       window.location.href = data.payUrl;
       return { ok: true };
