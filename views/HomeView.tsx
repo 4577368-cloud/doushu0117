@@ -8,6 +8,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
   const [gender, setGender] = useState<Gender>('male');
   const [dateInput, setDateInput] = useState(''); 
   const [hourInput, setHourInput] = useState('12'); 
+  const [minuteInput, setMinuteInput] = useState('00');
   const [isSolarTime, setIsSolarTime] = useState(false);
   const [province, setProvince] = useState('北京市');
   const [city, setCity] = useState('北京');
@@ -52,7 +53,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
              <p className="text-[10px] text-stone-400 mt-1 tracking-[0.25em] uppercase font-sans font-bold">Ancient Wisdom · AI Insights</p>
            </div>
            
-           <form onSubmit={e => { e.preventDefault(); if (!parsed) return; onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: `${hourInput.padStart(2, '0')}:00`, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar: 'default' }); }} className="space-y-6">
+           <form onSubmit={e => { e.preventDefault(); if (!parsed) return; onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: `${hourInput.padStart(2, '0')}:${minuteInput.padStart(2, '0')}`, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar: 'default' }); }} className="space-y-6">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                     <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">姓名</label>
@@ -77,11 +78,18 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                  </div>
                  <div className="col-span-2 space-y-1.5">
                      <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">时辰</label>
-                     <div className="relative">
-                         <select value={hourInput} onChange={e => setHourInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
-                             {Array.from({length: 24}).map((_, i) => (<option key={i} value={i}>{i.toString().padStart(2, '0')} 时</option>))}
-                         </select>
-                         <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 pointer-events-none" />
+                     <div className="grid grid-cols-2 gap-2">
+                         <div className="relative">
+                             <select value={hourInput} onChange={e => setHourInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
+                                 {Array.from({length: 24}).map((_, i) => (<option key={i} value={i}>{i.toString().padStart(2, '0')} 时</option>))}
+                             </select>
+                             <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 pointer-events-none" />
+                         </div>
+                         <div>
+                             <select value={minuteInput} onChange={e => setMinuteInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
+                                 {Array.from({length: 60}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2, '0')} 分</option>))}
+                             </select>
+                         </div>
                      </div>
                  </div>
               </div>
@@ -89,7 +97,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
               <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isSolarTime ? 'bg-white border-stone-300 shadow-md' : 'bg-stone-50/50 border-stone-100'}`}>
                 <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setIsSolarTime(!isSolarTime)}>
                   <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl transition-colors ${isSolarTime ? 'bg-amber-100 text-amber-600' : 'bg-white text-stone-300 border border-stone-200'}`}><Sun size={18} /></div>
+                      <div className={`p-2 rounded-xl transition-colors ${isSolarTime ? 'bg-amber-100 text-amber-600' : 'bg-amber-50 text-amber-500 border border-stone-200'}`}><Sun size={18} /></div>
                       <div className="flex flex-col"><span className={`text-[13px] font-bold ${isSolarTime ? 'text-stone-900' : 'text-stone-400'}`}>真太阳时校准</span><span className="text-[9px] text-stone-400 font-bold tracking-tight">根据出生地经度修正出生时间</span></div>
                   </div>
                   <div className={`w-10 h-5 rounded-full p-0.5 transition-colors relative ${isSolarTime ? 'bg-amber-500' : 'bg-stone-200'}`}><div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${isSolarTime ? 'translate-x-5' : 'translate-x-0'}`}></div></div>

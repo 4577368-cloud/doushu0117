@@ -47,6 +47,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<{ name: string; tags: string; gender: 'male'|'female'; birthDate: string; birthTime: string }>({ name: '', tags: '', gender: 'male', birthDate: '', birthTime: '00:00' });
     const [birthDateDigits, setBirthDateDigits] = useState<string>('');
+    const [editHour, setEditHour] = useState<string>('00');
+    const [editMinute, setEditMinute] = useState<string>('00');
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string>('');
     const selfProfile = useMemo(() => archives.find(p => p.isSelf), [archives]);
@@ -156,6 +158,11 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         setEditingId(profile.id);
         setEditForm({ name: profile.name, tags: profile.tags?.join(' ') || '', gender: profile.gender, birthDate: profile.birthDate || '', birthTime: profile.birthTime || '00:00' });
         setBirthDateDigits((profile.birthDate || '').replace(/\D/g, '').slice(0,8));
+        const tm = (profile.birthTime || '00:00').split(':');
+        const h = (tm[0] || '00').padStart(2, '0');
+        const m = (tm[1] || '00').padStart(2, '0');
+        setEditHour(h);
+        setEditMinute(m);
         setAvatarPreview(profile.avatar || '');
         setAvatarFile(null);
         setAvatarGenerated('');
@@ -447,7 +454,14 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-stone-500 ml-1">出生时间</label>
-                                    <input value={editForm.birthTime} onChange={e => setEditForm({...editForm, birthTime: e.target.value})} placeholder="HH:mm" className="w-full bg-stone-900/50 rounded-xl px-3.5 py-2.5 text-sm text-stone-300 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <select value={editHour} onChange={e => { const h = e.target.value.padStart(2,'0'); setEditHour(h); setEditForm(prev => ({...prev, birthTime: `${h}:${editMinute}`})); }} className="w-full bg-stone-900/50 border border-stone-800 rounded-xl px-3 py-2.5 outline-none text-sm text-white focus:border-amber-500/50">
+                                            {Array.from({length:24}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2,'0')} 时</option>))}
+                                        </select>
+                                        <select value={editMinute} onChange={e => { const m = e.target.value.padStart(2,'0'); setEditMinute(m); setEditForm(prev => ({...prev, birthTime: `${editHour}:${m}`})); }} className="w-full bg-stone-900/50 border border-stone-800 rounded-xl px-3 py-2.5 outline-none text-sm text-white focus:border-amber-500/50">
+                                            {Array.from({length:60}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2,'0')} 分</option>))}
+                                        </select>
+                                    </div>
                                 </div>
                                 
                                 <div>

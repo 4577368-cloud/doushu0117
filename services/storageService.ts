@@ -315,9 +315,12 @@ export const getVipStatus = async (): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const meta = session?.user?.user_metadata as any;
-    if (meta && typeof meta.is_vip_user !== 'undefined') {
-      return !!meta.is_vip_user;
+    if (session?.user) {
+      const meta = session.user.user_metadata as any;
+      if (meta && typeof meta.is_vip_user !== 'undefined') {
+        return !!meta.is_vip_user;
+      }
+      return false;
     }
   } catch {}
   return localStorage.getItem('is_vip_user') === 'true';
@@ -326,15 +329,16 @@ export const getVipStatus = async (): Promise<boolean> => {
 export const activateVipOnCloud = async (): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
   try {
-    if (supabaseReady) {
-      const { error } = await supabase.auth.updateUser({ data: { is_vip_user: true } });
-      if (error) {
-        localStorage.setItem('is_vip_user', 'true');
-        return true;
-      }
-      return true;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return false;
+    const { error } = await supabase.auth.updateUser({ data: { is_vip_user: true } });
+    if (error) {
+      console.error('激活VIP失败:', error.message);
+      return false;
     }
-  } catch {}
-  localStorage.setItem('is_vip_user', 'true');
-  return true;
+    return true;
+  } catch (e: any) {
+    console.error('激活VIP异常:', e?.message || e);
+    return false;
+  }
 };

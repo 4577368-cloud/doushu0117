@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { calculateChart } from '../ziwei/services/astrologyService';
 import { generateRuleBasedAnalysis } from '../ziwei/services/interpretationService';
 import { callDeepSeekAPI } from '../ziwei/services/aiService';
@@ -16,20 +16,22 @@ interface ZiweiViewProps {
 const PALACE_NAMES = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄', '迁移', '交友', '官禄', '田宅', '福德', '父母'];
 
 const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) => {
-  const [chartData, setChartData] = useState<any>(null);
+  const chartData = useMemo(() => {
+    try {
+      const d = profile.birthDate.split('-').map(Number);
+      const t = profile.birthTime.split(':').map(Number);
+      return calculateChart(d[0], d[1], d[2], t[0], profile.gender === 'male' ? 'M' : 'F', profile.longitude || 120);
+    } catch {
+      return null;
+    }
+  }, [profile]);
   const [activePalaceName, setActivePalaceName] = useState('命宫');
   const [deepSeekContent, setDeepSeekContent] = useState<string>('');
   const [isDeepSeekLoading, setIsDeepSeekLoading] = useState(false);
   const [apiKey] = useState(() => sessionStorage.getItem('ai_api_key') || ''); 
   const [analysisTab, setAnalysisTab] = useState<'rule' | 'ai'>('rule');
 
-  useEffect(() => {
-    const d = profile.birthDate.split('-').map(Number);
-    const t = profile.birthTime.split(':').map(Number);
-    // 简单的经度处理，默认 120
-    const data = calculateChart(d[0], d[1], d[2], t[0], profile.gender === 'male' ? 'M' : 'F', profile.longitude || 120);
-    setChartData(data);
-  }, [profile]);
+  
 
   const handleAiAnalyze = async () => {
     // 🔥 VIP 免 Key 检查逻辑
