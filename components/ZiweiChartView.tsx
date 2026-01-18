@@ -51,12 +51,17 @@ const getHuaBg = (hua: string) => {
 };
 
 // 增加 isDarkBg 参数，用于适配深色背景
-const VerticalStar: React.FC<{ name: string; type: string; brightness?: string; hua?: string; isDarkBg?: boolean }> = ({ name, type, brightness, hua, isDarkBg }) => {
+const VerticalStar: React.FC<{ name: string; type: string; brightness?: string; hua?: string; isDarkBg?: boolean; isFlow?: boolean }> = ({ name, type, brightness, hua, isDarkBg, isFlow }) => {
   return (
     <div className="flex flex-col items-center relative group shrink-0 mb-1.5 px-0.5">
       {hua && (
         <span className={`absolute -left-2 -top-1 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full flex items-center justify-center text-[7px] sm:text-[8px] text-white font-bold shadow-sm ring-1 ring-white z-20 ${getHuaBg(hua)}`}>
           {hua}
+        </span>
+      )}
+      {isFlow && (
+        <span className={`absolute -right-2 -top-1 px-0.5 py-[1px] rounded-sm text-[7px] sm:text-[8px] font-bold z-20 ${isDarkBg ? 'bg-purple-500 text-white ring-1 ring-white/40' : 'bg-purple-600 text-white ring-1 ring-white/60'}`}>
+          流
         </span>
       )}
 
@@ -204,7 +209,7 @@ export const ZiweiChartView: React.FC<ZiweiChartViewProps> = ({
                   {majorChunks.map((chunk, cIdx) => (
                     <div key={`maj-${cIdx}`} className="flex flex-col items-center shrink-0">
                       {chunk.map((s: any, i: number) => (
-                        <VerticalStar key={i} name={s.name} type="major" brightness={s.brightness} hua={s.hua} isDarkBg={isActive} />
+                        <VerticalStar key={i} name={s.name} type="major" brightness={s.brightness} hua={s.hua} isDarkBg={isActive} isFlow={s.isFlow} />
                       ))}
                     </div>
                   ))}
@@ -213,7 +218,7 @@ export const ZiweiChartView: React.FC<ZiweiChartViewProps> = ({
                   {minorChunks.map((chunk, cIdx) => (
                     <div key={`min-${cIdx}`} className={`flex flex-col items-center shrink-0 pt-0.5 ${cIdx > 0 ? 'opacity-60 scale-90' : ''}`}>
                       {chunk.map((s: any, i: number) => (
-                        <VerticalStar key={i} name={s.name} type={s.type} brightness={s.brightness} hua={s.hua} isDarkBg={isActive} />
+                        <VerticalStar key={i} name={s.name} type={s.type} brightness={s.brightness} hua={s.hua} isDarkBg={isActive} isFlow={s.isFlow} />
                       ))}
                     </div>
                   ))}

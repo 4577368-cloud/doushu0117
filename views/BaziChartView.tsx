@@ -9,6 +9,7 @@ import { BaziAnalysisView } from '../components/BaziAnalysisView';
 // ❌ 删除了 AiChatView 的引用，因为它现在是独立页面了
 import { ReportHistoryModal } from '../components/modals/ReportHistoryModal';
 import { BaziChartGrid } from '../components/business/BaziChartGrid';
+import { getDayHourComboText } from '../services/baziComboService';
 
 export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onManualSave: () => void; isSaving: boolean }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onManualSave, isSaving }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
@@ -72,6 +73,12 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                  <CoreInfoCard profile={profile} chart={chart} />
                  <BaziAnalysisView chart={chart} onShowModal={openDetailedModal} />
                  <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
+                 <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
+                   <div className="flex items-center gap-2 mb-2"><Info size={16} className="text-stone-400"/><h4 className="text-sm font-black text-stone-900">日时组合解读</h4></div>
+                   <div className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">
+                     {getDayHourComboText(chart)}
+                   </div>
+                 </div>
              </div>
          )}
 
