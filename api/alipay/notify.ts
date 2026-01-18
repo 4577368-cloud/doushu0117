@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? (req.body as Record<string, string>)
     : (qs.parse(bodyText) as any as Record<string, string>);
 
-  const alipayPublicKey = (process.env.ALIPAY_PUBLIC_KEY || '').replace(/\n/g, '\n');
+  const alipayPublicKey = (process.env.ALIPAY_PUBLIC_KEY || '').replace(/\\n/g, '\n');
   const appId = process.env.ALIPAY_APP_ID || '';
   const vipAmount = process.env.VIP_AMOUNT || '39.9';
 
@@ -70,4 +70,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).send('fail');
   }
 }
-

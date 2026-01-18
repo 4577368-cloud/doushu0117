@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const appId = process.env.ALIPAY_APP_ID || '';
-  const privateKey = (process.env.ALIPAY_PRIVATE_KEY || '').replace(/\n/g, '\n');
+  const privateKey = (process.env.ALIPAY_PRIVATE_KEY || '').replace(/\\n/g, '\n');
   const notifyUrl = process.env.ALIPAY_NOTIFY_URL || '';
   const returnUrl = process.env.ALIPAY_RETURN_URL || '';
   const subject = process.env.VIP_SUBJECT || '玄枢命理VIP开通';
@@ -67,4 +67,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const payUrl = `${GATEWAY}?${signContent}&sign=${encodeURIComponent(sign)}`;
   return res.status(200).json({ payUrl, out_trade_no: outTradeNo });
 }
-
