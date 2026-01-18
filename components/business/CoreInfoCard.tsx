@@ -29,7 +29,7 @@ export const CoreInfoCard: React.FC<{ profile: UserProfile; chart: BaziChart }> 
             <div className="bg-stone-100 border-b border-stone-300 px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                     <Info size={14} className="text-stone-600" />
-                    <span className="font-black text-[10px] text-stone-700 uppercase tracking-wider">命盘核心</span>
+                    <span className="font-black text-[10px] text-stone-700 uppercase tracking-wider">命盘整体</span>
                 </div>
                 <div className="text-[9px] font-black text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
                     {profile.birthDate}

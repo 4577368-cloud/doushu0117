@@ -40,7 +40,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   // 🔥 修改点：移除了 'AI 对话' 选项，现在它在底部导航栏
   const tabs = [
       { id: ChartSubTab.DETAIL, label: '流年大运' }, 
-      { id: ChartSubTab.ANALYSIS, label: '大师解盘' }
+      { id: ChartSubTab.ANALYSIS, label: '整体建议' }
   ];
 
   const handleAiAnalysisWrapper = () => { 
@@ -76,12 +76,12 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                  <CoreInfoCard profile={profile} chart={chart} />
                  <BaziAnalysisView chart={chart} onShowModal={openDetailedModal} />
                 <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
-                <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2"><Info size={16} className="text-stone-400"/><h4 className="text-sm font-black text-stone-900">日时组合解读</h4></div>
+                <div className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-100/50 bg-gradient-to-r from-indigo-50 to-white">
+                    <div className="flex items-center gap-2"><Info size={16} className="text-indigo-500"/><h4 className="text-sm font-black text-stone-900">日时组合</h4></div>
                     <button onClick={() => { navigator.clipboard.writeText(getDayHourComboText(chart)); setCopiedCombo(true); setTimeout(() => setCopiedCombo(false), 2000); }} className={`p-2 rounded-full transition-colors ${copiedCombo ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-stone-200 text-stone-400 hover:text-stone-700'}`}>{copiedCombo ? <CheckCircle size={16}/> : <ClipboardCopy size={16}/>}</button>
                   </div>
-                  <div className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">
+                  <div className="p-5 text-xs text-stone-700 leading-relaxed whitespace-pre-wrap">
                     {getDayHourComboText(chart)}
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                          if (mz === yearBaseZhi) score += twFuyin + pwYear;
                          const level = score >= 6 ? '强' : (score >= 3 ? '中' : '弱');
                          const levelCls = level === '强' ? 'bg-rose-50 text-rose-700 border-rose-200' : (level === '中' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-100 text-stone-700 border-stone-200');
-                         const action = hasHe ? '促成合作/签约推进' : (hasChong ? '防守降杠杆' : ((hasXing || hasHai) ? '稳健推进/严控合规' : (hasFuyin ? '复盘巩固/按部就班' : '按计划推进')));
+                         const baseAction = hasHe ? '促成合作/签约推进' : (hasChong ? '防守降杠杆' : ((hasXing || hasHai) ? '稳健推进/严控合规' : (hasFuyin ? '复盘巩固/按部就班' : '按计划推进')));
                          const avoidParts = [
                            hasChong ? '避免重决策' : null,
                            hasChong ? '避免扩杠杆' : null,
@@ -213,7 +213,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                            hasHai ? '避免口舌纠纷' : null,
                            hasHe ? '避免单打独斗' : null
                          ].filter(Boolean) as string[];
-                         const avoid = (avoidParts.slice(0,2).join('、')) || '常规风险规避';
+                         const baseAvoid = (avoidParts.slice(0,2).join('、')) || '常规风险规避';
                          const prepareParts = [
                            hasChong ? '现金缓冲' : null,
                            hasChong ? '延期关键发布' : null,
@@ -223,7 +223,16 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                            hasHe ? '资料与方案准备' : null,
                            hasHe ? '对齐关键人' : null
                          ].filter(Boolean) as string[];
-                         const prepare = (prepareParts.slice(0,2).join('、')) || '常规维护与复盘';
+                         const basePrepare = (prepareParts.slice(0,2).join('、')) || '常规维护与复盘';
+                         const strongAction = hasChong ? '止损与风控优先' : ((hasXing || hasHai) ? '严控合规/保守推进' : (hasHe ? '试探性合作/控制规模' : (hasFuyin ? '低速推进/聚焦稳态' : '降杠杆/防守为主')));
+                         const strongAvoid = (['避免重决策','避免扩杠杆', hasXing?'避免刚性碰撞':null, hasHai?'避免口舌纠纷':null].filter(Boolean) as string[]).slice(0,2).join('、') || '避免重决策、避免扩杠杆';
+                         const strongPrepare = '现金缓冲、风控预案';
+                         const weakAction = hasHe ? '优化合作细节/按计划推进' : '优化迭代/按计划推进';
+                         const weakAvoid = '避免过度投入';
+                         const weakPrepare = '复盘与维护';
+                         const action = level==='强' ? strongAction : (level==='弱' ? weakAction : baseAction);
+                         const avoid = level==='强' ? strongAvoid : (level==='弱' ? weakAvoid : baseAvoid);
+                         const prepare = level==='强' ? strongPrepare : (level==='弱' ? weakPrepare : basePrepare);
                          return { month: m, label: `${gz.gan}${gz.zhi}`, triggers, action, avoid, prepare, level, levelCls };
                        });
                        return (
