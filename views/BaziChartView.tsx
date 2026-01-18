@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info } from 'lucide-react';
+import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle } from 'lucide-react';
 import { UserProfile, BaziChart, ChartSubTab, BaziReport as AiBaziReport } from '../types';
 import { getArchives, saveAiReportToArchive } from '../services/storageService';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
@@ -10,6 +10,8 @@ import { BaziAnalysisView } from '../components/BaziAnalysisView';
 import { ReportHistoryModal } from '../components/modals/ReportHistoryModal';
 import { BaziChartGrid } from '../components/business/BaziChartGrid';
 import { getDayHourComboText } from '../services/baziComboService';
+import { BRANCH_CLASHES, BRANCH_XING, BRANCH_HAI, EARTHLY_BRANCHES, BRANCH_COMBINES } from '../services/constants';
+import { getGanZhiForMonth } from '../services/baziService';
 
 export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onManualSave: () => void; isSaving: boolean }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onManualSave, isSaving }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
@@ -17,6 +19,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   const [showApiKey, setShowApiKey] = useState(false);
   const [archives, setArchives] = useState<UserProfile[]>([]);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState<any | null>(null);
+  const [copiedCombo, setCopiedCombo] = useState(false);
 
   useEffect(() => { 
       getArchives().then(setArchives); 
@@ -72,13 +75,190 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
              <div className="animate-fade-in space-y-4">
                  <CoreInfoCard profile={profile} chart={chart} />
                  <BaziAnalysisView chart={chart} onShowModal={openDetailedModal} />
-                 <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
-                 <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
-                   <div className="flex items-center gap-2 mb-2"><Info size={16} className="text-stone-400"/><h4 className="text-sm font-black text-stone-900">日时组合解读</h4></div>
-                   <div className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">
-                     {getDayHourComboText(chart)}
+                <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
+                <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2"><Info size={16} className="text-stone-400"/><h4 className="text-sm font-black text-stone-900">日时组合解读</h4></div>
+                    <button onClick={() => { navigator.clipboard.writeText(getDayHourComboText(chart)); setCopiedCombo(true); setTimeout(() => setCopiedCombo(false), 2000); }} className={`p-2 rounded-full transition-colors ${copiedCombo ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-stone-200 text-stone-400 hover:text-stone-700'}`}>{copiedCombo ? <CheckCircle size={16}/> : <ClipboardCopy size={16}/>}</button>
+                  </div>
+                  <div className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">
+                    {getDayHourComboText(chart)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+
+                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
+                     <div className="flex items-center gap-2 mb-2"><History size={16} className="text-rose-500"/><h4 className="text-sm font-black text-stone-900">岁运拐点与预警</h4></div>
+                     {(() => {
+                       const now = new Date();
+                       const y = now.getFullYear();
+                       const lp = chart.luckPillars || [];
+                       const current = lp.find(p => y>=p.startYear && y<=p.endYear) || lp[0];
+                       const currentIndex = current ? lp.indexOf(current) : 0;
+                       const next = lp[currentIndex+1];
+                       const tag = (() => {
+                         const yr = chart.pillars.year.ganZhi;
+                         if (current && yr) {
+                           const ganMatch = current.ganZhi.gan === yr.gan ? '干并临' : '';
+                           const zhiMatch = current.ganZhi.zhi === yr.zhi ? '支并临' : '';
+                           const both = ganMatch && zhiMatch ? '岁运并临' : (ganMatch || zhiMatch);
+                           return both || '平常';
+                         }
+                         return '未知';
+                       })();
+                       return (
+                         <div className="space-y-2 text-[12px] text-stone-700">
+                           <div className="flex items-center justify-between bg-stone-50 p-3 rounded-xl border border-stone-100">
+                             <div>
+                               <div className="font-black text-stone-900">当前大运 {current?.startYear} - {current?.endYear}</div>
+                               <div className="text-[10px] text-stone-500">{current?.ganZhi.gan}{current?.ganZhi.zhi} · {tag}</div>
+                             </div>
+                             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${tag.includes('并临') ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{tag}</span>
+                           </div>
+                           {next && (
+                             <div className="flex items-center justify-between bg-stone-50 p-3 rounded-xl border border-stone-100">
+                               <div>
+                                 <div className="font-black text-stone-900">下一大运 {next.startYear} - {next.endYear}</div>
+                                 <div className="text-[10px] text-stone-500">{next.ganZhi.gan}{next.ganZhi.zhi}</div>
+                               </div>
+                               <span className="text-[10px] px-2 py-0.5 rounded-full border bg-stone-100 text-stone-700 border-stone-200">提前准备</span>
+                             </div>
+                           )}
+                           <div className="text-[11px] bg-rose-50 border border-rose-100 text-rose-800 rounded-xl p-3">并临时建议：缩杠杆、稳现金流、减高波动资产；重要决策避开本月本季高冲击窗口。</div>
+                         </div>
+                       );
+                     })()}
+                   </div>
+
+                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
+                     <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-emerald-600"/><h4 className="text-sm font-black text-stone-900">生财路径建议</h4></div>
+                     {(() => {
+                       const names = ['食神','伤官','正财','偏财','正官','七杀','正印','偏印','比肩','劫财'];
+                       const count: Record<string, number> = {};
+                       const pl = chart.pillars;
+                       [pl.year, pl.month, pl.day, pl.hour].forEach(p => { const s = p.ganZhi.shiShenGan; if (s) count[s] = (count[s]||0)+1; });
+                       const sx = (count['食神']||0)+(count['伤官']||0);
+                       const cai = (count['正财']||0)+(count['偏财']||0);
+                       const guan = (count['正官']||0)+(count['七杀']||0);
+                       const yin = (count['正印']||0)+(count['偏印']||0);
+                       const lines: string[] = [];
+                       if (sx>=2 && cai>=1) lines.push('以输出与变现为主线（内容/技术/销售），结合现金流产品与小额复利');
+                       if (cai>=2 && guan>=1) lines.push('稳中求财（龙头+ETF），兼顾合规路径与职业上行');
+                       if (yin>=2) lines.push('先增能后求财（学习认证/工具升级/内功积累）');
+                       if (sx===0 && cai===0) lines.push('避免高频试错，采用指数定投与多元现金流');
+                      const mk = ['ETF','行业龙头','现金流副业'];
+                      const present = names.filter(n => (count[n]||0) > 0);
+                      return (
+                        <div className="space-y-2 text-[12px] text-stone-700">
+                         <div className="flex flex-wrap gap-2">
+                            {present.map(n => (
+                              <span key={n} className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 font-bold">{n} × {count[n]}</span>
+                            ))}
+                        </div>
+                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
+                     <div className="flex items-center gap-2 mb-2"><Check size={16} className="text-stone-700"/><h4 className="text-sm font-black text-stone-900">重大节点提醒清单</h4></div>
+                     {(() => {
+                       const now = new Date();
+                       const dayZhi = chart.pillars.day.ganZhi.zhi;
+                       const monthBaseZhi = chart.pillars.month.ganZhi.zhi;
+                       const yearBaseZhi = chart.pillars.year.ganZhi.zhi;
+                       const items = Array.from({length:6}).map((_,i) => {
+                         const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+                         const gz = getGanZhiForMonth(d.getFullYear(), d.getMonth()+1, chart.dayMaster);
+                         const m = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                         const mz = gz.zhi;
+                         const triggers: string[] = [];
+                         const pushIf = (cond: boolean, t: string) => { if (cond) triggers.push(t); };
+                         pushIf(BRANCH_CLASHES[mz] === dayZhi, '冲日支');
+                         pushIf(BRANCH_CLASHES[mz] === monthBaseZhi, '冲月令');
+                         pushIf(BRANCH_CLASHES[mz] === yearBaseZhi, '冲年支');
+                         pushIf(mz === dayZhi, '伏吟日支');
+                         pushIf(mz === monthBaseZhi, '伏吟月令');
+                         pushIf(mz === yearBaseZhi, '伏吟年支');
+                         pushIf(EARTHLY_BRANCHES.includes(mz) && EARTHLY_BRANCHES.includes(dayZhi) && BRANCH_XING[mz]?.includes(dayZhi), '刑日支');
+                         pushIf(BRANCH_XING[mz]?.includes(monthBaseZhi), '刑月令');
+                         pushIf(BRANCH_HAI[mz] === dayZhi, '害日支');
+                         pushIf(BRANCH_HAI[mz] === monthBaseZhi, '害月令');
+                         pushIf(BRANCH_COMBINES[mz] === dayZhi, '合日支');
+                         pushIf(BRANCH_COMBINES[mz] === monthBaseZhi, '合月令');
+                         pushIf(BRANCH_COMBINES[mz] === yearBaseZhi, '合年支');
+                         const hasHe = triggers.some(t => t.includes('合'));
+                         const hasChong = triggers.some(t => t.includes('冲'));
+                         const hasXing = triggers.some(t => t.includes('刑'));
+                         const hasHai = triggers.some(t => t.includes('害'));
+                         const hasFuyin = triggers.some(t => t.includes('伏吟'));
+                         const pwDay = 3, pwMonth = 2, pwYear = 1;
+                         const twHe = 1, twChong = 3, twXing = 2, twHai = 2, twFuyin = 1;
+                         let score = 0;
+                         if (BRANCH_COMBINES[mz] === dayZhi) score += twHe + pwDay;
+                         if (BRANCH_COMBINES[mz] === monthBaseZhi) score += twHe + pwMonth;
+                         if (BRANCH_COMBINES[mz] === yearBaseZhi) score += twHe + pwYear;
+                         if (BRANCH_CLASHES[mz] === dayZhi) score += twChong + pwDay;
+                         if (BRANCH_CLASHES[mz] === monthBaseZhi) score += twChong + pwMonth;
+                         if (BRANCH_CLASHES[mz] === yearBaseZhi) score += twChong + pwYear;
+                         if (EARTHLY_BRANCHES.includes(mz) && EARTHLY_BRANCHES.includes(dayZhi) && BRANCH_XING[mz]?.includes(dayZhi)) score += twXing + pwDay;
+                         if (BRANCH_XING[mz]?.includes(monthBaseZhi)) score += twXing + pwMonth;
+                         if (BRANCH_HAI[mz] === dayZhi) score += twHai + pwDay;
+                         if (BRANCH_HAI[mz] === monthBaseZhi) score += twHai + pwMonth;
+                         if (mz === dayZhi) score += twFuyin + pwDay;
+                         if (mz === monthBaseZhi) score += twFuyin + pwMonth;
+                         if (mz === yearBaseZhi) score += twFuyin + pwYear;
+                         const level = score >= 6 ? '强' : (score >= 3 ? '中' : '弱');
+                         const levelCls = level === '强' ? 'bg-rose-50 text-rose-700 border-rose-200' : (level === '中' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-100 text-stone-700 border-stone-200');
+                         const action = hasHe ? '促成合作/签约推进' : (hasChong ? '防守降杠杆' : ((hasXing || hasHai) ? '稳健推进/严控合规' : (hasFuyin ? '复盘巩固/按部就班' : '按计划推进')));
+                         const avoidParts = [
+                           hasChong ? '避免重决策' : null,
+                           hasChong ? '避免扩杠杆' : null,
+                           hasXing ? '避免刚性碰撞' : null,
+                           hasHai ? '避免口舌纠纷' : null,
+                           hasHe ? '避免单打独斗' : null
+                         ].filter(Boolean) as string[];
+                         const avoid = (avoidParts.slice(0,2).join('、')) || '常规风险规避';
+                         const prepareParts = [
+                           hasChong ? '现金缓冲' : null,
+                           hasChong ? '延期关键发布' : null,
+                           (hasXing || hasHai) ? '合规审查/合同复核' : null,
+                           hasFuyin ? '备份与冗余' : null,
+                           hasFuyin ? '复盘与整理' : null,
+                           hasHe ? '资料与方案准备' : null,
+                           hasHe ? '对齐关键人' : null
+                         ].filter(Boolean) as string[];
+                         const prepare = (prepareParts.slice(0,2).join('、')) || '常规维护与复盘';
+                         return { month: m, label: `${gz.gan}${gz.zhi}`, triggers, action, avoid, prepare, level, levelCls };
+                       });
+                       return (
+                         <div className="space-y-2">
+                           {items.map(it => (
+                             <div key={it.month} className="bg-stone-50 border border-stone-100 rounded-xl p-3 text-[12px]">
+                               <div className="flex items-center justify-between mb-1">
+                                <div className="font-black text-stone-900">{it.month}</div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200">{it.label}</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${it.levelCls}`}>{it.level}</span>
+                                </div>
+                               </div>
+                               {it.triggers.length > 0 && (
+                                 <div className="flex flex-wrap gap-1 mb-2">
+                                   {it.triggers.map((t,idx)=>(<span key={idx} className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-stone-200 text-stone-800">{t}</span>))}
+                                 </div>
+                               )}
+                               <div className="flex flex-wrap gap-2">
+                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">行动：{it.action}</span>
+                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">避免：{it.avoid}</span>
+                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">准备：{it.prepare}</span>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       );
+                     })()}
+                   </div>
+                </div>
+                       );
+                     })()}
                    </div>
                  </div>
+                
              </div>
          )}
 

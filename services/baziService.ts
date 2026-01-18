@@ -426,6 +426,11 @@ export const getGanZhiForYear = (year: number, dayMaster: string): GanZhi => {
   return createGanZhi(bazi.getYearGan(), bazi.getYearZhi(), getStemIndex(dayMaster));
 };
 
+export const getGanZhiForMonth = (year: number, month: number, dayMaster: string): GanZhi => {
+  const bazi = Solar.fromYmdHms(year, month, 15, 12, 0, 0).getLunar().getEightChar();
+  return createGanZhi(bazi.getMonthGan(), bazi.getMonthZhi(), getStemIndex(dayMaster));
+};
+
 export const calculateAnnualFortune = (chart: BaziChart, year: number): AnnualFortune => {
   const annualGz = getGanZhiForYear(year, chart.dayMaster);
   const reasons: string[] = [];
