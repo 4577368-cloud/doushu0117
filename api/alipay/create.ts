@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 
-const GATEWAY = 'https://openapi.alipay.com/gateway.do';
+const GATEWAY = (process.env.ALIPAY_USE_SANDBOX === 'true')
+  ? 'https://openapi.alipaydev.com/gateway.do'
+  : 'https://openapi.alipay.com/gateway.do';
 
 const buildQuery = (params: Record<string, string>) => {
   const keys = Object.keys(params).sort();
@@ -21,8 +23,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const amountStr = process.env.VIP_AMOUNT || '39.9';
 
   const { user_id } = (req.body || {}) as { user_id?: string };
-  if (!appId || !privateKey || !notifyUrl || !returnUrl) {
-    return res.status(500).json({ error: 'Missing ALIPAY env config' });
+  const missing: string[] = [];
+  if (!appId) missing.push('ALIPAY_APP_ID');
+  if (!privateKey) missing.push('ALIPAY_PRIVATE_KEY');
+  if (!notifyUrl) missing.push('ALIPAY_NOTIFY_URL');
+  if (!returnUrl) missing.push('ALIPAY_RETURN_URL');
+  if (missing.length) {
+    return res.status(500).json({ error: 'Missing ALIPAY env config', missing });
   }
   if (!user_id) {
     return res.status(400).json({ error: 'Missing user_id' });
