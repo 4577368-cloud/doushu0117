@@ -3,12 +3,11 @@ import { Compass, History, Sun, MapPin, Map, Calendar, Clock, X } from 'lucide-r
 import { UserProfile, Gender } from '../types';
 import { CHINA_LOCATIONS } from '../services/constants';
 
-export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; archives: UserProfile[]; }> = ({ onGenerate, archives }) => {
+export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; archives: UserProfile[]; onChromeHiddenChange?: (hidden: boolean) => void; }> = ({ onGenerate, archives, onChromeHiddenChange }) => {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender>('male');
   const [dateInput, setDateInput] = useState(''); 
-  const [hourInput, setHourInput] = useState('12'); 
-  const [minuteInput, setMinuteInput] = useState('00');
+  const [timeInput, setTimeInput] = useState('12:00'); 
   const [isSolarTime, setIsSolarTime] = useState(false);
   const [province, setProvince] = useState('北京市');
   const [city, setCity] = useState('北京');
@@ -72,7 +71,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
              <p className="text-[10px] text-stone-400 mt-1 tracking-[0.25em] uppercase font-sans font-bold">Ancient Wisdom · AI Insights</p>
            </div>
            
-           <form onSubmit={async e => { e.preventDefault(); if (!parsed) return; const emoji = pickDefaultEmoji(gender); const avatar = await makeEmojiAvatar(emoji); onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: `${hourInput.padStart(2, '0')}:${minuteInput.padStart(2, '0')}`, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar }); }} className="space-y-6">
+           <form onSubmit={async e => { e.preventDefault(); if (!parsed) return; const emoji = pickDefaultEmoji(gender); const avatar = await makeEmojiAvatar(emoji); onGenerate({ id: Date.now().toString(), name: name || '访客', gender, birthDate: parsed.formattedDate, birthTime: timeInput, isSolarTime, province, city, longitude, createdAt: Date.now(), avatar }); }} className="space-y-6">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
                     <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">姓名</label>
@@ -97,18 +96,8 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                  </div>
                  <div className="col-span-2 space-y-1.5">
                      <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">时辰</label>
-                     <div className="grid grid-cols-2 gap-2">
-                         <div className="relative">
-                             <select value={hourInput} onChange={e => setHourInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
-                                 {Array.from({length: 24}).map((_, i) => (<option key={i} value={i}>{i.toString().padStart(2, '0')}</option>))}
-                             </select>
-                             <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 pointer-events-none" />
-                         </div>
-                         <div>
-                             <select value={minuteInput} onChange={e => setMinuteInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-3 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm appearance-none">
-                                 {Array.from({length: 60}).map((_, i) => (<option key={i} value={i.toString().padStart(2,'0')}>{i.toString().padStart(2, '0')}</option>))}
-                             </select>
-                         </div>
+                     <div className="space-y-2">
+                       <input type="time" value={timeInput} onFocus={() => onChromeHiddenChange?.(true)} onBlur={() => onChromeHiddenChange?.(false)} onChange={e => setTimeInput(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none font-sans text-base focus:border-stone-400 shadow-sm" />
                      </div>
                  </div>
               </div>

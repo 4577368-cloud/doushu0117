@@ -114,6 +114,7 @@ const App: React.FC = () => {
   
   const [session, setSession] = useState<any>(null);
   const [isVip, setIsVip] = useState(false);
+  const [hideChrome, setHideChrome] = useState(false);
   
   const [showVipModal, setShowVipModal] = useState(false);
   const [showPayResultModal, setShowPayResultModal] = useState(false);
@@ -289,7 +290,7 @@ useEffect(() => {
   const renderContent = () => {
       switch (currentTab) {
           case AppTab.HOME:
-              return <HomeView onGenerate={handleGenerate} archives={archives} />;
+              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
           
           case AppTab.CHART:
               if (!baziChart || !currentProfile) {
@@ -379,15 +380,17 @@ useEffect(() => {
               return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { localStorage.removeItem('bazi_archives'); try { localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>; 
           
           default:
-              return <HomeView onGenerate={handleGenerate} archives={archives} />;
+              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
       }
   };
 
   return (
     <div className={`flex flex-col h-screen overflow-hidden text-stone-950 font-sans select-none transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
-      <AppHeader title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} isVip={isVip} />
+      {!hideChrome && (
+        <AppHeader title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} isVip={isVip} />
+      )}
       <div className="flex-1 overflow-hidden relative">{renderContent()}</div>
-      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+      {!hideChrome && <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />}
       {modalData && <DetailModal data={modalData} chart={baziChart} onClose={() => setModalData(null)} />}
       {showVipModal && <VipActivationModal onClose={() => setShowVipModal(false)} onActivate={handleActivateVip} />}
       {showPayResultModal && <PayResultModal onClose={() => { setShowPayResultModal(false); try { window.history.replaceState(null, '', window.location.pathname); } catch {} }} />}
