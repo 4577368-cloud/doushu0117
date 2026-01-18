@@ -264,9 +264,26 @@ const generateAdvice = (chart: ChartData, age: number, analysisYear: number): st
     }
     const strategy = daXianPalace ? DA_XIAN_STRATEGIES[daXianPalace.name] : null;
     if (!strategy) return "";
-    return `<div class="bg-indigo-600 text-white p-3 rounded-lg">
-        <h5 class="font-bold text-xs mb-1.5">大限策略 (${daXianPalace?.daXian}岁)</h5>
-        <p class="text-xs opacity-90">${strategy.theme}</p>
+    const mainStar = daXianPalace?.stars?.major?.[0]?.name || '';
+    const nextYear = analysisYear + 1;
+    const yearAfter = analysisYear + 2;
+    const sections = (strategy.sections || []).map(sec => {
+        const content = (sec.content || '')
+            .replace(/\$\{star\}/g, mainStar)
+            .replace(/\$\{nextYear\}/g, String(nextYear))
+            .replace(/\$\{yearAfter\}/g, String(yearAfter));
+        return `<div class="flex items-start gap-2 p-2 rounded border border-indigo-100 bg-indigo-50/40">
+            <span class="text-[10px]">${sec.emoji || ''}</span>
+            <div>
+                <div class="text-[10px] font-bold text-indigo-900">${sec.title || ''}</div>
+                <div class="text-xs text-slate-700 leading-relaxed">${content}</div>
+            </div>
+        </div>`;
+    }).join('');
+    return `<div class="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3">
+        <h5 class="font-black text-xs text-indigo-900 mb-1.5">大限策略 (${daXianPalace?.daXian}岁)</h5>
+        <p class="text-xs text-slate-800 mb-2">${strategy.theme}</p>
+        <div class="grid grid-cols-1 gap-2">${sections}</div>
     </div>`;
 };
 

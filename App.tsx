@@ -204,7 +204,7 @@ const App: React.FC = () => {
         saveArchive(profile).then(updatedList => {
               setArchives(updatedList);
               // 更新当前 profile 的 ID (如果是新生成的)
-              const saved = updatedList.find(p => p.birthDate === profile.birthDate && p.birthTime === profile.birthTime);
+              const saved = updatedList.find(p => p.birthDate === profile.birthDate && p.birthTime === profile.birthTime && p.gender === profile.gender);
               if (saved) setCurrentProfile(saved);
         }).catch(err => console.error(err)).finally(() => setIsGlobalSaving(false));
         

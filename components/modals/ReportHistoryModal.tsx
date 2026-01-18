@@ -19,10 +19,13 @@ export const ReportHistoryModal: React.FC<{ report: any; onClose: () => void }> 
                     <button onClick={onClose} className="p-2 rounded-full bg-stone-100 text-stone-400 hover:text-stone-950 transition-colors"><X size={20}/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-white">
-                    <SmartTextRenderer content={report.content} />
+                    {(() => {
+                        const clean = String(report.content || '').replace(/<[^>]+>/g, '');
+                        return <SmartTextRenderer content={clean} />;
+                    })()}
                 </div>
                 <div className="p-4 border-t border-stone-100 bg-stone-50">
-                    <button onClick={() => { navigator.clipboard.writeText(report.content); alert('报告内容已复制'); }} className="w-full py-3 bg-stone-900 text-white rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <button onClick={() => { const clean = String(report.content || '').replace(/<[^>]+>/g, ''); navigator.clipboard.writeText(clean); alert('报告内容已复制'); }} className="w-full py-3 bg-stone-900 text-white rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
                         <ClipboardCopy size={16} /> 复制完整报告
                     </button>
                 </div>

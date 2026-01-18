@@ -260,36 +260,13 @@ export const callDeepSeekAPI = async (
       throw new Error("排盘数据异常，无法分析");
   }
 
-  const systemPrompt = `你是一位精通紫微斗数（钦天四化与三合流派）的命理大师，尤其擅长将传统命理与现代生活结合分析。
+  const systemPrompt = `你是一位精通紫微斗数（钦天四化与三合流派）的命理大师，擅长将传统命理与现代生活结合分析。
 请根据用户的紫微命盘数据，进行全面的流年运势分析。
 
-## 分析框架要求：
-1. **现代应用导向**：将星曜特质映射到现代行业、职业发展、财富积累方式
-2. **多层次分析**：包含大限趋势、流年重点、流月提醒
-3. **实用性建议**：给出具体的行动建议和注意事项
-4. **辩证分析**：分析优势和挑战，避免绝对化判断
-
-## 输出要求：
-1. 返回格式必须是 **HTML** (不要包含 markdown 代码块标记如 \`\`\`html)
-2. 使用现代清晰的排版：
-   - 使用 <div class="section"> 包裹每个部分
-   - 使用 <h3>, <h4> 作为标题
-   - 使用 <ul class="analysis-list"> 和 <li class="point-item"> 列表项
-   - 使用 <strong class="highlight"> 强调重点
-   - 使用 <p class="advice"> 存放建议
-3. 结构必须包含以下部分：
-   - 大限趋势总览
-   - 流年核心主题
-   - 财富深度分析
-   - 事业职业发展
-   - 重要流月提醒
-   - 综合建议
-
-## 现代分析要点：
-1. 财富类型：区分稳定收入、投资理财、副业创业、被动收入
-2. 事业适配：分析适合的行业、团队角色、发展时机
-3. 风险提示：投资风险、职业转型风险、人际关系风险
-4. 时机把握：最佳行动月份、重要决策时机`;
+输出要求：
+1. 返回内容必须为纯文本，使用换行分段，不输出任何 HTML 或代码块标记。
+2. 使用清晰的分节标题，例如：大限趋势总览、流年核心主题、财富深度分析、事业职业发展、重要流月提醒、综合建议。
+3. 保持专业、客观、可执行的建议，避免绝对化判断。`;
 
   const userPrompt = `## 用户基本信息
 - 性别：${gender}
@@ -357,71 +334,8 @@ ${JSON.stringify(enhancedData.keyPalaces, null, 2)}
     if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
     let content = await readStreamResponse(response);
-    
-    // 清理和增强HTML
-    content = content
-      .replace(/```html/g, '')
-      .replace(/```/g, '')
-      .trim();
-    
-    // 添加CSS样式 (内联样式，确保在任何地方都能渲染)
-    const styledContent = `
-      <style>
-        .ziwei-analysis {
-          font-family: 'Microsoft YaHei', sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .section {
-          background: #f9f9f9;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
-          border-left: 4px solid #4a6fa5;
-        }
-        h3 {
-          color: #2c3e50;
-          border-bottom: 2px solid #eee;
-          padding-bottom: 10px;
-          font-size: 18px;
-          font-weight: 800;
-        }
-        h4 {
-          color: #34495e;
-          margin-top: 15px;
-          font-size: 16px;
-          font-weight: 700;
-        }
-        .analysis-list {
-          padding-left: 20px;
-        }
-        .point-item {
-          margin: 8px 0;
-          padding: 5px;
-          background: white;
-          border-radius: 4px;
-        }
-        .highlight {
-          color: #e74c3c;
-          font-weight: bold;
-        }
-        .advice {
-          background: #e8f4fc;
-          padding: 15px;
-          border-radius: 6px;
-          margin: 15px 0;
-          color: #2980b9;
-          font-weight: 500;
-        }
-      </style>
-      <div class="ziwei-analysis">
-        ${content}
-      </div>
-    `;
-    
-    return styledContent;
+    content = content.replace(/```html/g, '').replace(/```/g, '').trim();
+    return content;
 
   } catch (error: any) {
     console.error("Ziwei AI Error:", error);

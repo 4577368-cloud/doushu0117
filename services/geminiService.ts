@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { BaziChart } from "../types";
 
 // 定义报告结构接口
@@ -17,21 +16,39 @@ export interface BaziReport {
  * 使用 DeepSeek 生成结构化八字财富报告
  * 包含：详细提示词构建、JSON 模式请求、错误处理
  */
+// 读取服务端流式响应
+const readStreamResponse = async (response: Response): Promise<string> => {
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
+
+  if (!reader) throw new Error("无法读取响应流");
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6);
+        if (jsonStr.trim() === '[DONE]') continue;
+        try {
+          const json = JSON.parse(jsonStr);
+          const content = json.choices?.[0]?.delta?.content || '';
+          fullText += content;
+        } catch {}
+      }
+    }
+  }
+  return fullText;
+};
+
 export const analyzeBaziStructured = async (
   chart: BaziChart,
-  apiKey?: string
+  apiKey?: string,
+  isVip: boolean = false
 ): Promise<BaziReport> => {
-  
-  // 1. 校验 Key
-  const key = apiKey || sessionStorage.getItem('ai_api_key');
-  if (!key) throw new Error("API Key 未设置，请先在设置中输入 DeepSeek API Key");
-
-  // 2. 初始化 OpenAI 客户端 (连接 DeepSeek)
-  const client = new OpenAI({
-    baseURL: 'https://api.deepseek.com', // DeepSeek 官方接口
-    apiKey: key,
-    dangerouslyAllowBrowser: true // 允许在前端直接调用
-  });
 
   // 3. 构建动态上下文数据
   const analysisYear = new Date().getFullYear();
@@ -76,29 +93,38 @@ JSON 结构规范：
   const userPrompt = `请基于以下命盘生成深度财富分析报告：\n${chartDescription}`;
 
   try {
-    // 5. 发起 DeepSeek 请求
-    // 注意：这里我们使用 non-streaming (非流式)，因为我们需要等待完整的 JSON 生成才能解析
-    // DeepSeek 的生成速度通常很快，直接 await 体验尚可，且 JSON 解析更安全
-    const completion = await client.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      model: "deepseek-chat", // 使用 V3 模型
-      temperature: 1.1, // 稍微提高创造性
-      response_format: { type: "json_object" }, // 🔥 强制 JSON 输出，这是关键
-      max_tokens: 4000 // 保证报告足够长
+    const finalKey = apiKey || sessionStorage.getItem('ai_api_key') || '';
+    if (!finalKey && !isVip) {
+      throw new Error("API Key 未设置，请先在设置中输入 DeepSeek API Key");
+    }
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: finalKey,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        model: 'deepseek-chat',
+        temperature: 1.0,
+        response_format: { type: 'json_object' },
+        stream: true
+      })
     });
 
-    const rawContent = completion.choices[0].message.content || "";
+    if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    let rawContent = await readStreamResponse(response);
 
     // 6. 解析 JSON 结果
     let parsed;
     try {
-        parsed = JSON.parse(rawContent);
+      parsed = JSON.parse(rawContent);
     } catch (e) {
-        console.error("JSON Parse Error:", e, rawContent);
-        throw new Error("报告生成格式异常，请重试");
+      console.error("JSON Parse Error:", e, rawContent);
+      throw new Error("报告生成格式异常，请重试");
     }
 
     // 7. 数据标准化 (防止 AI 漏字段)
@@ -120,11 +146,10 @@ JSON 结构规范：
 
   } catch (e: any) {
     console.error("DeepSeek Request Failed:", e);
-    // 友好的错误提示
     let msg = "生成失败";
     if (e.status === 401) msg = "API Key 无效或过期";
     if (e.status === 429) msg = "余额不足或请求过于频繁";
     if (e.status === 500) msg = "DeepSeek 服务器繁忙";
-    throw new Error(`${msg}: ${e.message}`);
+    throw new Error(`${msg}: ${e.message || e}`);
   }
 };

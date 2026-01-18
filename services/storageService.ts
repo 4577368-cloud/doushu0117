@@ -133,6 +133,14 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
     finalProfile = { ...archives[existingIndex], ...profile };
     archives[existingIndex] = finalProfile;
   } else {
+    const dupIndex = archives.findIndex(p => 
+      p.birthDate === finalProfile.birthDate && 
+      p.birthTime === finalProfile.birthTime && 
+      p.gender === finalProfile.gender
+    );
+    if (dupIndex > -1) {
+      return archives;
+    }
     finalProfile.id = profile.id || generateId();
     finalProfile.createdAt = Date.now();
     archives.unshift(finalProfile);
@@ -181,7 +189,7 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
         .eq('user_id', session.user.id)
         .eq('birth_date', finalProfile.birthDate)
         .eq('birth_time', finalProfile.birthTime)
-        .eq('name', finalProfile.name)
+        .eq('gender', finalProfile.gender)
         .limit(1);
       if (selError) {
         console.error("❌ [Cloud Save] 查询失败:", selError.message);

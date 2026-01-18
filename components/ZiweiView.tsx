@@ -5,6 +5,7 @@ import { callDeepSeekAPI } from '../ziwei/services/aiService';
 import { UserProfile } from '../types';
 import { BrainCircuit, Activity, Sparkles, ClipboardCopy, Crown } from 'lucide-react';
 import { ZiweiChartView } from './ZiweiChartView'; 
+import { SmartTextRenderer } from './ui/BaziUI';
 
 interface ZiweiViewProps {
   profile: UserProfile;
@@ -172,13 +173,12 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
         const birthYear = parseInt(profile.birthDate.split('-')[0]);
         const age = new Date().getFullYear() - birthYear + 1;
         
-        const html = await callDeepSeekAPI(apiKey, chartData, age, profile.gender === 'male' ? 'M' : 'F', new Date().getFullYear());
-        
-        setDeepSeekContent(html);
-        onSaveReport(html);
+        const text = await callDeepSeekAPI(apiKey, chartData, age, profile.gender === 'male' ? 'M' : 'F', new Date().getFullYear());
+        setDeepSeekContent(text);
+        onSaveReport(text);
     } catch (e: any) { 
         console.error(e);
-        setDeepSeekContent(`<p style="color:red">分析失败: ${e.message || "请检查网络"}</p>`); 
+        setDeepSeekContent(`分析失败: ${e.message || "请检查网络"}`); 
     } finally { 
         setIsDeepSeekLoading(false); 
     }
@@ -289,8 +289,9 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
                                   <div className="flex justify-end mb-3">
                                     <button onClick={()=>{navigator.clipboard.writeText(deepSeekContent);alert('已复制');}} className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100"><ClipboardCopy size={12}/>一键复制报告</button>
                                   </div>
-                                  <div className="text-xs leading-relaxed text-stone-700 bg-stone-50 p-5 rounded-2xl border border-stone-100 whitespace-pre-wrap font-serif shadow-inner" 
-                                       dangerouslySetInnerHTML={{ __html: deepSeekContent }} />
+                                  <div className="text-xs leading-relaxed text-stone-700 bg-stone-50 p-5 rounded-2xl border border-stone-100 whitespace-pre-wrap font-serif shadow-inner">
+                                      <SmartTextRenderer content={deepSeekContent} />
+                                  </div>
                               </div>
                           )}
                       </div>
