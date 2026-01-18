@@ -266,10 +266,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                     </span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-2 mt-1 text-xs font-medium tracking-wide">
+                            <div className="hidden sm:flex items-center gap-2 mt-1 text-xs font-medium tracking-wide">
                                 <span className="text-stone-500">{session ? `ID: ${session.user.id.slice(0,8).toUpperCase()}` : '离线模式'}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">档案 {archives.length}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">标签 {uniqueTagsCount}</span>
                             </div>
                         </div>
                     </div>
