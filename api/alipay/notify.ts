@@ -15,9 +15,19 @@ const verifySign = (params: Record<string, string>, alipayPublicKey: string) => 
   return verifier.verify(alipayPublicKey, params.sign, 'base64');
 };
 
+const readBodyText = (req: VercelRequest): Promise<string> => new Promise((resolve, reject) => {
+  let data = '';
+  req.on('data', (chunk: any) => { data += chunk; });
+  req.on('end', () => resolve(data));
+  req.on('error', reject);
+});
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Alipay sends x-www-form-urlencoded POST
-  const bodyText = typeof req.body === 'string' ? req.body : (req.rawBody ? req.rawBody.toString() : '');
+  const ct = String(req.headers['content-type'] || '');
+  let bodyText = typeof req.body === 'string' ? req.body : '';
+  if (!bodyText && ct.includes('application/x-www-form-urlencoded')) {
+    bodyText = await readBodyText(req);
+  }
   const params = typeof req.body === 'object' && req.body && !Array.isArray(req.body)
     ? (req.body as Record<string, string>)
     : (qs.parse(bodyText) as any as Record<string, string>);
@@ -63,7 +73,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).send('success');
     }
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    await supabase.auth.admin.updateUserById(user_id, { user_metadata: { is_vip_user: true } });
+    try {
+      await supabase.from('alipay_orders')
+        .update({
+          status: 'success',
+          paid_at: new Date().toISOString(),
+          alipay_trade_no: params.trade_no || '',
+          buyer_id: params.buyer_id || '',
+          raw_notify: params
+        })
+        .eq('out_trade_no', params.out_trade_no);
+    } catch {}
+    try {
+      await supabase.auth.admin.updateUserById(user_id, { user_metadata: { is_vip_user: true } });
+    } catch {}
 
     return res.status(200).send('success');
   } catch (e) {

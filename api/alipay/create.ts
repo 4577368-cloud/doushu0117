@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 const GATEWAY = (process.env.ALIPAY_USE_SANDBOX === 'true')
   ? 'https://openapi.alipaydev.com/gateway.do'
@@ -72,5 +73,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const payUrl = `${GATEWAY}?${signContent}&sign=${encodeURIComponent(sign)}`;
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      await supabase.from('alipay_orders').insert({
+        out_trade_no: outTradeNo,
+        user_id,
+        amount: amountStr,
+        subject,
+        status: 'pending',
+        pay_url: payUrl,
+        created_at: new Date().toISOString()
+      });
+    }
+  } catch {}
   return res.status(200).json({ payUrl, out_trade_no: outTradeNo });
 }
