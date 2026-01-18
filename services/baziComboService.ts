@@ -52,7 +52,15 @@ export const getDayHourComboText = (chart: BaziChart): string => {
     const specificPart = startIdx >= 0 ? lines.slice(startIdx, endIdx).join('\n').trim() : '';
     const monthHintLines = (specificPart || txt).split(/\r?\n/).map(s => s.trim()).filter(Boolean).filter(l => l.includes('月') && l.includes(monthZhi));
     const hint = monthHintLines.length ? `【当月提示】\n${monthHintLines.join('\n')}\n\n` : '';
-    const finalText = (hint + [generalPart, specificPart || txt].filter(Boolean).join('\n\n')).trim();
+    const monthHintSet = new Set(monthHintLines.map(l => l.trim()));
+    const filterOutHints = (s: string) => s.split(/\r?\n/).filter(l => !monthHintSet.has(l.trim())).join('\n').trim();
+    const cleanedGeneral = generalPart ? filterOutHints(generalPart) : '';
+    const cleanedSpecific = (specificPart || txt) ? filterOutHints(specificPart || txt) : '';
+    const merged = [cleanedGeneral, cleanedSpecific].filter(Boolean).join('\n\n');
+    const mergedLines = (hint + merged).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const unique = mergedLines.filter(l => { const k = l.replace(/\s+/g, ''); if (seen.has(k)) return false; seen.add(k); return true; });
+    const finalText = unique.join('\n');
     return finalText || '暂无此组合的传统解读';
   } catch {
     return '暂无此组合的传统解读';

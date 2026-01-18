@@ -40,7 +40,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   // 🔥 修改点：移除了 'AI 对话' 选项，现在它在底部导航栏
   const tabs = [
       { id: ChartSubTab.DETAIL, label: '流年大运' }, 
-      { id: ChartSubTab.ANALYSIS, label: '整体建议' }
+      { id: ChartSubTab.ANALYSIS, label: '大师解读' }
   ];
 
   const handleAiAnalysisWrapper = () => { 
@@ -87,48 +87,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                 </div>
                 <div className="grid grid-cols-1 gap-4">
 
-                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
-                     <div className="flex items-center gap-2 mb-2"><History size={16} className="text-rose-500"/><h4 className="text-sm font-black text-stone-900">岁运拐点与预警</h4></div>
-                     {(() => {
-                       const now = new Date();
-                       const y = now.getFullYear();
-                       const lp = chart.luckPillars || [];
-                       const current = lp.find(p => y>=p.startYear && y<=p.endYear) || lp[0];
-                       const currentIndex = current ? lp.indexOf(current) : 0;
-                       const next = lp[currentIndex+1];
-                       const tag = (() => {
-                         const yr = chart.pillars.year.ganZhi;
-                         if (current && yr) {
-                           const ganMatch = current.ganZhi.gan === yr.gan ? '干并临' : '';
-                           const zhiMatch = current.ganZhi.zhi === yr.zhi ? '支并临' : '';
-                           const both = ganMatch && zhiMatch ? '岁运并临' : (ganMatch || zhiMatch);
-                           return both || '平常';
-                         }
-                         return '未知';
-                       })();
-                       return (
-                         <div className="space-y-2 text-[12px] text-stone-700">
-                           <div className="flex items-center justify-between bg-stone-50 p-3 rounded-xl border border-stone-100">
-                             <div>
-                               <div className="font-black text-stone-900">当前大运 {current?.startYear} - {current?.endYear}</div>
-                               <div className="text-[10px] text-stone-500">{current?.ganZhi.gan}{current?.ganZhi.zhi} · {tag}</div>
-                             </div>
-                             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${tag.includes('并临') ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>{tag}</span>
-                           </div>
-                           {next && (
-                             <div className="flex items-center justify-between bg-stone-50 p-3 rounded-xl border border-stone-100">
-                               <div>
-                                 <div className="font-black text-stone-900">下一大运 {next.startYear} - {next.endYear}</div>
-                                 <div className="text-[10px] text-stone-500">{next.ganZhi.gan}{next.ganZhi.zhi}</div>
-                               </div>
-                               <span className="text-[10px] px-2 py-0.5 rounded-full border bg-stone-100 text-stone-700 border-stone-200">提前准备</span>
-                             </div>
-                           )}
-                           <div className="text-[11px] bg-rose-50 border border-rose-100 text-rose-800 rounded-xl p-3">并临时建议：缩杠杆、稳现金流、减高波动资产；重要决策避开本月本季高冲击窗口。</div>
-                         </div>
-                       );
-                     })()}
-                   </div>
+                  
 
                    <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
                      <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-emerald-600"/><h4 className="text-sm font-black text-stone-900">生财路径建议</h4></div>
