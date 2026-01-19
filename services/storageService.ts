@@ -1,7 +1,16 @@
 import { UserProfile, HistoryItem } from '../types';
 import { supabase, supabaseReady } from './supabase';
 
-const STORAGE_KEY = 'bazi_archives';
+const LEGACY_KEY = 'bazi_archives';
+const getStorageKey = async (): Promise<string> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    return uid ? `bazi_archives:${uid}` : 'bazi_archives:guest';
+  } catch {
+    return 'bazi_archives:guest';
+  }
+};
 
 // 模拟 ID 生成
 const generateId = () => {
@@ -58,7 +67,16 @@ const normalizeTime = (s: string | undefined): string => {
 // 1. 获取本地缓存
 export const getArchives = async (): Promise<UserProfile[]> => {
   if (typeof window === 'undefined') return [];
-  const json = localStorage.getItem(STORAGE_KEY);
+  // 迁移旧全局键到 guest 键
+  try {
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      localStorage.setItem('bazi_archives:guest', legacy);
+      localStorage.removeItem(LEGACY_KEY);
+    }
+  } catch {}
+  const key = await getStorageKey();
+  const json = localStorage.getItem(key);
   return json ? JSON.parse(json) : [];
 };
 
@@ -101,18 +119,10 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
         aiReports: [] 
       }));
 
-      const localArchives = await getArchives();
-      const mergedMap = new Map<string, UserProfile>();
-
-      localArchives.forEach(p => mergedMap.set(p.id, p));
-      cloudArchives.forEach(p => mergedMap.set(p.id, p));
-
-      const mergedList = Array.from(mergedMap.values()).sort((a, b) => 
-        (b.createdAt || 0) - (a.createdAt || 0)
-      );
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedList));
-      return mergedList;
+      const sorted = cloudArchives.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const key = `bazi_archives:${userId}`;
+      localStorage.setItem(key, JSON.stringify(sorted));
+      return sorted;
     }
   } catch (err: any) {
     console.error("❌ [Sync] 失败:", err.message);
@@ -147,7 +157,10 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
   }
 
   // 先存本地
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+  try {
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(archives));
+  } catch {}
 
   // 后存云端
   const { data: { session } } = await supabase.auth.getSession();
@@ -244,7 +257,8 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
               localStorage.setItem(newKey, oldVal);
               localStorage.removeItem(oldKey);
             }
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+            const k = await getStorageKey();
+            localStorage.setItem(k, JSON.stringify(archives));
           }
           console.log("✅ [Cloud Save] 成功，已生成云端 UUID 并本地迁移");
         }
@@ -279,7 +293,10 @@ export const saveArchiveFast = async (profile: UserProfile): Promise<UserProfile
     archives.unshift(finalProfile);
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+  try {
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(archives));
+  } catch {}
 
   (async () => { try { await saveArchive(finalProfile); } catch {} })();
 
@@ -293,7 +310,10 @@ export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
   // 1. 先在本地更新状态
   const oldSelf = archives.find(p => p.isSelf);
   archives = archives.map(p => ({ ...p, isSelf: p.id === id }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+  try {
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(archives));
+  } catch {}
 
   // 2. 云端更新（使用 update 而不是 upsert，更安全且只更新必要字段）
   const { data: { session } } = await supabase.auth.getSession();
@@ -325,7 +345,10 @@ export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
 export const deleteArchive = async (id: string): Promise<UserProfile[]> => {
   const archives = await getArchives();
   const newList = archives.filter(p => p.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+  try {
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(newList));
+  } catch {}
   localStorage.removeItem(`chat_history_${id}`);
 
   const { data: { session } } = await supabase.auth.getSession();

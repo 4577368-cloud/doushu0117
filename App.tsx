@@ -141,9 +141,10 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         setSession(session);
         if (event === 'SIGNED_IN' && session?.user) {
-            // 登录成功瞬间，拉取云端
+            // 登录成功瞬间，清理访客缓存并拉取云端
+            try { localStorage.removeItem('bazi_archives:guest'); } catch {}
             syncArchivesFromCloud(session.user.id).then(data => {
-                if (data.length > 0) setArchives(data);
+                if (data.length > 0) setArchives(data); 
             });
             if (window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
                  setShowWelcomeModal(true);
@@ -159,7 +160,7 @@ const App: React.FC = () => {
             setBaziChart(null); 
             setCurrentProfile(null);
             setCurrentTab(AppTab.HOME);
-            try { localStorage.removeItem('is_vip_user'); } catch {}
+            try { localStorage.removeItem('is_vip_user'); localStorage.removeItem('bazi_archives:guest'); } catch {}
         }
     });
     return () => subscription.unsubscribe();
@@ -223,27 +224,6 @@ const App: React.FC = () => {
       if (!session) {
           // 这里不做拦截，允许访客保存到本地
       }
-useEffect(() => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    setSession(session);
-    
-    if (event === 'SIGNED_IN' && session?.user) {
-      // 🔥 关键修复：登录时先清空本地旧缓存，确保数据纯净
-      localStorage.removeItem('bazi_archives'); 
-      console.log("检测到登录，已清理本地旧缓存，准备同步新账号数据...");
-      
-      const newList = await syncArchivesFromCloud(session.user.id);
-      setArchives(newList);
-    } else if (event === 'SIGNED_OUT') {
-      // 🔥 关键修复：退出登录时立即清空本地档案，防止数据泄露给下一个使用者
-      localStorage.removeItem('bazi_archives');
-      try { localStorage.removeItem('is_vip_user'); } catch {}
-      setArchives([]);
-      console.log("已退出登录，清空本地数据");
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
       setIsGlobalSaving(true);
       try {
           const updatedList = await saveArchiveFast(currentProfile);
@@ -377,7 +357,7 @@ useEffect(() => {
           
           case AppTab.ARCHIVE:
               if (!session) return <div className="flex flex-col items-center justify-center h-full p-6 bg-[#f5f5f4]"><Auth onLoginSuccess={()=>{}} /></div>;
-              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { localStorage.removeItem('bazi_archives'); try { localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>; 
+              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>; 
           
           default:
               return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;

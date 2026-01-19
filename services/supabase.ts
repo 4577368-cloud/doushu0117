@@ -39,7 +39,7 @@ export const supabaseReady = !!rawUrl && !!rawKey;
 export const safeSignOut = async () => {
   if (!supabaseReady) {
     try {
-      localStorage.removeItem('bazi_archives');
+      localStorage.removeItem('bazi_archives:guest');
     } catch {}
     return { error: null } as any;
   }

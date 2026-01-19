@@ -58,14 +58,9 @@ export const VipActivationModal: React.FC<{ onClose: () => void; onActivate: () 
                 </div>
                 
                 <div className="p-6 space-y-6 bg-white">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-52 h-52 bg-white rounded-2xl border border-stone-100 flex items-center justify-center relative overflow-hidden p-2 shadow-lg group">
-                            <div className="absolute inset-0 bg-amber-500/5 group-hover:bg-transparent transition-colors z-10 pointer-events-none"/>
-                            <img src="https://imgus.tangbuy.com/static/images/2026-01-14/d3cfc3391f4b4049855b70428d881cc8-17683802616059959910686892450765.jpg" alt="Payment QR" className="w-full h-full object-contain rounded-lg" />
-                        </div>
-                        <p className="text-[11px] text-stone-500 text-center max-w-[240px] leading-relaxed">
-                            请使用微信/支付宝扫码支付 <b className="text-stone-900 font-black">¥39.9</b><br/>
-                            支付成功后截图联系客服，获取您的专属密钥
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-[11px] text-stone-500 text-center max-w-[260px] leading-relaxed">
+                            支持支付宝在线开通或直接输入专属密钥激活
                         </p>
                     </div>
                     <div className="space-y-2">
