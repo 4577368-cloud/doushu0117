@@ -507,9 +507,12 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-300 border border-stone-700">{new Date(reportToView.date).toLocaleString()}</span>
-                                    <button onClick={()=>setReportToView(null)} className="text-[10px] text-stone-400 hover:text-stone-200">返回列表</button>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => { navigator.clipboard.writeText(reportToView.content); alert('报告内容已复制'); }} className="text-[10px] text-amber-500 hover:text-amber-400 flex items-center gap-1"><ClipboardCopy size={12}/> 复制</button>
+                                        <button onClick={()=>setReportToView(null)} className="text-[10px] text-stone-400 hover:text-stone-200">返回列表</button>
+                                    </div>
                                 </div>
-                                <div className="p-4 rounded-xl border border-stone-800 bg-stone-900/40 text-stone-200 text-sm whitespace-pre-wrap">{reportToView.content}</div>
+                                <div className="p-4 rounded-xl border border-stone-800 bg-stone-900/40 text-stone-200 text-sm whitespace-pre-wrap max-h-[60vh] overflow-y-auto custom-scrollbar">{reportToView.content}</div>
                             </div>
                         )}
                     </div>

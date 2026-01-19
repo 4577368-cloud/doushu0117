@@ -209,8 +209,10 @@ export const BaziAnalysisView: React.FC<BaziAnalysisViewProps> = ({ chart, onSho
                 {currentLuckYears.map(year => {
                     const isSelected = analysisYear === year;
                     const gz = getGanZhiForYear(year, chart.dayMaster);
+                    const f = calculateAnnualFortune(chart, year);
                     return (
-                        <button key={year} onClick={() => setAnalysisYear(year)} className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${isSelected ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-white border-stone-200 text-stone-600 hover:bg-amber-50 hover:border-amber-200'}`}>
+                        <button key={year} onClick={() => setAnalysisYear(year)} className={`relative p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${isSelected ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-white border-stone-200 text-stone-600 hover:bg-amber-50 hover:border-amber-200'}`}>
+                            <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${f.rating === '吉' ? 'bg-emerald-500' : f.rating === '凶' ? 'bg-rose-500' : 'bg-stone-300'}`} />
                             <span className="text-[10px] font-bold opacity-80 leading-none">{year}</span>
                             <span className="text-xs font-serif font-black leading-none">{gz.gan}{gz.zhi}</span>
                         </button>
