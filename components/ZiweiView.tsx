@@ -48,7 +48,7 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
         bTime = [parseInt(timeStr.slice(0,2), 10) || 0, 0];
       }
 
-      const gender = profile.gender === 'male' ? 'M' : 'F';
+      const gender = profile.gender === 'male' ? 'male' : 'female';
       const lng = profile.longitude || 120;
       
       return { y: birth[0], m: birth[1], d: birth[2], h: bTime[0], gender, lng };
@@ -173,7 +173,7 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
         const birthYear = parseInt(profile.birthDate.split('-')[0]);
         const age = new Date().getFullYear() - birthYear + 1;
         
-        const text = await callDeepSeekAPI(apiKey, chartData, age, profile.gender === 'male' ? 'M' : 'F', new Date().getFullYear());
+        const text = await callDeepSeekAPI(apiKey, chartData, age, profile.gender === 'male' ? 'male' : 'female', new Date().getFullYear());
         setDeepSeekContent(text);
         onSaveReport(text);
     } catch (e: any) { 

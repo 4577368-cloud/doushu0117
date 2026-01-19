@@ -232,7 +232,8 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
               localStorage.setItem(newKey, oldVal);
               localStorage.removeItem(oldKey);
             }
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(archives));
+            const k = await getStorageKey();
+            localStorage.setItem(k, JSON.stringify(archives));
           }
           console.log("✅ [Cloud Save] 已合并到现有记录，并完成本地迁移");
         }

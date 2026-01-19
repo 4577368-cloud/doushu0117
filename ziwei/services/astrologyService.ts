@@ -753,7 +753,7 @@ export const calculateChart = (
     month: number, 
     day: number, 
     hour: number, 
-    gender: 'M' | 'F', 
+    gender: 'male' | 'female', 
     lng: number
 ): ChartData | null => {
     try {
@@ -840,7 +840,7 @@ export const calculateChart = (
         applyFourTransformationsComplete(palaces, yearGan);
 
         const isYangYear = yearGanIndex % 2 === 0; 
-        const isMale = gender === 'M'; 
+        const isMale = gender === 'male'; 
         const isClockwise = (isMale && isYangYear) || (!isMale && !isYangYear);
         let csStart = 8; 
         if (bureau.type === 'Wood') csStart = 11; 

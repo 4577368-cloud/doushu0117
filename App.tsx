@@ -255,8 +255,7 @@ const App: React.FC = () => {
     try {
       const result = await analyzeBaziStructured(baziChart!, key || undefined, isVip);
       setAiReport(result);
-      // 只有登录用户才保存报告到云端历史，避免访客数据过大
-      if (currentProfile && session) {
+      if (currentProfile) {
         const updated = await saveAiReportToArchive(currentProfile.id, result.copyText, 'bazi');
         setArchives(updated);
       }
@@ -292,7 +291,6 @@ const App: React.FC = () => {
                           chart={baziChart} 
                           onShowModal={setModalData} 
                           onSaveReport={async (r:string, t:'bazi'|'ziwei')=> { 
-                              if(!session) return alert("请先登录后保存报告");
                               const updated = await saveAiReportToArchive(currentProfile.id, r, t); 
                               setArchives(updated); 
                           }} 
@@ -347,7 +345,6 @@ const App: React.FC = () => {
                   <ZiweiView 
                       profile={currentProfile} 
                       onSaveReport={async (r) => { 
-                          if(!session) return alert("请先登录后保存报告");
                           const updated = await saveAiReportToArchive(currentProfile.id, r, 'ziwei'); 
                           setArchives(updated); 
                       }} 

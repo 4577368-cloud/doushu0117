@@ -97,7 +97,8 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
     
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    
+    const [mode, setMode] = useState<ChatMode>('bazi');
+
     const activeSuggestions = useMemo(() => {
         if (loading) return [];
         if (mode === 'ziwei') {
@@ -105,8 +106,6 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
         }
         return ['以当前时间起盘', '今日应避事项', '今日财运机会'];
     }, [loading, mode]);
-
-    const [mode, setMode] = useState<ChatMode>('bazi'); 
     
     // 滚动相关
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -124,7 +123,7 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
             const month = parseInt(dateParts[1]);
             const day = parseInt(dateParts[2]);
             const hour = parseInt(p.birthTime.split(':')[0]);
-            const genderKey = p.gender === 'male' ? 'M' : 'F';
+            const genderKey = p.gender === 'male' ? 'male' : 'female';
             const lng = p.longitude || 120;
             const zwChart = calculateChart(year, month, day, hour, genderKey, lng);
             if (!zwChart || !zwChart.palaces) return "（紫微排盘失败）";

@@ -9,6 +9,10 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom']
   },
+  build: {
+    sourcemap: true,
+    minify: false
+  },
   server: {
     proxy: {
       '/api': {

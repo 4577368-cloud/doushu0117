@@ -56,7 +56,7 @@ const sanitizeChartData = (chartData: any, age: number, currentYear: number) => 
   return {
     user: {
       wuxing: chartData.bureau?.name || '',
-      gender: chartData.gender || 'M',
+      gender: (chartData.gender === 'female' ? 'female' : 'male'),
       age,
       lunarYear: currentYear
     },
