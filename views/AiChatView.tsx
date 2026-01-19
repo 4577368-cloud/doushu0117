@@ -100,8 +100,11 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
     
     const activeSuggestions = useMemo(() => {
         if (loading) return [];
-        return ['以当前时间起盘', '流月注意事项', '今日适合关注哪些股票'];
-    }, [loading]);
+        if (mode === 'ziwei') {
+            return ['以当前时间起盘', '今日流日四化重点与禁忌', '今日财运与风控提示'];
+        }
+        return ['以当前时间起盘', '今日应避事项', '今日财运机会'];
+    }, [loading, mode]);
 
     const [mode, setMode] = useState<ChatMode>('bazi'); 
     
@@ -157,6 +160,15 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
             requestAnimationFrame(() => setIsReady(true));
         }
     }, []);
+
+    useEffect(() => {
+        const resetMsg = mode === 'ziwei'
+            ? { role: 'assistant' as const, content: `已切换为紫微斗数模式。当前时空【${timeContext}】。请问您今天想了解哪方面的星象？` }
+            : { role: 'assistant' as const, content: `已切换为八字模式。当前时空【${timeContext}】。请问您今天想了解哪方面的运势？` };
+        setMessages([resetMsg]);
+        setIsUserScrolledUp(false);
+        if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }, [mode]);
 
     useEffect(() => {
         if (isReady && !isUserScrolledUp) {
