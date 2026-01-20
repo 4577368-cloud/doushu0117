@@ -443,6 +443,16 @@ export const BRANCH_HAI: Record<string, string> = {
   '酉': '戌', '戌': '酉'
 };
 
+// 🔥 新增：地支相破表
+export const BRANCH_PO: Record<string, string> = {
+  '子': '酉', '酉': '子',
+  '丑': '辰', '辰': '丑',
+  '寅': '亥', '亥': '寅', // 虽合亦破
+  '卯': '午', '午': '卯',
+  '巳': '申', '申': '巳', // 虽合亦破
+  '未': '戌', '戌': '未'  // 虽刑亦破
+};
+
 export const TEN_GOD_EVENTS: Record<string, string[]> = {
   '比肩': ['合作', '破财', '竞争', '兄弟事'],
   '劫财': ['破财', '克父', '克妻', '冲动'],

@@ -42,7 +42,7 @@ import {
 } from './constants';
 
 // --- 1. 基础常量定义 ---
-const BRANCH_COMBINATIONS: Record<string, string> = {
+export const BRANCH_COMBINATIONS: Record<string, string> = {
   '子': '丑', '丑': '子',
   '寅': '亥', '亥': '寅',
   '卯': '戌', '戌': '卯',
@@ -53,7 +53,20 @@ const BRANCH_COMBINATIONS: Record<string, string> = {
 
 // --- 2. 基础辅助函数 ---
 const getElement = (char: string): string => FIVE_ELEMENTS[char] || '土';
-const getStemIndex = (stem: string) => Math.max(0, HEAVENLY_STEMS.indexOf(stem));
+export const getStemIndex = (stem: string) => Math.max(0, HEAVENLY_STEMS.indexOf(stem));
+
+export const getGanZhiForDate = (date: Date, dayMaster: string): GanZhi => {
+  const solar = Solar.fromDate(date);
+  const lunar = solar.getLunar();
+  const bazi = lunar.getEightChar();
+  bazi.setSect(1);
+  
+  const gan = bazi.getDayGan();
+  const zhi = bazi.getDayZhi();
+  const dmIdx = getStemIndex(dayMaster);
+  
+  return createGanZhi(gan, zhi, dmIdx);
+};
 
 const getRelation = (origin: string, target: string): '生' | '克' | '同' | '泄' | '耗' => {
   const map: Record<string, string> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' };
@@ -156,7 +169,7 @@ const calculateTrueSolarTime = (date: Date, longitude: number): Date => {
     return new Date(date.getTime() + (longitudeOffsetMinutes + eotMinutes) * 60000);
 };
 
-const createGanZhi = (gan: string, zhi: string, dayMasterGanIndex: number): GanZhi => {
+export const createGanZhi = (gan: string, zhi: string, dayMasterGanIndex: number): GanZhi => {
   const ganIndex = getStemIndex(gan);
   const zhiIndex = EARTHLY_BRANCHES.indexOf(zhi);
   const hiddenData = HIDDEN_STEMS_DATA[zhi] || [];

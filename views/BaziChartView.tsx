@@ -12,6 +12,7 @@ import { BaziChartGrid } from '../components/business/BaziChartGrid';
 import { getDayHourComboText } from '../services/baziComboService';
 import { DailyFortuneCard, DailyFortuneData } from '../components/business/DailyFortuneCard';
 import { generateDailyFortuneAi } from '../services/dailyFortuneService';
+import { calculateDailyFortuneBasic } from '../services/dailyFortune';
 import { getFullDateGanZhi } from '../services/ganzhi';
 import { BRANCH_CLASHES, BRANCH_XING, BRANCH_HAI, EARTHLY_BRANCHES, BRANCH_COMBINES } from '../services/constants';
 import { getGanZhiForMonth } from '../services/baziService';
@@ -170,7 +171,8 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
              <div className="animate-fade-in space-y-4">
                  <CoreInfoCard profile={profile} chart={chart} />
                  <DailyFortuneCard 
-                    data={dailyFortune} 
+                    chart={chart}
+                    aiData={dailyFortune} 
                     loading={loadingFortune} 
                     onGenerate={handleGenerateFortune} 
                     isVip={isVip} 
@@ -187,9 +189,6 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-
-                  
-
                    <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
                      <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-emerald-600"/><h4 className="text-sm font-black text-stone-900">生财路径建议</h4></div>
                      {(() => {
@@ -201,20 +200,31 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                        const cai = (count['正财']||0)+(count['偏财']||0);
                        const guan = (count['正官']||0)+(count['七杀']||0);
                        const yin = (count['正印']||0)+(count['偏印']||0);
+                       
                        const lines: string[] = [];
                        if (sx>=2 && cai>=1) lines.push('以输出与变现为主线（内容/技术/销售），结合现金流产品与小额复利');
                        if (cai>=2 && guan>=1) lines.push('稳中求财（龙头+ETF），兼顾合规路径与职业上行');
                        if (yin>=2) lines.push('先增能后求财（学习认证/工具升级/内功积累）');
                        if (sx===0 && cai===0) lines.push('避免高频试错，采用指数定投与多元现金流');
-                      const mk = ['ETF','行业龙头','现金流副业'];
-                      const present = names.filter(n => (count[n]||0) > 0);
-                      return (
+                       
+                       const present = names.filter(n => (count[n]||0) > 0);
+                       return (
                         <div className="space-y-2 text-[12px] text-stone-700">
-                         <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {present.map(n => (
                               <span key={n} className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 font-bold">{n} × {count[n]}</span>
                             ))}
+                          </div>
+                          {lines.length > 0 && (
+                            <div className="mt-2 p-3 bg-stone-50 rounded-xl border border-stone-100 text-stone-600 text-[11px] leading-relaxed">
+                              {lines[0]}
+                            </div>
+                          )}
                         </div>
+                       );
+                     })()}
+                   </div>
+
                    <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
                      <div className="flex items-center gap-2 mb-2"><Check size={16} className="text-stone-700"/><h4 className="text-sm font-black text-stone-900">重大节点提醒清单</h4></div>
                      {(() => {
@@ -323,11 +333,6 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                      })()}
                    </div>
                 </div>
-                       );
-                     })()}
-                   </div>
-                 </div>
-                
              </div>
          )}
 
