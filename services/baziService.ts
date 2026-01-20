@@ -36,7 +36,9 @@ import {
   // 🔥 新增引入
   ANNUAL_TEN_GODS_READING,
   BRANCH_XING,
-  BRANCH_HAI
+  BRANCH_HAI,
+  SAN_HE,
+  SAN_HUI
 } from './constants';
 
 // --- 1. 基础常量定义 ---
@@ -200,6 +202,38 @@ const calculateBalance = (dm: string, pillars: any, counts: Record<string, numbe
     });
   });
   score += Math.min(35, supportiveScore);
+
+  // --- 三合局与三会方判定 ---
+  // 如果地支凑齐了三合/三会，该五行力量大幅增强，直接影响身强身弱
+  let comboScore = 0;
+  
+  // 检查三合局
+  Object.values(SAN_HE).forEach(({ group, element }) => {
+    if (group.every(b => branches.includes(b))) {
+      const rel = getRelation(element, dmEl);
+      // 注意：getRelation中 '泄' 代表 origin生target (印)，'生' 代表 target生origin (食伤)
+      // 身强判断应为：同我(比劫) 或 生我(印) 为增强
+      if (rel === '同' || rel === '泄') {
+        comboScore += 30;
+      } else {
+        comboScore -= 30;
+      }
+    }
+  });
+
+  // 检查三会方
+  Object.values(SAN_HUI).forEach(({ group, element }) => {
+    if (group.every(b => branches.includes(b))) {
+      const rel = getRelation(element, dmEl);
+      if (rel === '同' || rel === '泄') {
+        comboScore += 30;
+      } else {
+        comboScore -= 30;
+      }
+    }
+  });
+  
+  score += comboScore;
   
   let stemScore = 0;
   [pillars.year.ganZhi.gan, pillars.month.ganZhi.gan, pillars.hour.ganZhi.gan].forEach(gan => {

@@ -54,6 +54,22 @@ export const HIDDEN_STEMS_DATA: Record<string, [string, '主气' | '中气' | '�
   '亥': [['壬', '主气', 70], ['甲', '中气', 30]] 
 };
 
+// 定义三合局
+export const SAN_HE: Record<string, { group: string[], element: string }> = {
+  '水局': { group: ['申', '子', '辰'], element: '水' },
+  '木局': { group: ['亥', '卯', '未'], element: '木' },
+  '火局': { group: ['寅', '午', '戌'], element: '火' },
+  '金局': { group: ['巳', '酉', '丑'], element: '金' }
+};
+
+// 定义三会方
+export const SAN_HUI: Record<string, { group: string[], element: string }> = {
+  '水方': { group: ['亥', '子', '丑'], element: '水' },
+  '木方': { group: ['寅', '卯', '辰'], element: '木' },
+  '火方': { group: ['巳', '午', '未'], element: '火' },
+  '金方': { group: ['申', '酉', '戌'], element: '金' }
+};
+
 export const NA_YIN: Record<string, string> = {
   '甲子': '海中金', '乙丑': '海中金', '丙寅': '炉中火', '丁卯': '炉中火',
   '戊辰': '大林木', '己巳': '大林木', '庚午': '路旁土', '辛未': '路旁土',

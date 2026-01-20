@@ -25,7 +25,7 @@ if ('serviceWorker' in navigator) {
 
   const isVercel = window.location.hostname.endsWith('vercel.app');
 
-  if (isProduction && !isVercel) {
+  if (isProduction) {
     window.addEventListener('load', () => {
       const swPath = './sw.js';
 
