@@ -19,3 +19,16 @@ export function getDayGanZhi(year: number, month: number, day: number): string {
   
   return bazi.getDayGan() + bazi.getDayZhi();
 }
+
+/**
+ * Returns the full GanZhi string for a given date (Year Month Day).
+ * e.g. "甲辰年 丙寅月 戊午日"
+ */
+export function getFullDateGanZhi(date: Date): string {
+  const solar = Solar.fromDate(date);
+  const lunar = solar.getLunar();
+  const bazi = lunar.getEightChar();
+  bazi.setSect(1);
+  
+  return `${bazi.getYearGan()}${bazi.getYearZhi()}年 ${bazi.getMonthGan()}${bazi.getMonthZhi()}月 ${bazi.getDayGan()}${bazi.getDayZhi()}日`;
+}
