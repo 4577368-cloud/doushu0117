@@ -20,6 +20,34 @@ export interface DailyFortuneResult {
 // 简单的内存缓存，避免重复生成
 const dailyFortuneCache: Record<string, DailyFortuneResult> = {};
 
+// 读取服务端流式响应 helper
+const readStreamResponse = async (response: Response): Promise<string> => {
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
+
+  if (!reader) throw new Error("无法读取响应流");
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6);
+        if (jsonStr.trim() === '[DONE]') continue;
+        try {
+          const json = JSON.parse(jsonStr);
+          const content = json.choices?.[0]?.delta?.content || '';
+          fullText += content;
+        } catch {}
+      }
+    }
+  }
+  return fullText;
+};
+
 export const generateDailyFortuneAi = async (
   profile: UserProfile, 
   chart: BaziChart, 
@@ -92,22 +120,26 @@ JSON 结构：
         model: 'deepseek-chat',
         temperature: 0.8,
         response_format: { type: 'json_object' },
-        stream: false // 我们不需要流式，直接拿 JSON
+        stream: true // 使用流式以兼容后端
       })
     });
 
     if (!response.ok) {
-        // 如果是 Vercel 或本地环境没有配置后端路由，这里可能会 404
-        // 如果没有后端，我们可能需要用 geminiService 的逻辑（如果它是前端直接调 API 的话）
-        // 检查代码发现 analyzeBaziStructured 是 fetch('/api/analyze')，说明有后端 API 路由
         throw new Error(`请求失败: ${response.status}`);
     }
 
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || data.content || "{}";
+    // 使用流式读取 helper 获取完整内容
+    let content = await readStreamResponse(response);
     
     // 清理 markdown
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // 确保提取有效的 JSON 部分
+    const jsonStart = content.indexOf('{');
+    const jsonEnd = content.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+        content = content.substring(jsonStart, jsonEnd + 1);
+    }
     
     const result = JSON.parse(content) as DailyFortuneResult;
     
