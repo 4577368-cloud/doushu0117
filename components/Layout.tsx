@@ -18,7 +18,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
   ];
 
   return (
-    <div className="h-[80px] bg-white border-t border-stone-200 flex items-start justify-around px-2 pb-6 pt-2 relative z-50">
+    <div className="bg-white border-t border-stone-200 flex items-start justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] relative z-50">
       {navItems.map((item, idx) => {
         const isActive = currentTab === item.id;
         // 如果是中间的“对话”按钮，可以给它特殊的样式（可选，这里保持统一风格但加重颜色）
