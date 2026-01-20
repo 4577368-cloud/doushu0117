@@ -31,9 +31,10 @@ interface DailyFortuneCardProps {
   loading: boolean;
   onGenerate: () => void;
   isVip: boolean;
+  aiError?: boolean; // 新增：AI 生成失败状态
 }
 
-export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiData, loading, onGenerate, isVip }) => {
+export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiData, loading, onGenerate, isVip, aiError }) => {
   const [mode, setMode] = useState<'basic' | 'ai'>('basic');
 
   // 使用 useMemo 替代 useEffect + useState，避免首次渲染闪烁
@@ -212,6 +213,32 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
                  </div>
                  <p className="text-xs text-stone-500 font-medium animate-pulse">正在连接天机，推演流日...</p>
             </div>
+         );
+      }
+
+      // 失败降级：显示基础数据 + 重试按钮
+      if (aiError && basicData) {
+         return (
+             <div className="relative animate-fade-in">
+                 {/* 错误提示条 */}
+                 <div className="bg-amber-50 px-4 py-3 rounded-xl border border-amber-100 mb-3 flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                         <div className="p-1 bg-amber-100 rounded-full text-amber-600">
+                             <RefreshCcw size={12} />
+                         </div>
+                         <span className="text-xs text-amber-700 font-medium">由于网络波动，此为模拟数据</span>
+                     </div>
+                     <button 
+                         onClick={onGenerate}
+                         className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg active:scale-95 transition-all hover:bg-amber-200"
+                     >
+                         重新生成
+                     </button>
+                 </div>
+                 
+                 {/* 渲染基础数据作为模拟数据 */}
+                 {renderCard(basicData)}
+             </div>
          );
       }
 

@@ -113,7 +113,8 @@ export enum ChartSubTab {
   BASIC = 'basic',
   DETAIL = 'detail',
   ANALYSIS = 'analysis',
-  CHAT = 'chat'
+  CHAT = 'chat',
+  DAILY = 'daily'
 }
 
 export interface AnnualFortune {

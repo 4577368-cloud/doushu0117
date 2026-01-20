@@ -26,6 +26,8 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   const [copiedCombo, setCopiedCombo] = useState(false);
   const [dailyFortune, setDailyFortune] = useState<DailyFortuneData | null>(null);
   const [loadingFortune, setLoadingFortune] = useState(false);
+  const [fortuneError, setFortuneError] = useState(false);
+  const [autoGenAttempted, setAutoGenAttempted] = useState(false);
 
   useEffect(() => { 
       getArchives().then(setArchives); 
@@ -46,6 +48,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   // 🔥 修改点：移除了 'AI 对话' 选项，现在它在底部导航栏
   const tabs = [
       { id: ChartSubTab.DETAIL, label: '流年大运' }, 
+      { id: ChartSubTab.DAILY, label: '今日运势' },
       { id: ChartSubTab.ANALYSIS, label: '大师解读' }
   ];
 
@@ -64,6 +67,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
     }
     
     setLoadingFortune(true);
+    setFortuneError(false);
     try {
         const result = await generateDailyFortuneAi(profile, chart, apiKey);
         const today = new Date();
@@ -83,68 +87,59 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
         
     } catch (e) {
         console.error("Failed to generate fortune:", e);
-        alert("生成运势失败，请稍后重试");
+        setFortuneError(true);
     } finally {
         setLoadingFortune(false);
     }
   };
 
+  // 自动触发逻辑：进入今日运势 Tab 时，如果没有数据且今天未尝试过，则自动触发
   useEffect(() => {
-    const checkAndTriggerFortune = async () => {
+    if (activeSubTab === ChartSubTab.DAILY) {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        
+        // 如果已经有今天的 AI 数据，不需要重新生成
+        if (dailyFortune && dailyFortune.date === dateStr && dailyFortune.isAiGenerated) {
+            return;
+        }
+
+        // 检查是否具备生成条件
+        if (!isVip && !apiKey) return;
+
+        // 检查是否今天已经自动尝试过 (避免重复扣费或死循环)
+        const lastAttemptKey = `daily_fortune_auto_attempt_${profile.id}_${dateStr}`;
+        const hasAttempted = sessionStorage.getItem(lastAttemptKey);
+
+        if (!hasAttempted && !autoGenAttempted) {
+            setAutoGenAttempted(true);
+            sessionStorage.setItem(lastAttemptKey, 'true');
+            handleGenerateFortune();
+        }
+    }
+  }, [activeSubTab, dailyFortune, isVip, apiKey, profile.id, autoGenAttempted]);
+
+  useEffect(() => {
+    const loadSavedFortune = () => {
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
         const storageKey = `daily_fortune_data_${profile.id}_${dateStr}`;
         const savedData = localStorage.getItem(storageKey);
 
-        // 1. If data exists for today, load it
         if (savedData) {
             try {
                 setDailyFortune(JSON.parse(savedData));
-                return; // Done
             } catch (e) {
                 console.error("Failed to parse saved fortune", e);
                 localStorage.removeItem(storageKey);
             }
         }
-
-        // 2. If no data and is VIP, auto-trigger
-        if (isVip) {
-            const lastGenKey = `daily_fortune_last_date_${profile.id}`;
-            const lastGenDate = localStorage.getItem(lastGenKey);
-
-            // Double check to avoid loop if data was deleted but flag remains (though we should probably just re-gen)
-            if (lastGenDate !== dateStr) {
-                setLoadingFortune(true);
-                try {
-                    // Small delay for better UX
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    
-                    const result = await generateDailyFortuneAi(profile, chart, apiKey);
-                    const fullData = {
-                        ...result,
-                        date: dateStr,
-                        ganZhi: getFullDateGanZhi(today),
-                        isAiGenerated: true
-                    };
-                    
-                    setDailyFortune(fullData);
-                    
-                    localStorage.setItem(storageKey, JSON.stringify(fullData));
-                    localStorage.setItem(lastGenKey, dateStr);
-                } catch (e) {
-                    console.error("Auto-generate fortune failed", e);
-                } finally {
-                    setLoadingFortune(false);
-                }
-            }
-        }
     };
     
-    // Only run once when component mounts and data is ready
     if (chart && profile) {
-        checkAndTriggerFortune();
+        loadSavedFortune();
     }
-  }, [isVip, profile?.id]); // Minimal dependencies to avoid re-triggering
+  }, [profile?.id]);
 
 
   return (
@@ -167,16 +162,22 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
 
       <div className="flex-1 overflow-y-auto bg-[#f9f9f8] p-4 pb-24">
          
-         {activeSubTab === ChartSubTab.DETAIL && (
+         {activeSubTab === ChartSubTab.DAILY && (
              <div className="animate-fade-in space-y-4">
-                 <CoreInfoCard profile={profile} chart={chart} />
                  <DailyFortuneCard 
                     chart={chart}
                     aiData={dailyFortune} 
                     loading={loadingFortune} 
                     onGenerate={handleGenerateFortune} 
                     isVip={isVip} 
+                    aiError={fortuneError}
                  />
+             </div>
+         )}
+
+         {activeSubTab === ChartSubTab.DETAIL && (
+             <div className="animate-fade-in space-y-4">
+                 <CoreInfoCard profile={profile} chart={chart} />
                  <BaziAnalysisView chart={chart} onShowModal={openDetailedModal} />
                 <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
                 <div className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden">
