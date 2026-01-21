@@ -277,16 +277,16 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                         </div>
                     </div>
                     {session ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             <button 
                                 onClick={handleSync}
                                 disabled={syncStatus === 'loading' || syncStatus === 'success'}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all border ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200 active:scale-95'}`}
                             >
-                                <RefreshCw size={10} className={syncStatus === 'loading' ? 'animate-spin' : ''} />
+                                <RefreshCw size={13} className={syncStatus === 'loading' ? 'animate-spin' : ''} />
                                 {syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '同步'}
                             </button>
-                            <button onClick={onLogout} className="text-[10px] text-stone-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1"><LogOut size={10}/> 退出</button>
+                            <button onClick={onLogout} className="text-xs text-stone-500 hover:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 bg-stone-800/50 border border-stone-700/50 rounded-full active:scale-95 transition-all"><LogOut size={13}/> 退出</button>
                     </div>
                 ) : (
                     <button className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold">登录</button>

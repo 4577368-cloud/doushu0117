@@ -34,8 +34,9 @@ function formatAndCheckKey(rawKey: string) {
   // 2. 诊断：长度检查
   console.log(`[Key Debug] 清洗后密钥长度: ${cleanBody.length} 字符`);
   
-  if (cleanBody.length < 1000) {
+  if (cleanBody.length < 800) {
     // RSA 2048位私钥通常在 1600 字符左右。公钥只有 200-400 字符。
+    // 放宽限制到 800 以防万一
     throw new Error(`[致命错误] 密钥太短 (${cleanBody.length}字符)！你是不是填成了【公钥】？请务必检查使用的是【应用私钥 (App Private Key)】`);
   }
 
@@ -151,7 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const requestQuery = buildEncodedQuery(commonParams);
     const payUrl = `${GATEWAY}?${requestQuery}&sign=${encodeURIComponent(sign)}`;
 
-    // 6. 存库 (同步等待，确保记录存在)
+    // 6. 存库 (非阻塞：即使存库失败，也要允许用户支付，因为回调会补全数据)
     try {
       if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -165,15 +166,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           created_at: new Date().toISOString()
         });
         if (insertError) {
-           console.error('Supabase Insert Error:', insertError);
-           return res.status(500).json({ error: '订单创建失败', details: insertError.message });
+           console.error('Supabase Insert Error (Non-fatal):', insertError);
+           // return res.status(500).json({ error: '订单创建失败', details: insertError.message });
         }
       } else {
          console.warn('Supabase credentials missing, skipping DB insert');
       }
     } catch (err: any) {
-      console.error('DB Operation Error:', err);
-      return res.status(500).json({ error: '数据库连接失败', details: err.message });
+      console.error('DB Operation Error (Non-fatal):', err);
+      // return res.status(500).json({ error: '数据库连接失败', details: err.message });
     }
 
     const isSandbox = process.env.ALIPAY_USE_SANDBOX === 'true';

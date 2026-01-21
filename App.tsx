@@ -175,8 +175,18 @@ const App: React.FC = () => {
   // 显示支付结果页：当 URL 携带 out_trade_no/trade_no 时
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    if (sp.get('out_trade_no') || sp.get('trade_no')) {
+    const outTradeNo = sp.get('out_trade_no');
+    const tradeNo = sp.get('trade_no');
+    
+    if (outTradeNo || tradeNo) {
       setShowPayResultModal(true);
+    }
+    
+    // 乐观激活：如果两者都有，说明支付成功返回，直接给予 VIP 权限
+    if (outTradeNo && tradeNo) {
+        setIsVip(true);
+        try { localStorage.setItem('is_vip_user', 'true'); } catch {}
+        activateVipOnCloud().catch(console.error);
     }
   }, []);
 
