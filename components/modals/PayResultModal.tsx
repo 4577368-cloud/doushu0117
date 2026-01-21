@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, AlertTriangle, Activity, Home } from 'lucide-react';
 import { supabase, supabaseReady } from '../../services/supabase';
+import { activateVipOnCloud } from '../../services/storageService';
 
 const readQuery = () => new URLSearchParams(window.location.search);
 

@@ -106,7 +106,8 @@ export enum AppTab {
   HOME = 'home',
   CHART = 'chart',
   ZIWEI = 'ziwei',
-  ARCHIVE = 'archive'
+  ARCHIVE = 'archive',
+  CHAT = 'chat'
 }
 
 export enum ChartSubTab {
@@ -126,15 +127,14 @@ export interface AnnualFortune {
 }
 
 export interface BaziReport {
-  overall: string;
-  career: string;
-  wealth: string;
-  love: string;
-  health: string;
-  advice: string;
-  luckyElements: string[];
+  title: string;
   copyText: string;
-  sections: { id: string; title: string; content: string }[];
+  sections: {
+    id: string;
+    title: string;
+    content: string;
+    type: 'text';
+  }[];
 }
 
 // 占位接口

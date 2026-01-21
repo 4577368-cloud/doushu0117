@@ -1,16 +1,4 @@
-import { BaziChart } from "../types";
-
-// 定义报告结构接口
-export interface BaziReport {
-  title: string;
-  copyText: string;
-  sections: {
-    id: string;
-    title: string;
-    content: string;
-    type: 'text';
-  }[];
-}
+import { BaziChart, BaziReport } from "../types";
 
 /**
  * 使用 DeepSeek 生成结构化八字财富报告
