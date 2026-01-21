@@ -95,18 +95,22 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ [Sync] Supabase 查询错误:", error);
+      throw error;
+    }
 
     if (data) {
+      console.log(`☁️ [Sync] 拉取到 ${data.length} 条云端档案`, data[0] ? Object.keys(data[0]) : '无数据');
+      
       // 字段映射：数据库下划线 -> 前端驼峰
       const cloudArchives: UserProfile[] = data.map((item: any) => ({
         id: item.id,
         name: item.name,
         gender: item.gender,
-        // ⚠️ 注意：您的数据库字段里没有 birth_date，如果 birth_time 存的是完整时间字符串则没问题
-        // 如果 birth_time 只有 "12:00"，那么日期可能会丢失。建议检查数据库是否需要加 birth_date 字段
-        birthDate: item.birth_date || '', 
-        birthTime: item.birth_time,
+        // 兼容 birth_date 和 possible legacy fields
+        birthDate: item.birth_date || item.birthday || '', 
+        birthTime: item.birth_time || '',
         isSolarTime: item.is_solar_time,
         province: item.province,
         city: item.city,
@@ -115,20 +119,104 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
         createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
         isSelf: item.is_self,
         avatar: item.avatar,
-        // AI 报告如果没地方存，暂时给空数组，防止报错
         aiReports: [] 
       }));
 
-      const sorted = cloudArchives.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      // 过滤掉无效数据
+      const validArchives = cloudArchives.filter(a => {
+        if (!a.birthDate) {
+           console.warn(`⚠️ [Sync] 忽略无效档案 (无日期): ID=${a.id}`);
+           return false;
+        }
+        return true;
+      });
+
+      const sorted = validArchives.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       const key = `bazi_archives:${userId}`;
-      localStorage.setItem(key, JSON.stringify(sorted));
-      return sorted;
+      
+      // ⚠️ 策略：云端数据覆盖本地数据，但保留云端没有的本地数据（防止未同步的数据丢失）
+      // 读取当前本地数据
+      const localJson = localStorage.getItem(key);
+      const localArchives: UserProfile[] = localJson ? JSON.parse(localJson) : [];
+      
+      // 合并逻辑：以 ID 为准。如果 ID 相同，用云端的。如果本地有但云端没有，保留本地的（假设是未同步的新建数据）。
+      // 但这里有个风险：如果云端删除了，本地还有，会“复活”删除的数据。
+      // 为了简单起见，目前我们假设云端是 source of truth，但为了保险，我们把本地有但云端没有的数据也加进去，
+      // 除非我们能确定它是“已删除”的。
+      // 更好的做法是：完全信任云端。因为“更换浏览器”场景下，本地是空的。
+      // 只有在“同一浏览器登录”场景下，才需要考虑本地未同步数据。
+      
+      // 简化策略：直接使用云端数据。
+      // 如果用户刚刚在本地创建了数据但没同步上去，覆盖会导致丢失。
+      // 所以我们做一个简单的合并：
+      const mergedMap = new Map<string, UserProfile>();
+      sorted.forEach(a => mergedMap.set(a.id, a));
+      
+      // 检查本地是否有“未同步”的数据（不在云端列表中）
+      // 注意：本地数据的 ID 可能是临时的（非 UUID），也可能是 UUID。
+      localArchives.forEach(local => {
+          if (!mergedMap.has(local.id)) {
+              // 本地有，云端没有。可能是新创建未同步的，也可能是云端已删除的。
+              // 我们保守保留，但标记一下
+              console.log("⚠️ [Sync] 保留本地独有档案:", local.name, local.id);
+              mergedMap.set(local.id, local);
+              // 尝试补传？暂时不做，避免死循环
+          }
+      });
+      
+      const finalArchives = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      localStorage.setItem(key, JSON.stringify(finalArchives));
+      return finalArchives;
     }
   } catch (err: any) {
     console.error("❌ [Sync] 失败:", err.message);
   }
 
   return getArchives();
+};
+
+// 新增：合并访客数据到当前用户
+export const mergeGuestArchives = async (userId: string) => {
+    try {
+        const guestKey = 'bazi_archives:guest';
+        const guestJson = localStorage.getItem(guestKey);
+        if (!guestJson) return;
+
+        const guestArchives: UserProfile[] = JSON.parse(guestJson);
+        if (guestArchives.length === 0) return;
+
+        console.log(`🔄 [Merge] 发现 ${guestArchives.length} 条访客数据，正在合并到用户 ${userId}...`);
+
+        // 1. 读取当前用户数据
+        let userArchives = await getArchives(); // 此时已切换到 user key
+        
+        // 2. 遍历访客数据，去重并上传
+        for (const guestArchive of guestArchives) {
+            // 查重：简单的各项匹配
+            const exists = userArchives.some(u => 
+                u.name === guestArchive.name && 
+                u.birthDate === guestArchive.birthDate && 
+                u.birthTime === guestArchive.birthTime
+            );
+            
+            if (!exists) {
+                // 修改 ID 为新 ID（或者是 UUID），这里让 saveArchive 处理
+                // 但 saveArchive 会更新本地 storage。
+                // 我们直接调用 saveArchive，它会处理云端保存
+                // 为了避免 ID 冲突，我们可以重置 ID
+                const newProfile = { ...guestArchive, id: '' }; // 重置 ID 触发新建
+                await saveArchive(newProfile);
+            }
+        }
+        
+        // 3. 清除访客数据
+        localStorage.removeItem(guestKey);
+        console.log("✅ [Merge] 访客数据合并完成");
+        
+    } catch (e) {
+        console.error("❌ [Merge] 合并访客数据失败", e);
+    }
 };
 
 // 3. 保存或更新档案

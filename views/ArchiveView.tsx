@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers, Loader2 } from 'lucide-react';
+import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers, Loader2, ClipboardCopy, ShieldCheck } from 'lucide-react';
 import { UserProfile, HistoryItem } from '../types';
 import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive } from '../services/storageService';
 import { uploadAvatar } from '../services/supabase';
+import { PolicyModal } from '../components/modals/PolicyModals';
 
 interface ArchiveViewProps {
     archives: UserProfile[];
@@ -144,10 +145,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
             const newList = await syncArchivesFromCloud(session.user.id);
             setArchives(newList);
             setSyncStatus('success');
+            console.log(`[Sync] 手动同步完成，共 ${newList.length} 条`);
             setTimeout(() => setSyncStatus('idle'), 2000); 
-        } catch (e) {
+        } catch (e: any) {
+            console.error("[Sync] 手动同步失败:", e);
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 3000);
+            alert(`同步失败: ${e.message || '请检查网络'}`);
         }
     };
 
@@ -187,7 +191,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         }
         setSavingEdit(true);
         try {
-            let updatedProfile = {
+            let updatedProfile: UserProfile = {
                 ...editingProfile,
                 name: editForm.name,
                 tags: editForm.tags.split(' ').map(t => t.trim()).filter(t => t !== ''),
@@ -230,6 +234,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
     const [reportModalProfileId, setReportModalProfileId] = useState<string | null>(null);
     const [reportToView, setReportToView] = useState<HistoryItem | null>(null);
+
+    const [showPolicyModal, setShowPolicyModal] = useState<'user'|'privacy'|null>(null);
 
     return (
         <div className="h-full flex flex-col bg-[#f5f5f4] relative">
@@ -281,14 +287,19 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                 {syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '同步'}
                             </button>
                             <button onClick={onLogout} className="text-[10px] text-stone-500 hover:text-rose-400 flex items-center gap-1 px-2 py-1"><LogOut size={10}/> 退出</button>
-                        </div>
-                    ) : (
-                        <button className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold">登录</button>
-                    )}
-                </div>
-
-                
+                    </div>
+                ) : (
+                    <button className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold">登录</button>
+                )}
             </div>
+            
+            <div className="flex justify-end gap-3 px-1 pb-1 z-10 relative mt-2 mr-1">
+                <button onClick={() => setShowPolicyModal('user')} className="text-[9px] text-stone-500 hover:text-stone-300 flex items-center gap-1"><ShieldCheck size={9}/> 用户协议</button>
+                <button onClick={() => setShowPolicyModal('privacy')} className="text-[9px] text-stone-500 hover:text-stone-300 flex items-center gap-1"><ShieldCheck size={9}/> 隐私政策</button>
+            </div>
+
+            
+        </div>
 
             {!isVip && session && (
                 <div className="px-4 mt-2 z-20">
@@ -518,6 +529,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                     </div>
                 </div>
             )}
+            {/* 协议弹窗 */}
+            <PolicyModal type={showPolicyModal} onClose={() => setShowPolicyModal(null)} />
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { safeAuth, supabaseReady } from './services/supabase';
-import { Mail, Lock, Loader2, ArrowLeft, KeyRound } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowLeft, KeyRound, Check } from 'lucide-react';
+import { PolicyModal } from './components/modals/PolicyModals';
 
 export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
@@ -8,6 +9,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login'); // 新增 forgot 模式
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+  const [agreed, setAgreed] = useState(true);
+  const [showPolicyModal, setShowPolicyModal] = useState<'user'|'privacy'|null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +31,9 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
         onLoginSuccess();
       } 
       else {
+        if (!agreed) {
+            throw new Error('请先阅读并同意用户协议和隐私政策');
+        }
         const { error } = await safeAuth.signUp({ email, password });
         if (error) throw error;
         setMessage({ type: 'success', text: '注册确认邮件已发送，请查收！' });
@@ -75,6 +81,23 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
           </div>
         )}
 
+        {mode === 'register' && (
+          <div className="flex items-start gap-2 px-1">
+             <div 
+                onClick={() => setAgreed(!agreed)}
+                className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center cursor-pointer transition-colors ${agreed ? 'bg-stone-900 border-stone-900' : 'border-stone-300 bg-white'}`}
+             >
+                {agreed && <Check size={10} className="text-white" strokeWidth={3} />}
+             </div>
+             <div className="text-xs text-stone-500 leading-tight">
+                我已阅读并同意
+                <button type="button" onClick={() => setShowPolicyModal('user')} className="text-stone-900 font-bold hover:underline mx-0.5">《用户协议》</button>
+                和
+                <button type="button" onClick={() => setShowPolicyModal('privacy')} className="text-stone-900 font-bold hover:underline mx-0.5">《隐私政策》</button>
+             </div>
+          </div>
+        )}
+
         <button disabled={loading} className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
           {loading ? <Loader2 className="animate-spin" size={20} /> : mode === 'forgot' ? <KeyRound size={20}/> : <Lock size={20} />}
           {loading ? '处理中...' : mode === 'login' ? '立即登录' : mode === 'register' ? '注册账号' : '发送重置邮件'}
@@ -93,6 +116,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
            </>
         )}
       </div>
+
+      <PolicyModal type={showPolicyModal} onClose={() => setShowPolicyModal(null)} />
     </div>
   );
 };

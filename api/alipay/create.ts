@@ -166,11 +166,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         if (insertError) {
            console.error('Supabase Insert Error:', insertError);
-           // 即使存库失败，也尽量让用户能支付，但记录可能会丢失，导致回调无法更新状态
+           return res.status(500).json({ error: '订单创建失败', details: insertError.message });
         }
+      } else {
+         console.warn('Supabase credentials missing, skipping DB insert');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('DB Operation Error:', err);
+      return res.status(500).json({ error: '数据库连接失败', details: err.message });
     }
 
     const isSandbox = process.env.ALIPAY_USE_SANDBOX === 'true';

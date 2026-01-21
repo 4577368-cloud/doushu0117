@@ -12,7 +12,8 @@ import {
   saveAiReportToArchive, 
   getVipStatus, 
   activateVipOnCloud, 
-  syncArchivesFromCloud 
+  syncArchivesFromCloud,
+  mergeGuestArchives // Add this
 } from './services/storageService';
 
 import { BottomNav } from './components/Layout';
@@ -138,11 +139,16 @@ const App: React.FC = () => {
         }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         setSession(session);
         if (event === 'SIGNED_IN' && session?.user) {
-            // 登录成功瞬间，清理访客缓存并拉取云端
-            try { localStorage.removeItem('bazi_archives:guest'); } catch {}
+            // 登录成功瞬间，先尝试合并访客数据，再拉取云端
+            try {
+                await mergeGuestArchives(session.user.id);
+            } catch (e) {
+                console.error('Merge guest archives failed:', e);
+            }
+            
             syncArchivesFromCloud(session.user.id).then(data => {
                 if (data.length > 0) setArchives(data); 
             });

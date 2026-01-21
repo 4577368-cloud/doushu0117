@@ -10,9 +10,16 @@ const verifySign = (params: Record<string, string>, alipayPublicKey: string) => 
     .sort()
     .forEach(k => { sorted[k] = params[k]; });
   const content = Object.keys(sorted).map(k => `${k}=${sorted[k]}`).join('&');
+  
+  // 自动补全 PEM 头尾
+  let formattedKey = alipayPublicKey;
+  if (!formattedKey.includes('BEGIN PUBLIC KEY')) {
+    formattedKey = `-----BEGIN PUBLIC KEY-----\n${formattedKey.match(/.{1,64}/g)?.join('\n')}\n-----END PUBLIC KEY-----`;
+  }
+
   const verifier = crypto.createVerify('RSA-SHA256');
   verifier.update(content, 'utf8');
-  return verifier.verify(alipayPublicKey, params.sign, 'base64');
+  return verifier.verify(formattedKey, params.sign, 'base64');
 };
 
 const readBodyText = (req: VercelRequest): Promise<string> => new Promise((resolve, reject) => {
@@ -59,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (params.trade_status !== 'TRADE_SUCCESS') {
         return res.status(200).send('success');
       }
-      if (params.total_amount !== vipAmount) {
+      if (Math.abs(parseFloat(params.total_amount) - parseFloat(vipAmount)) > 0.01) {
         return res.status(400).send('fail');
       }
 
