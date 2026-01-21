@@ -142,7 +142,7 @@ export const ZiweiChartView: React.FC<ZiweiChartViewProps> = ({
                 </div>
                 <div className="flex items-center justify-between w-full px-2 mb-2 border-b border-stone-100 pb-1 shrink-0">
                     <span className="text-sm sm:text-base font-black text-indigo-950 font-serif">{chartData.bureau?.name}</span>
-                    <span className="text-[10px] sm:text-[11px] text-stone-400 font-bold">{profile.name} · {profile.gender==='male'?'乾造':'坤造'}</span>
+                    <span className="text-[10px] sm:text-[11px] text-stone-400 font-bold">{profile.name} · {profile.gender==='male'?'男':'女'}</span>
                 </div>
                 <div className="w-full flex-1 overflow-y-auto no-scrollbar pt-1 text-left space-y-2.5">
                   {chartData.patterns?.map((pat: any, idx: number) => (

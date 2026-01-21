@@ -476,8 +476,8 @@ const App: React.FC = () => {
                         <div className="flex items-center gap-3">
                             <h1 className="text-xl font-black tracking-widest font-serif text-yellow-100 whitespace-nowrap">天机命盘通解</h1>
                             <div className="flex bg-indigo-900/50 rounded-lg p-0.5 border border-indigo-500/30">
-                                <button onClick={() => setFormData({...formData, gender: 'male'})} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.gender === 'male' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-200 hover:text-white'}`}>乾造</button>
-                                <button onClick={() => setFormData({...formData, gender: 'female'})} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.gender === 'female' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-200 hover:text-white'}`}>坤造</button>
+                                <button onClick={() => setFormData({...formData, gender: 'male'})} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.gender === 'male' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-200 hover:text-white'}`}>男</button>
+                                <button onClick={() => setFormData({...formData, gender: 'female'})} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.gender === 'female' ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-200 hover:text-white'}`}>女</button>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -575,7 +575,7 @@ const App: React.FC = () => {
                                     <div className="flex items-center justify-center gap-2 flex-wrap mb-1">
                                         <div className="text-2xl font-black text-indigo-900 tracking-widest leading-none">{chartData.bureau?.name}</div>
                                         <div className="text-xs text-slate-500 font-bold">
-                                            {chartData.lunar.getYearGan()}{chartData.lunar.getYearZhi()}年 · {formData.gender === 'male' ? '乾造' : '坤造'}
+                                            {chartData.lunar.getYearGan()}{chartData.lunar.getYearZhi()}年 · {formData.gender === 'male' ? '男' : '女'}
                                         </div>
                                     </div>
                                     <div className="flex justify-center gap-2 text-xs bg-slate-50 p-1 rounded border border-slate-100">

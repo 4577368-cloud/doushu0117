@@ -78,10 +78,10 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                     <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none font-serif focus:border-stone-400 text-sm shadow-sm transition-all" placeholder="请输入姓名"/>
                 </div>
                 <div className="w-28 space-y-1.5">
-                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">乾坤</label>
+                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">性别</label>
                     <div className="flex bg-white border border-stone-200 p-1 rounded-xl shadow-sm h-[46px]">
-                        <button type="button" onClick={() => setGender('male')} className={`flex-1 rounded-lg text-[11px] font-black transition-all ${gender === 'male' ? 'bg-indigo-600 text-white shadow-md' : 'text-stone-400'}`}>乾</button>
-                        <button type="button" onClick={() => setGender('female')} className={`flex-1 rounded-lg text-[11px] font-black transition-all ${gender === 'female' ? 'bg-rose-600 text-white shadow-md' : 'text-stone-400'}`}>坤</button>
+                        <button type="button" onClick={() => setGender('male')} className={`flex-1 rounded-lg text-[11px] font-black transition-all ${gender === 'male' ? 'bg-indigo-600 text-white shadow-md' : 'text-stone-400'}`}>男</button>
+                        <button type="button" onClick={() => setGender('female')} className={`flex-1 rounded-lg text-[11px] font-black transition-all ${gender === 'female' ? 'bg-rose-600 text-white shadow-md' : 'text-stone-400'}`}>女</button>
                     </div>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
               <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl flex flex-col max-h-[75vh] animate-slide-up">
                   <div className="p-6 border-b border-stone-100 flex justify-between items-center"><h3 className="font-black text-stone-900 text-base flex items-center gap-2"><History size={20}/> 快速调取命盘</h3><X onClick={() => setShowHistoryModal(false)} size={22} className="text-stone-400 cursor-pointer"/></div>
                   <div className="overflow-y-auto p-3 space-y-2">
-                    {archives.length > 0 ? archives.map(p => (<div key={p.id} onClick={() => {onGenerate(p); setShowHistoryModal(false);}} className="p-4 bg-stone-50 hover:bg-indigo-50 rounded-2xl cursor-pointer border border-stone-100 transition-all"><div className="flex justify-between items-center"><b className="text-stone-900 text-base">{p.name}</b><span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${p.gender==='male'?'bg-indigo-100 text-indigo-700':'bg-rose-100 text-rose-700'}`}>{p.gender==='male'?'乾':'坤'}</span></div><p className="text-xs text-stone-500 mt-1 font-sans">{p.birthDate} {p.birthTime}</p></div>)) : <div className="text-center py-16 text-stone-300 text-sm italic font-serif">暂无历史缓存</div>}
+                    {archives.length > 0 ? archives.map(p => (<div key={p.id} onClick={() => {onGenerate(p); setShowHistoryModal(false);}} className="p-4 bg-stone-50 hover:bg-indigo-50 rounded-2xl cursor-pointer border border-stone-100 transition-all"><div className="flex justify-between items-center"><b className="text-stone-900 text-base">{p.name}</b><span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${p.gender==='male'?'bg-indigo-100 text-indigo-700':'bg-rose-100 text-rose-700'}`}>{p.gender==='male'?'男':'女'}</span></div><p className="text-xs text-stone-500 mt-1 font-sans">{p.birthDate} {p.birthTime}</p></div>)) : <div className="text-center py-16 text-stone-300 text-sm italic font-serif">暂无历史缓存</div>}
                   </div>
               </div>
           </div>

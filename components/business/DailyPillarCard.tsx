@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Solar, LunarUtil } from 'lunar-javascript';
-import { Compass, Sparkles, Layers, Star } from 'lucide-react';
+import { Compass, Sparkles, Star } from 'lucide-react';
 import { BaziChart } from '../../types';
 import { getShenShaForDynamicPillar } from '../../services/baziService';
 
@@ -186,7 +186,7 @@ export const DailyPillarCard: React.FC<DailyPillarCardProps> = ({ chart }) => {
                     {data.ganZhi}
                 </span>
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold text-amber-600 bg-amber-950/50 px-1 py-px rounded border border-amber-900/50 leading-none">
+                    <span className="text-[9px] font-bold text-amber-600 bg-amber-950/50 px-1 py-px rounded border border-amber-900/50 leading-none whitespace-nowrap">
                         {data.naYin}
                     </span>
                     <span className="text-[9px] text-stone-500 text-center leading-none">

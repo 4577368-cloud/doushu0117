@@ -151,11 +151,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const requestQuery = buildEncodedQuery(commonParams);
     const payUrl = `${GATEWAY}?${requestQuery}&sign=${encodeURIComponent(sign)}`;
 
-    // 6. 存库 (异步)
+    // 6. 存库 (同步等待，确保记录存在)
     try {
       if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        supabase.from('alipay_orders').insert({
+        const { error: insertError } = await supabase.from('alipay_orders').insert({
           out_trade_no: outTradeNo,
           user_id,
           amount: amountStr,
@@ -163,11 +163,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: 'pending',
           pay_url: payUrl,
           created_at: new Date().toISOString()
-        }).then(({ error }) => {
-            if (error) console.error('Supabase Error:', error);
         });
+        if (insertError) {
+           console.error('Supabase Insert Error:', insertError);
+           // 即使存库失败，也尽量让用户能支付，但记录可能会丢失，导致回调无法更新状态
+        }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('DB Operation Error:', err);
+    }
 
     const isSandbox = process.env.ALIPAY_USE_SANDBOX === 'true';
     const maskedAppId = appId ? `${appId.slice(0,4)}****${appId.slice(-4)}` : '';

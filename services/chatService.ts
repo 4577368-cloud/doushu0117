@@ -69,7 +69,7 @@ const getBaziSystemPrompt = (chart: BaziChart, timeContext: string, profile: Use
 
 【SECTION 2: 命主原始档案 (绝对事实)】
 *当${userName}询问生日或八字时，以此为准*
-- 性别：${profile.gender === 'male' ? '男 (乾造)' : '女 (坤造)'}
+- 性别：${profile.gender === 'male' ? '男' : '女'}
 - 公历：${profile.birthDate} ${profile.birthTime}
 - 真太阳时：${profile.isSolarTime ? '已校正' : '未校正'}
 
@@ -115,7 +115,7 @@ const getZiweiSystemPrompt = (profile: UserProfile, chartStr: string, timeContex
 - ⚠️ **重要指令**：请**忽略**历史记录中的任何旧名字，**只称呼我为"${userName}"**。
 
 【SECTION 2: 命主档案】
-- 性别：${profile.gender === 'male' ? '男 (乾造)' : '女 (坤造)'}
+- 性别：${profile.gender === 'male' ? '男' : '女'}
 - 公历：${profile.birthDate} ${profile.birthTime}
 
 【SECTION 3: 紫微命盘数据】

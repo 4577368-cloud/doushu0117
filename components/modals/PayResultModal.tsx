@@ -17,41 +17,80 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const run = async () => {
-      setError('');
-      if (!supabaseReady) {
-        setStatus('unknown');
-        return;
-      }
-      setLoading(true);
+    let mounted = true;
+    let timer: any = null;
+    let attempts = 0;
+    const maxAttempts = 10; // Poll for ~20-30 seconds
+
+    const checkStatus = async () => {
+      if (!mounted) return;
+      
+      // Don't set loading true on subsequent polls to avoid flickering
+      if (attempts === 0) setLoading(true);
+      
       try {
+        if (!supabaseReady || !outTradeNo) {
+           if (mounted) {
+             setStatus('unknown');
+             setLoading(false);
+           }
+           return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
-          setStatus('unknown');
-          return;
+           if (mounted) {
+             setStatus('unknown');
+             setLoading(false);
+           }
+           return;
         }
-        if (!outTradeNo) {
-          setStatus('unknown');
-          return;
-        }
+
         const { data, error } = await supabase
           .from('alipay_orders')
           .select('status,subject,amount,paid_at')
           .eq('out_trade_no', outTradeNo)
           .maybeSingle();
-        if (error) {
-          setError('查询订单失败');
-        } else if (data) {
-          setStatus((data.status as any) || 'unknown');
-          setInfo({ subject: data.subject, amount: String(data.amount), paid_at: data.paid_at });
-        } else {
-          setStatus('unknown');
+
+        if (mounted) {
+          if (error) {
+            // Only show error if we stopped polling or it's a critical error
+            // But for now, let's just keep 'unknown' or current status
+            console.error('Check status error:', error);
+          } else if (data) {
+            const newStatus = (data.status as any) || 'unknown';
+            setStatus(newStatus);
+            setInfo({ subject: data.subject, amount: String(data.amount), paid_at: data.paid_at });
+            
+            // If success, stop polling
+            if (newStatus === 'success') {
+               setLoading(false);
+               return;
+            }
+          } else {
+            // Data not found
+            setStatus('unknown');
+          }
         }
+      } catch (e) {
+        console.error(e);
       } finally {
-        setLoading(false);
+        if (mounted && attempts === 0) setLoading(false);
+      }
+
+      // Continue polling if not success and within limits
+      attempts++;
+      if (mounted && attempts < maxAttempts) {
+        timer = setTimeout(checkStatus, 2000 + attempts * 500); // Backoff slightly
       }
     };
-    run();
+
+    checkStatus();
+
+    return () => {
+      mounted = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [outTradeNo]);
 
   return (
@@ -77,6 +116,11 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
           </div>
           {error && <p className="text-xs text-rose-500 font-bold">{error}</p>}
           <div className="grid grid-cols-1 gap-2 pt-2">
+            {status !== 'success' && (
+                <button onClick={() => window.location.reload()} className="w-full py-3 bg-white border border-stone-200 text-stone-700 rounded-xl font-black text-sm shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-stone-50">
+                    <Activity size={16} /> 刷新状态
+                </button>
+            )}
             <button onClick={onClose} className="w-full py-3 bg-stone-900 text-white rounded-xl font-black text-sm shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
               <Home size={16} /> 返回首页
             </button>
