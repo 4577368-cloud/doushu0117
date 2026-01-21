@@ -11,6 +11,7 @@ import { ReportHistoryModal } from '../components/modals/ReportHistoryModal';
 import { BaziChartGrid } from '../components/business/BaziChartGrid';
 import { getDayHourComboText } from '../services/baziComboService';
 import { DailyFortuneCard, DailyFortuneData } from '../components/business/DailyFortuneCard';
+import { DailyPillarCard } from '../components/business/DailyPillarCard';
 import { generateDailyFortuneAi } from '../services/dailyFortuneService';
 import { calculateDailyFortuneBasic } from '../services/dailyFortune';
 import { getFullDateGanZhi } from '../services/ganzhi';
@@ -163,9 +164,10 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
       <div className="flex-1 overflow-y-auto bg-[#f9f9f8] p-4 pb-24">
          
          {activeSubTab === ChartSubTab.DAILY && (
-             <div className="animate-fade-in space-y-4">
-                 <DailyFortuneCard 
-                    chart={chart}
+            <div className="animate-fade-in space-y-4">
+                <DailyPillarCard chart={chart} />
+                <DailyFortuneCard 
+                   chart={chart}
                     aiData={dailyFortune} 
                     loading={loadingFortune} 
                     onGenerate={handleGenerateFortune} 
