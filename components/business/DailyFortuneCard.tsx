@@ -90,11 +90,7 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
                         {data.date}
                     </div>
                 </div>
-                {data.isAiGenerated && (
-                   <div className="bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold border border-white/20 flex items-center gap-1">
-                      <Wand2 size={10} /> AI 定制
-                   </div>
-                )}
+                {/* Badge removed */}
             </div>
             <div className="mt-4 pt-4 border-t border-white/20">
                 <p className="text-sm font-medium leading-relaxed opacity-95 text-justify whitespace-pre-line">
@@ -250,7 +246,7 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
               <Sparkles size={32} className="text-indigo-500" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-bold text-stone-800">AI 每日运势 · 深度版</h3>
+              <h3 className="font-bold text-stone-800">今日运势 · 深度版</h3>
               <p className="text-[10px] text-stone-400 max-w-[200px] mx-auto leading-relaxed">
                 "结合八字格局与今日流日，<br/>为您生成比基础版更精准的 1000字 深度解读"
               </p>
@@ -292,7 +288,7 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold rounded-lg transition-all z-10 ${mode === 'ai' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-stone-400 hover:text-stone-600'}`}
         >
             {isVip ? <Sparkles size={14} /> : <Lock size={12} />}
-            深度解读 · AI 版
+            今日运势 · 深度版
         </button>
       </div>
 
