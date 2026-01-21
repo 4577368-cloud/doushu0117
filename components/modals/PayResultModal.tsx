@@ -26,6 +26,28 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
     const checkStatus = async () => {
       if (!mounted) return;
       
+      // 乐观更新：只要有单号和交易号，前端无条件信任为支付成功
+      if (outTradeNo && tradeNo) {
+        setStatus('success');
+        setLoading(false);
+        // 尝试获取详情仅用于展示，失败也不影响成功状态
+        try {
+            if (supabaseReady) {
+                const { data } = await supabase
+                  .from('alipay_orders')
+                  .select('subject,amount,paid_at')
+                  .eq('out_trade_no', outTradeNo)
+                  .maybeSingle();
+                if (mounted && data) {
+                    setInfo({ subject: data.subject, amount: String(data.amount), paid_at: data.paid_at });
+                }
+            }
+        } catch (e) {
+            console.error('Fetch info error:', e);
+        }
+        return;
+      }
+
       // Don't set loading true on subsequent polls to avoid flickering
       if (attempts === 0) setLoading(true);
       
@@ -105,7 +127,7 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
             )}
           </div>
           <h3 className="text-lg font-black text-stone-900">
-            {loading ? '查询中…' : status === 'success' ? '支付成功' : status === 'pending' ? '支付处理中' : '支付结果未确认'}
+            {loading ? '查询中…' : status === 'success' ? '支付成功' : status === 'pending' ? '支付处理中' : '支付结果 确认中！'}
           </h3>
           <div className="text-xs text-stone-500">
             {outTradeNo && <div>订单号：<span className="font-mono font-bold text-stone-800">{outTradeNo}</span></div>}
