@@ -53,7 +53,7 @@ export const safeAuth = {
     }
     return await supabase.auth.signInWithPassword(payload as any);
   },
-  async signUp(payload: { email: string; password: string }) {
+  async signUp(payload: { email: string; password: string; options?: any }) {
     if (!supabaseReady) {
       return { data: null, error: { message: '当前为离线模式，无法注册。请配置 .env 后重试。' } } as any;
     }

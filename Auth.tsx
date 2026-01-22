@@ -37,7 +37,17 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
             throw new Error('请先阅读并同意用户协议和隐私政策');
         }
         console.log('Starting sign up...');
-        const { error } = await safeAuth.signUp({ email, password });
+        const namePart = email.split('@')[0];
+        const { error } = await safeAuth.signUp({ 
+            email, 
+            password,
+            options: {
+                data: {
+                    full_name: namePart,
+                    name: namePart,
+                }
+            }
+        });
         if (error) {
             console.error('Sign up error details:', error);
             throw error;
@@ -47,7 +57,11 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
       }
     } catch (error: any) {
       console.error('Auth Flow Error:', error);
-      setMessage({ type: 'error', text: error.message || '操作失败，请重试' });
+      let errorText = error.message || '操作失败，请重试';
+      if (errorText.includes('Database error saving new user')) {
+          errorText = '注册失败：数据库错误。请稍后重试，或联系管理员。';
+      }
+      setMessage({ type: 'error', text: errorText });
     } finally {
       setLoading(false);
     }
