@@ -371,6 +371,13 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
           console.log("✅ [Cloud Save] 成功，已生成云端 UUID 并本地迁移");
         }
       }
+      
+      if (finalProfile.isSelf && finalProfile.name) {
+         // 顺便更新一下用户元数据，保证下次登录显示的也是新名字
+         await supabase.auth.updateUser({
+             data: { name: finalProfile.name, full_name: finalProfile.name }
+         });
+      }
     }
   }
 
@@ -440,6 +447,15 @@ export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
         .update({ is_self: true, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('user_id', session.user.id);
+      
+      // 🔥 同步更新用户元数据中的名字
+      const selfProfile = archives.find(p => p.id === id);
+      if (selfProfile && selfProfile.name) {
+          await supabase.auth.updateUser({
+              data: { name: selfProfile.name, full_name: selfProfile.name }
+          });
+      }
+
       console.log("✅ [Self] 云端状态已更新");
     } catch (e: any) {
       console.error("❌ [Self] 云端更新失败", e);

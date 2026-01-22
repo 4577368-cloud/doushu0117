@@ -259,8 +259,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-stone-100 font-bold text-lg tracking-wide font-serif">
-                                    {session ? (session.user.email?.split('@')[0] || '命理师') : '访客'}
-                                </h2>
+                                {selfProfile ? selfProfile.name : (session ? (session.user.user_metadata?.name || session.user.email?.split('@')[0] || '命理师') : '访客')}
+                            </h2>
                                 {isVip ? (
                                     <span className="flex items-center gap-1 bg-gradient-to-r from-amber-300 to-amber-500 text-[#1c1917] text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
                                         <Crown size={10} fill="currentColor"/> VIP
