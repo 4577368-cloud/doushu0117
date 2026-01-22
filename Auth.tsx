@@ -18,6 +18,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
     setMessage(null);
 
     try {
+      console.log('Auth Action:', { mode, email, agreed });
+      
       if (mode === 'forgot') {
         const { error } = await safeAuth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin,
@@ -34,11 +36,17 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
         if (!agreed) {
             throw new Error('请先阅读并同意用户协议和隐私政策');
         }
+        console.log('Starting sign up...');
         const { error } = await safeAuth.signUp({ email, password });
-        if (error) throw error;
+        if (error) {
+            console.error('Sign up error details:', error);
+            throw error;
+        }
+        console.log('Sign up successful, check email.');
         setMessage({ type: 'success', text: '注册确认邮件已发送，请查收！' });
       }
     } catch (error: any) {
+      console.error('Auth Flow Error:', error);
       setMessage({ type: 'error', text: error.message || '操作失败，请重试' });
     } finally {
       setLoading(false);

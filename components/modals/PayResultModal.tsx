@@ -129,14 +129,40 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
           <h3 className="text-lg font-black text-stone-900">
             {loading ? '查询中…' : status === 'success' ? '支付成功' : status === 'pending' ? '支付处理中' : '支付结果 确认中！'}
           </h3>
-          <div className="text-xs text-stone-500">
-            {outTradeNo && <div>订单号：<span className="font-mono font-bold text-stone-800">{outTradeNo}</span></div>}
-            {tradeNo && <div>交易号：<span className="font-mono text-stone-700">{tradeNo}</span></div>}
-            {totalAmount && <div>金额：<span className="font-bold">¥{totalAmount}</span></div>}
-            {appId && <div>应用：<span className="font-mono">{appId}</span></div>}
-            {info?.paid_at && <div>支付时间：<span className="font-mono">{new Date(info.paid_at).toLocaleString()}</span></div>}
-            {info?.amount && !totalAmount && <div>金额：<span className="font-bold">¥{info.amount}</span></div>}
+          
+          <div className="w-full bg-stone-50 rounded-xl p-4 space-y-2.5 border border-stone-100 text-left">
+            <div className="flex justify-between items-start text-xs">
+              <span className="text-stone-500 shrink-0">商品说明</span>
+              <span className="font-bold text-stone-900 text-right">{info?.subject || '玄枢APP-VIP会员服务'}</span>
+            </div>
+            <div className="w-full h-px bg-stone-200/50 my-1"></div>
+            {outTradeNo && (
+                <div className="flex justify-between items-start text-xs">
+                <span className="text-stone-500 shrink-0">商户单号</span>
+                <span className="font-mono text-stone-600 text-right break-all select-all">{outTradeNo}</span>
+                </div>
+            )}
+            {tradeNo && (
+                <div className="flex justify-between items-start text-xs">
+                <span className="text-stone-500 shrink-0">支付宝交易号</span>
+                <span className="font-mono text-stone-600 text-right break-all select-all">{tradeNo}</span>
+                </div>
+            )}
+            <div className="w-full h-px bg-stone-200/50 my-1"></div>
+            <div className="flex justify-between items-center text-xs">
+                <span className="text-stone-500">实付金额</span>
+                <span className="font-bold text-stone-900 text-sm">
+                {totalAmount || info?.amount ? `¥${totalAmount || info?.amount}` : <span className="text-amber-600 text-[10px]">金额确认中...</span>}
+                </span>
+            </div>
+            {(info?.paid_at) && (
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-stone-500">支付时间</span>
+                    <span className="font-mono text-stone-600">{new Date(info.paid_at).toLocaleString()}</span>
+                </div>
+            )}
           </div>
+
           {error && <p className="text-xs text-rose-500 font-bold">{error}</p>}
           <div className="grid grid-cols-1 gap-2 pt-2">
             {status !== 'success' && (
