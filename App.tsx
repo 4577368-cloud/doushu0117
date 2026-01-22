@@ -316,6 +316,7 @@ const App: React.FC = () => {
                           isVip={isVip} 
                           onManualSave={handleManualSave} 
                           isSaving={isGlobalSaving} 
+                          archives={archives}
                       />
                   </ErrorBoundary>
               );

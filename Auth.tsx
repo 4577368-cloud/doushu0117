@@ -45,25 +45,14 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
             password,
             options: {
                 data: {
+                    // 仅保留最基础的 name 和 full_name
+                    // 移除所有可能导致类型转换错误的命理字段
+                    // 策略：让触发器使用其内部定义的默认值，而不是从这里传值
                     full_name: namePart,
                     name: namePart,
                     username: `${namePart}_${randomSuffix}`,
-                    // 补充 archives 表可能需要的必填字段默认值
-                    gender: '男', // 默认性别
-                    birth_date: '1990-01-01', // 默认出生日期 (YYYY-MM-DD 格式，确保兼容性)
-                    birth_time: '12:00', // 默认出生时间
-                    is_solar_time: false,
-                    is_self: true, // 标记为本人
-                    province: '北京', // 默认省份
-                    city: '北京', // 默认城市
-                    longitude: 116.40, // 默认经度 (北京)
-                    tags: ['本人'],
-                    avatar: '', // 修正字段名：部分表使用 avatar 而非 avatar_url
                     avatar_url: '',
-                    website: '',
-                    location: '',
-                    bio: '玄枢用户',
-                    role: 'user'
+                    // 尝试传递空对象或不传 archives 相关字段，看是否触发器有 fallback
                 }
             }
         });

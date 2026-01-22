@@ -119,7 +119,7 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
         createdAt: item.created_at ? new Date(item.created_at).getTime() : Date.now(),
         isSelf: item.is_self,
         avatar: item.avatar,
-        aiReports: [] 
+        aiReports: item.ai_reports || [] 
       }));
 
       // 过滤掉无效数据
@@ -150,7 +150,25 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       // 如果用户刚刚在本地创建了数据但没同步上去，覆盖会导致丢失。
       // 所以我们做一个简单的合并：
       const mergedMap = new Map<string, UserProfile>();
-      sorted.forEach(a => mergedMap.set(a.id, a));
+      sorted.forEach(a => {
+          // 尝试从本地恢复 aiReports (如果云端没有)
+          const local = localArchives.find(l => l.id === a.id);
+          if (local && local.aiReports && local.aiReports.length > 0) {
+              if (!a.aiReports || a.aiReports.length === 0) {
+                  a.aiReports = local.aiReports;
+              } else {
+                  // 如果云端和本地都有，尝试合并 (以本地为准，因为可能刚生成了新报告)
+                  // 简单的合并策略：ID 去重
+                  const existingIds = new Set(a.aiReports.map(r => r.id));
+                  local.aiReports.forEach(r => {
+                      if (!existingIds.has(r.id)) {
+                          a.aiReports?.unshift(r);
+                      }
+                  });
+              }
+          }
+          mergedMap.set(a.id, a);
+      });
       
       // 检查本地是否有“未同步”的数据（不在云端列表中）
       // 注意：本地数据的 ID 可能是临时的（非 UUID），也可能是 UUID。
@@ -271,7 +289,8 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
       tags: finalProfile.tags || [],
       is_self: finalProfile.isSelf || false,
       avatar: finalProfile.avatar || '',
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      ai_reports: finalProfile.aiReports || []
     };
 
     if (isUuid(finalProfile.id)) {

@@ -18,21 +18,16 @@ import { getFullDateGanZhi } from '../services/ganzhi';
 import { BRANCH_CLASHES, BRANCH_XING, BRANCH_HAI, EARTHLY_BRANCHES, BRANCH_COMBINES } from '../services/constants';
 import { getGanZhiForMonth } from '../services/baziService';
 
-export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onManualSave: () => void; isSaving: boolean }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onManualSave, isSaving }) => {
+export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onManualSave, isSaving, archives }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
   const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('ai_api_key') || '');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [archives, setArchives] = useState<UserProfile[]>([]);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState<any | null>(null);
   const [copiedCombo, setCopiedCombo] = useState(false);
   const [dailyFortune, setDailyFortune] = useState<DailyFortuneData | null>(null);
   const [loadingFortune, setLoadingFortune] = useState(false);
   const [fortuneError, setFortuneError] = useState(false);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
-
-  useEffect(() => { 
-      getArchives().then(setArchives); 
-  }, [aiReport]);
 
   const allHistoryReports = useMemo(() => {
       const all: any[] = [];
