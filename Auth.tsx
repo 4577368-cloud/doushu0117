@@ -50,13 +50,15 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
                     username: `${namePart}_${randomSuffix}`,
                     // 补充 archives 表可能需要的必填字段默认值
                     gender: '男', // 默认性别
-                    birth_date: '19900101', // 默认出生日期
+                    birth_date: '1990-01-01', // 默认出生日期 (YYYY-MM-DD 格式，确保兼容性)
                     birth_time: '12:00', // 默认出生时间
                     is_solar_time: false,
                     is_self: true, // 标记为本人
-                    province: '',
-                    city: '',
+                    province: '北京', // 默认省份
+                    city: '北京', // 默认城市
+                    longitude: 116.40, // 默认经度 (北京)
                     tags: ['本人'],
+                    avatar: '', // 修正字段名：部分表使用 avatar 而非 avatar_url
                     avatar_url: '',
                     website: '',
                     location: '',
