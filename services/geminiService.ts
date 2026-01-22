@@ -9,6 +9,7 @@ const readStreamResponse = async (response: Response): Promise<string> => {
   const reader = response.body?.getReader();
   const decoder = new TextDecoder("utf-8");
   let fullText = "";
+  let buffer = "";
 
   if (!reader) throw new Error("无法读取响应流");
 
@@ -16,8 +17,13 @@ const readStreamResponse = async (response: Response): Promise<string> => {
     const { done, value } = await reader.read();
     if (done) break;
     const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+    // 拼接缓冲区并按行分割
+    const lines = (buffer + chunk).split('\n');
+    // 最后一行可能不完整，保留到缓冲区
+    buffer = lines.pop() || "";
+
     for (const line of lines) {
+      if (line.trim() === '') continue;
       if (line.startsWith('data: ')) {
         const jsonStr = line.slice(6);
         if (jsonStr.trim() === '[DONE]') continue;
@@ -109,7 +115,17 @@ JSON 结构规范：
     // 6. 解析 JSON 结果
     let parsed;
     try {
-      parsed = JSON.parse(rawContent);
+      // 清理可能存在的 markdown 标记
+      let jsonContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      // 尝试提取 JSON 部分 (处理 AI 可能输出的前导/后置文本)
+      const jsonStart = jsonContent.indexOf('{');
+      const jsonEnd = jsonContent.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+      }
+
+      parsed = JSON.parse(jsonContent);
     } catch (e) {
       console.error("JSON Parse Error:", e, rawContent);
       throw new Error("报告生成格式异常，请重试");

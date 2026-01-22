@@ -25,6 +25,7 @@ const readStreamResponse = async (response: Response): Promise<string> => {
   const reader = response.body?.getReader();
   const decoder = new TextDecoder("utf-8");
   let fullText = "";
+  let buffer = "";
 
   if (!reader) throw new Error("无法读取响应流");
 
@@ -32,8 +33,13 @@ const readStreamResponse = async (response: Response): Promise<string> => {
     const { done, value } = await reader.read();
     if (done) break;
     const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+    // 拼接缓冲区并按行分割
+    const lines = (buffer + chunk).split('\n');
+    // 最后一行可能不完整，保留到缓冲区
+    buffer = lines.pop() || "";
+
     for (const line of lines) {
+      if (line.trim() === '') continue;
       if (line.startsWith('data: ')) {
         const jsonStr = line.slice(6);
         if (jsonStr.trim() === '[DONE]') continue;
@@ -150,17 +156,6 @@ JSON 结构：
 
   } catch (e) {
     console.error("Daily Fortune AI Error:", e);
-    // 失败时的降级数据
-    return {
-      auspiciousness: '平',
-      summary: '今日运势平稳，宜静守，按部就班即可。',
-      scores: { wealth: 60, career: 60, emotion: 60, health: 60 },
-      advice: {
-        wealth: '理性消费，避免冲动。',
-        career: '完成本职工作，保持耐心。',
-        emotion: '多沟通，少争执。',
-        life: '注意休息，多喝水。'
-      }
-    };
+    throw e; // 让上层组件处理错误并显示重试按钮
   }
 };
