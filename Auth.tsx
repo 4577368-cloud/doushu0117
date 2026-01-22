@@ -38,8 +38,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
         }
         console.log('Starting sign up...');
         const namePart = email.split('@')[0];
-        // Generate a random suffix to ensure username uniqueness if that's the constraint
-        const randomSuffix = Math.floor(Math.random() * 10000);
+        // Generate a random suffix to ensure username uniqueness
+        const randomSuffix = Date.now().toString().slice(-6);
         const { error } = await safeAuth.signUp({ 
             email, 
             password,
@@ -47,8 +47,21 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
                 data: {
                     full_name: namePart,
                     name: namePart,
-                    username: `${namePart}${randomSuffix}`,
+                    username: `${namePart}_${randomSuffix}`,
+                    // 补充 archives 表可能需要的必填字段默认值
+                    gender: '男', // 默认性别
+                    birth_date: '19900101', // 默认出生日期
+                    birth_time: '12:00', // 默认出生时间
+                    is_solar_time: false,
+                    is_self: true, // 标记为本人
+                    province: '',
+                    city: '',
+                    tags: ['本人'],
                     avatar_url: '',
+                    website: '',
+                    location: '',
+                    bio: '玄枢用户',
+                    role: 'user'
                 }
             }
         });
