@@ -38,6 +38,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
         }
         console.log('Starting sign up...');
         const namePart = email.split('@')[0];
+        // Generate a random suffix to ensure username uniqueness if that's the constraint
+        const randomSuffix = Math.floor(Math.random() * 10000);
         const { error } = await safeAuth.signUp({ 
             email, 
             password,
@@ -45,6 +47,8 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
                 data: {
                     full_name: namePart,
                     name: namePart,
+                    username: `${namePart}${randomSuffix}`,
+                    avatar_url: '',
                 }
             }
         });
