@@ -38,7 +38,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
   const [activeTab, setActiveTab] = useState<'paipan' | 'zeji' | 'calendar'>('paipan');
   const [view, setView] = useState<'平面' | '立体' | '罗盘'>('平面');
   const [timestamp, setTimestamp] = useState(Date.now());
-  const [ju, setJu] = useState<QM_Ju | null>(null);
+  const ju = useMemo(() => initializeQM_Ju(profile, timestamp), [timestamp, profile]);
   
   // Divination State
   const [divinationState, setDivinationState] = useState<{
@@ -95,10 +95,6 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
   // Note: userYearGan is derived from profile birth date
   const userBirthYear = new Date(profile.birthDate).getFullYear();
   const userYearGan = getYearGan(userBirthYear);
-
-  useEffect(() => {
-    setJu(initializeQM_Ju(profile, timestamp));
-  }, [timestamp, profile]);
 
   // Reset selected palace when affair changes
   useEffect(() => {
