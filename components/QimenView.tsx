@@ -11,6 +11,7 @@ import { AuspiciousView } from './qimen/AuspiciousView';
 import { QimenPalaceItem } from './qimen/QimenPalaceItem';
 import { QimenSpatialLayers } from './qimen/QimenSpatialLayers';
 import { QimenCompass } from './qimen/QimenCompass';
+import { QimenCalendar } from './qimen/QimenCalendar';
 import {
   Zap,
   Compass,
@@ -34,7 +35,7 @@ interface QimenViewProps {
 }
 
 const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) => {
-  const [activeTab, setActiveTab] = useState<'paipan' | 'zeji'>('paipan');
+  const [activeTab, setActiveTab] = useState<'paipan' | 'zeji' | 'calendar'>('paipan');
   const [view, setView] = useState<'平面' | '立体' | '罗盘'>('平面');
   const [timestamp, setTimestamp] = useState(Date.now());
   const [ju, setJu] = useState<QM_Ju | null>(null);
@@ -132,8 +133,11 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
 
   // Memoized active affair config
   const activeAffairConfig = useMemo(() => {
-    if (!divinationState.affairKey) return null;
-    const baseConfig = QM_AFFAIR_SYMBOLS[divinationState.affairKey];
+    if (!divinationState.affairKey || !divinationState.category) return null;
+    
+    const baseConfig = QM_AFFAIR_SYMBOLS[divinationState.category]?.[divinationState.affairKey];
+    if (!baseConfig) return null;
+
     const industry = divinationState.industry;
     
     if (industry !== '通用' && baseConfig.industryAdaptation?.[industry as QM_IndustryKey]) {
@@ -646,12 +650,34 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
           >
             择吉择方
           </button>
+          <button 
+             onClick={() => setActiveTab('calendar')}
+             className={`px-6 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'calendar' ? 'bg-white shadow-sm text-amber-600' : 'text-stone-400'}`}
+          >
+            奇门日历
+          </button>
         </div>
       </div>
 
       {activeTab === 'zeji' ? (
         <div className="flex-1 overflow-hidden relative">
            <AuspiciousView />
+        </div>
+      ) : activeTab === 'calendar' ? (
+        <div className="flex-1 overflow-y-auto p-4 pb-20 bg-stone-50">
+           <QimenCalendar onSelectDate={(d) => {
+             setTimestamp(d.getTime());
+             setActiveTab('paipan');
+           }} />
+           
+           <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-stone-100">
+             <h3 className="font-bold text-sm text-stone-800 mb-2">日历说明</h3>
+             <p className="text-xs text-stone-500 leading-relaxed">
+               • 点击日期可查看当天的奇门局。<br/>
+               • 显示当日的定局信息（阴/阳遁、局数、节气）。<br/>
+               • 包含农历日期与干支日柱。
+             </p>
+           </div>
         </div>
       ) : (
         <>
@@ -678,7 +704,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
                value={commandInput}
                onChange={(e) => setCommandInput(e.target.value)}
                onKeyDown={(e) => e.key === 'Enter' && handleSmartCommand()}
-               placeholder="输入问题或时间，如：下周三去谈判顺利吗？"
+               placeholder=""
                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-9 pr-12 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-gray-300 select-text"
             />
             <button 

@@ -247,7 +247,7 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
     <div className={`relative flex flex-col items-center justify-center ${className}`}>
       {/* Time Controls */}
       {onTimeChange && (
-        <div className="flex items-center gap-2 mb-4 bg-gray-50 p-1 rounded-xl border border-gray-100 shadow-sm z-10">
+        <div className="flex items-center gap-2 mb-8 bg-gray-50 p-1 rounded-xl border border-gray-100 shadow-sm z-30">
           <button 
             onClick={() => onTimeChange(new Date())}
             className="px-3 py-1.5 text-[10px] font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"

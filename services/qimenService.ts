@@ -6,7 +6,7 @@ const GANS = ['Jia', 'Yi', 'Bing', 'Ding', 'Wu', 'Ji', 'Geng', 'Xin', 'Ren', 'Gu
 const ZHIS = ['Zi', 'Chou', 'Yin', 'Mao', 'Chen', 'Si', 'WuBranch', 'Wei', 'Shen', 'You', 'Xu', 'Hai'];
 
 // --- 辅助函数：计算定局 ---
-const calculateJu = (date: Date): { juNumber: number; yinYang: '阴' | '阳'; jieQi: string; yuan: string } => {
+export const calculateJu = (date: Date): { juNumber: number; yinYang: '阴' | '阳'; jieQi: string; yuan: string } => {
   const solar = Solar.fromDate(date);
   const lunar = solar.getLunar();
   

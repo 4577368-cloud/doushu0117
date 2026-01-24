@@ -249,18 +249,34 @@ export const parseSmartCommand = (input: string): SmartCommandResult => {
 
   // If no manual match, fuzzy search in symbols definitions
   if (!bestMatch) {
-    for (const [key, config] of Object.entries(QM_AFFAIR_SYMBOLS)) {
-      if (input.includes(config.label)) {
-        bestMatch = { key, score: 0.8 };
-        break;
+    for (const [cat, affairs] of Object.entries(QM_AFFAIR_SYMBOLS)) {
+      for (const [affairKey, config] of Object.entries(affairs)) {
+        if (input.includes(config.label)) {
+          bestMatch = { key: affairKey, score: 0.8 };
+          break;
+        }
       }
+      if (bestMatch) break;
     }
   }
 
   if (bestMatch) {
     result.affairKey = bestMatch.key;
-    result.category = QM_AFFAIR_SYMBOLS[bestMatch.key]?.category;
-    result.explanation.push(`识别到意图：${QM_AFFAIR_SYMBOLS[bestMatch.key]?.label || bestMatch.key}`);
+    
+    // Find category for this affair key
+    let foundCategory: QM_AffairCategory | undefined;
+    let foundLabel: string | undefined;
+
+    for (const [cat, affairs] of Object.entries(QM_AFFAIR_SYMBOLS)) {
+       if (affairs[bestMatch.key]) {
+         foundCategory = cat as QM_AffairCategory;
+         foundLabel = affairs[bestMatch.key].label;
+         break;
+       }
+    }
+
+    result.category = foundCategory;
+    result.explanation.push(`识别到意图：${foundLabel || bestMatch.key}`);
     result.confidence += bestMatch.score;
   }
 
