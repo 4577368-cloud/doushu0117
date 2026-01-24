@@ -142,85 +142,109 @@ export const parseSmartCommand = (input: string): SmartCommandResult => {
 
   // Expanded Keyword Mapping
   const KEYWORD_MAP: Record<string, string> = {
-    // Wealth
-    '赚钱': 'wealth_general', '发财': 'wealth_general', '收益': 'wealth_general', 
-    '利润': 'wealth_general', '资金': 'wealth_general', '贷款': 'wealth_general',
-    '借钱': 'wealth_general', '求财': 'wealth_general', '盈亏': 'wealth_general',
-    '财运': 'wealth_general', '财气': 'wealth_general',
+    // Investment (Stock, Crypto, Wealth management)
+    '赚钱': 'investment', '发财': 'investment', '收益': 'investment', 
+    '利润': 'investment', '资金': 'investment', '贷款': 'investment',
+    '借钱': 'debt', '求财': 'business', '盈亏': 'investment',
+    '财运': 'fortune', '财气': 'fortune', '运势': 'fortune',
+    '股票': 'investment', '基金': 'investment', '炒股': 'investment', 
+    '虚拟币': 'investment', '币圈': 'investment', '比特币': 'investment',
+    '黄金': 'investment', '原油': 'investment', '期货': 'investment',
+    '理财': 'investment', '借贷': 'investment', '杠杆': 'investment',
+    '抄底': 'investment', '套牢': 'investment', '割肉': 'investment',
+    '涨跌': 'investment', '行情': 'investment',
     
-    // Business
+    // Business (Operation, Sales, Shop)
     '生意': 'business', '买卖': 'business', '经营': 'business', 
     '开店': 'business', '开业': 'business', '客户': 'business', 
     '订单': 'business', '销售': 'business', '卖货': 'business',
+    '营业': 'business', '店铺': 'business', '档口': 'business',
+    '摊位': 'business', '加盟': 'business', '代理': 'business',
+    '批发': 'business', '零售': 'business', '进货': 'business',
+    '囤货': 'business', '项目': 'business',
     
-    // Investment
-    '投资': 'investment', '理财': 'investment', '股票': 'investment', 
-    '基金': 'investment', '炒股': 'investment', '虚拟币': 'investment',
+    // Debt (Borrowing, Lending, Collection)
+    '欠钱': 'debt', '催债': 'debt', '还钱': 'debt',
+    '欠款': 'debt', '收账': 'debt', '债务': 'debt',
+    '赖账': 'debt', '跑路': 'debt', '借给': 'debt',
     
-    // Debt
-    '欠钱': 'debt_collection', '催债': 'debt_collection', '还钱': 'debt_collection',
-    '欠款': 'debt_collection', '收账': 'debt_collection',
+    // Job Search (Interview, Offer)
+    '面试': 'job_search', '找工作': 'job_search', '应聘': 'job_search', 'offer': 'job_search',
+    '离职': 'job_search', '跳槽': 'job_search', '辞职': 'job_search',
+    '工作': 'job_search', '上班': 'job_search', '岗位': 'job_search',
+    '简历': 'job_search', '招聘': 'job_search', '猎头': 'job_search',
+    '入职': 'job_search', '转正': 'job_search', '失业': 'job_search',
     
-    // Career
-    '面试': 'job_interview', '找工作': 'job_interview', '应聘': 'job_interview', 'offer': 'job_interview',
+    // Promotion (Career advancement)
     '升职': 'promotion', '晋升': 'promotion', '提拔': 'promotion',
-    '离职': 'resignation', '跳槽': 'resignation', '辞职': 'resignation',
-    '工作': 'work_stability', '上班': 'work_stability', '岗位': 'work_stability', '职场': 'work_stability',
+    '竞聘': 'promotion', '职称': 'promotion', '评级': 'promotion',
+    '升官': 'promotion', '掌权': 'promotion', '职场': 'promotion',
+    '领导': 'promotion', '调动': 'promotion', '仕途': 'promotion',
     
-    // Contract/Cooperation
-    '合同': 'contract', '签约': 'contract', '签字': 'contract', '协议': 'contract',
-    '合作': 'contract', '合伙': 'contract',
+    // Negotiation (Contract, Partnership)
+    '合同': 'negotiation', '签约': 'negotiation', '签字': 'negotiation', '协议': 'negotiation',
+    '合作': 'negotiation', '合伙': 'negotiation', '谈判': 'negotiation',
+    '商谈': 'negotiation', '谈事': 'negotiation', '违约': 'negotiation',
     
-    // Negotiation
-    '谈判': 'negotiation', '商谈': 'negotiation', '谈事': 'negotiation',
+    // Marriage (Wedding, Spouse)
+    '结婚': 'marriage', '姻缘': 'marriage', '老公': 'marriage', '老婆': 'marriage',
+    '丈夫': 'marriage', '妻子': 'marriage', '配偶': 'marriage',
+    '领证': 'marriage', '婚礼': 'marriage', '婚事': 'marriage',
+    '提亲': 'marriage', '订婚': 'marriage', '嫁娶': 'marriage',
+    '求婚': 'marriage',
     
-    // Relationship
-    '结婚': 'love_marriage', '恋爱': 'love_marriage', '感情': 'love_marriage',
-    '姻缘': 'love_marriage', '对象': 'love_marriage', '男友': 'love_marriage',
-    '女友': 'love_marriage', '老公': 'love_marriage', '老婆': 'love_marriage',
-    '复合': 'love_marriage', '分手': 'love_marriage', '喜欢': 'love_marriage',
-    '相亲': 'love_marriage', '桃花': 'love_marriage',
+    // Relationship (Love, Dating)
+    '恋爱': 'relationship', '感情': 'relationship', '对象': 'relationship',
+    '男友': 'relationship', '女友': 'relationship', '复合': 'relationship',
+    '分手': 'relationship', '喜欢': 'relationship', '暗恋': 'relationship',
+    '追求': 'relationship', '表白': 'relationship', '桃花': 'relationship',
+    '暧昧': 'relationship', '第三者': 'relationship', '出轨': 'relationship',
+    '吵架': 'relationship', '冷战': 'relationship', '前任': 'relationship',
     
-    // Academic
+    // Exam (Academic)
     '考试': 'exam', '考研': 'exam', '考公': 'exam', '高考': 'exam',
     '成绩': 'exam', '分数': 'exam', '录取': 'exam', '学业': 'exam',
+    '留学': 'exam', '答辩': 'exam', '证书': 'exam', '考级': 'exam',
     
-    // Health
-    '健康': 'health_general', '身体': 'health_general', '病': 'health_general',
-    '不舒服': 'health_general', '疼': 'health_general', '痛': 'health_general',
-    '医院': 'health_general', '手术': 'surgery', '开刀': 'surgery',
-    '医生': 'treatment', '治疗': 'treatment', '吃药': 'treatment',
+    // Disease (Illness, Treatment)
+    '病': 'disease', '不舒服': 'disease', '疼': 'disease', '痛': 'disease',
+    '医院': 'disease', '手术': 'disease', '开刀': 'disease',
+    '医生': 'disease', '治疗': 'disease', '吃药': 'disease',
+    '诊断': 'disease', '检查': 'disease', '绝症': 'disease',
+    '康复': 'disease', '感冒': 'disease', '发烧': 'disease',
     
-    // Lost
-    '丢': 'lost_item', '不见': 'lost_item', '失物': 'lost_item',
-    '手机': 'lost_electronics', '电脑': 'lost_electronics', 
-    '钱包': 'lost_money', '钱丢': 'lost_money', 
-    '车丢': 'lost_vehicle',
-    '寻人': 'find_person', '走失': 'find_person', '联系': 'find_person',
+    // Health Check
+    '健康': 'health_check', '身体': 'health_check', '体检': 'health_check',
+    '养生': 'health_check',
     
     // Travel
-    '出行': 'travel_trip', '旅游': 'travel_trip', '出差': 'travel_trip',
-    '去': 'travel_trip', '走': 'travel_trip', '机票': 'travel_trip',
-    '搬家': 'relocation', '入宅': 'relocation', '动土': 'relocation',
-    '安全': 'safety', '平安': 'safety',
+    '出行': 'travel', '旅游': 'travel', '出差': 'travel',
+    '去': 'travel', '走': 'travel', '机票': 'travel',
+    '搬家': 'travel', '入宅': 'travel', '动土': 'travel',
+    '安全': 'travel', '平安': 'travel', '远行': 'travel',
+    '火车票': 'travel', '签证': 'travel', '移民': 'travel',
+    
+    // Lost Item
+    '丢': 'item', '不见': 'item', '失物': 'item',
+    '寻物': 'item', '找东西': 'item',
     
     // Lawsuit
-    '官司': 'lawsuit', '诉讼': 'lawsuit', '告': 'lawsuit', '法院': 'lawsuit',
+    '官司': 'general', '诉讼': 'general', '告': 'general', '法院': 'general',
+    '律师': 'general', '判决': 'general', '坐牢': 'general',
+    '刑拘': 'general', '报警': 'general', '立案': 'general', '是非': 'general',
     
     // Other Person
-    '他': 'other_person', '她': 'other_person', '某人': 'other_person', '态度': 'other_person',
+    '他': 'relationship', '她': 'relationship', '某人': 'relationship', '态度': 'relationship',
   };
 
   // Check manual keywords first
+  let bestMatchKeywordLength = 0;
   for (const [keyword, affairKey] of Object.entries(KEYWORD_MAP)) {
     if (input.includes(keyword)) {
-      // Simple logic: longer keyword match might be better? 
-      // Or just take first.
-      // Let's try to find "Best" match (longest keyword)
-      if (!bestMatch || keyword.length > (bestMatch.key.length)) { // This logic is flawed, key length != keyword length
-         // But we don't have keyword length stored in bestMatch if we only store key.
-         // Let's just take the first valid match for now, or accumulate score.
+      // Prioritize longer keyword matches (more specific)
+      if (!bestMatch || keyword.length > bestMatchKeywordLength) {
          bestMatch = { key: affairKey, score: 1.0 };
+         bestMatchKeywordLength = keyword.length;
       }
     }
   }
@@ -233,17 +257,17 @@ export const parseSmartCommand = (input: string): SmartCommandResult => {
   
   if (input.includes('手机') || input.includes('电脑') || input.includes('相机')) {
      if (input.includes('丢') || input.includes('不见')) {
-       bestMatch = { key: 'lost_electronics', score: 1.2 };
+       bestMatch = { key: 'item', score: 1.2 };
      }
   }
   if (input.includes('车')) {
      if (input.includes('丢') || input.includes('不见')) {
-       bestMatch = { key: 'lost_vehicle', score: 1.2 };
+       bestMatch = { key: 'item', score: 1.2 };
      }
   }
   if (input.includes('钱') || input.includes('钱包')) {
      if (input.includes('丢') || input.includes('不见')) {
-       bestMatch = { key: 'lost_money', score: 1.2 };
+       bestMatch = { key: 'item', score: 1.2 };
      }
   }
 

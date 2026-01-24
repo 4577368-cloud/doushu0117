@@ -685,8 +685,35 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
                 <span className="w-[1px] h-3 bg-gray-200"></span>
                 <span className="text-xs font-black text-gray-900 font-serif-zh">{ju.yinYang}遁{ju.juNumber}局</span>
              </div>
-             <div className="text-[9px] text-gray-400 font-bold mt-0.5 tracking-wide">
-               {ju.juName} · {new Date(timestamp).toLocaleTimeString()}
+             <div className="flex items-center gap-3 mt-1">
+               <div className="text-[9px] text-gray-400 font-bold tracking-wide">
+                 {ju.juName}
+               </div>
+               <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-100">
+                  <button 
+                    onClick={() => setTimestamp(prev => prev - 7200000)}
+                    className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-400 hover:text-indigo-600"
+                  >
+                    <ChevronLeft size={12} />
+                  </button>
+                  <span className="px-2 text-[10px] font-bold text-gray-600 font-mono min-w-[40px] text-center">
+                    {new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
+                  <button 
+                    onClick={() => setTimestamp(prev => prev + 7200000)}
+                    className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-400 hover:text-indigo-600"
+                  >
+                    <ChevronRight size={12} />
+                  </button>
+               </div>
+               {Math.abs(Date.now() - timestamp) > 60000 && (
+                 <button 
+                   onClick={() => setTimestamp(Date.now())}
+                   className="text-[9px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md font-bold animate-in fade-in zoom-in duration-300"
+                 >
+                   回当前
+                 </button>
+               )}
              </div>
           </div>
         </div>
