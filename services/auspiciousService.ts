@@ -2,7 +2,7 @@
 import { Solar } from 'lunar-javascript';
 import { generateQimenJu, generateQimenJuBySolar } from './qimenService.ts';
 import { analyzeQimenState, QM_AnalysisResult } from './qimenAnalysis.ts';
-import { QM_AFFAIR_SYMBOLS, QM_SymbolKey, QM_IndustryKey, QM_INDUSTRIES } from './qimenAffairs.ts';
+import { QM_AFFAIR_SYMBOLS, QM_SymbolKey, QM_IndustryKey, QM_INDUSTRIES, QM_AffairCategory } from './qimenAffairs.ts';
 import { generateUserAdvice, QM_AdviceResult } from './qimenAdvice.ts';
 import { QM_Ju, QM_Palace } from '../types.ts';
 
@@ -58,13 +58,26 @@ const BRANCH_NAME_MAP: Record<string, string> = {
  * Main Engine: Find Auspicious Times and Directions
  */
 export const findAuspiciousTimes = (
-  affairKey: QM_AffairKey,
+  category: QM_AffairCategory,
+  affairKey: string,
   rangeType: 'today' | 'three_days' | 'week' | 'custom',
   customDate?: Date,
   industry?: QM_IndustryKey
 ): AuspiciousResult[] => {
   const candidates: AuspiciousResult[] = [];
   
+  // 0. Validate Inputs
+  const categoryConfig = QM_AFFAIR_SYMBOLS[category];
+  if (!categoryConfig) {
+    console.error(`Invalid Category: ${category}`);
+    return [];
+  }
+  const affairConfig = categoryConfig[affairKey];
+  if (!affairConfig) {
+    console.error(`Invalid Affair Key: ${affairKey} in Category: ${category}`);
+    return [];
+  }
+
   // 1. Determine Time Range
   const now = new Date();
   let startDate = new Date(now);
@@ -113,7 +126,7 @@ export const findAuspiciousTimes = (
     const ju = generateQimenJuBySolar(solar);
     
     // 2. Identify Use Spirit (Yong Shen)
-    const affairConfig = QM_AFFAIR_SYMBOLS[affairKey];
+    // affairConfig is already resolved at start
     let symbols = affairConfig.primary;
     
     // Apply Industry Adaptation

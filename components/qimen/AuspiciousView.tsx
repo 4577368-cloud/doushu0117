@@ -1,22 +1,29 @@
 
 import React, { useState } from 'react';
 import { findAuspiciousTimes, AuspiciousResult } from '../../services/auspiciousService';
-import { QM_AffairKey } from '../../services/auspiciousService';
-import { QM_AFFAIR_SYMBOLS } from '../../services/qimenAffairs';
+import { QM_AffairCategory } from '../../services/qimenAffairs';
 import { Compass, Calendar, CheckCircle, AlertTriangle, ArrowRight, Sparkles, MapPin } from 'lucide-react';
 
+interface QuickAction {
+  id: string;
+  category: QM_AffairCategory;
+  affairKey: string;
+  label: string;
+  icon: string;
+}
+
 // Common Affairs for Quick Selection
-const COMMON_AFFAIRS: { key: QM_AffairKey; label: string; icon: string }[] = [
-  { key: 'job_interview', label: '求职面试', icon: '💼' },
-  { key: 'contract', label: '签约合作', icon: '📝' },
-  { key: 'business', label: '开业启动', icon: '🚀' },
-  { key: 'investment', label: '投资理财', icon: '💰' },
-  { key: 'love_marriage', label: '约会表白', icon: '❤️' },
-  { key: 'travel_trip', label: '出行远游', icon: '✈️' },
+const COMMON_AFFAIRS: QuickAction[] = [
+  { id: 'job_interview', category: 'career', affairKey: 'job_search', label: '求职面试', icon: '💼' },
+  { id: 'contract', category: 'cooperation', affairKey: 'negotiation', label: '签约合作', icon: '📝' },
+  { id: 'business', category: 'wealth', affairKey: 'business', label: '开业启动', icon: '🚀' },
+  { id: 'investment', category: 'wealth', affairKey: 'investment', label: '投资理财', icon: '💰' },
+  { id: 'love_marriage', category: 'love', affairKey: 'relationship', label: '约会表白', icon: '❤️' },
+  { id: 'travel_trip', category: 'travel_trip', affairKey: 'travel', label: '出行远游', icon: '✈️' },
 ];
 
 export const AuspiciousView: React.FC = () => {
-  const [selectedAffair, setSelectedAffair] = useState<QM_AffairKey>('job_interview');
+  const [selectedId, setSelectedId] = useState<string>('job_interview');
   const [timeRange, setTimeRange] = useState<'today' | 'three_days' | 'week'>('today');
   const [results, setResults] = useState<AuspiciousResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,9 +35,18 @@ export const AuspiciousView: React.FC = () => {
     
     // Simulate slight delay for "Processing" feel
     setTimeout(() => {
-      const res = findAuspiciousTimes(selectedAffair, timeRange);
-      setResults(res);
-      setLoading(false);
+      try {
+        const action = COMMON_AFFAIRS.find(a => a.id === selectedId);
+        if (!action) throw new Error('Invalid Action');
+
+        const res = findAuspiciousTimes(action.category, action.affairKey, timeRange);
+        setResults(res);
+      } catch (e) {
+        console.error("Auspicious Calculation Failed:", e);
+        // Optionally set an error state here
+      } finally {
+        setLoading(false);
+      }
     }, 600);
   };
 
@@ -67,10 +83,10 @@ export const AuspiciousView: React.FC = () => {
             <div className="grid grid-cols-3 gap-2">
               {COMMON_AFFAIRS.map((item) => (
                 <button
-                  key={item.key}
-                  onClick={() => setSelectedAffair(item.key)}
+                  key={item.id}
+                  onClick={() => setSelectedId(item.id)}
                   className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
-                    selectedAffair === item.key
+                    selectedId === item.id
                       ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm ring-1 ring-indigo-500/20'
                       : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
                   }`}
