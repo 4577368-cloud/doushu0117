@@ -290,7 +290,13 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
       is_self: finalProfile.isSelf || false,
       avatar: finalProfile.avatar || '',
       updated_at: new Date().toISOString(),
-      ai_reports: finalProfile.aiReports || []
+      ai_reports: finalProfile.aiReports || [],
+      // 移除不存在的 VIP 字段，避免 Schema 错误
+      // ...(finalProfile.isSelf && session.user.user_metadata?.is_vip_user ? {
+      //    vip_status: true,
+      //    vip_activation_method: session.user.user_metadata.vip_activation_method || 'key',
+      //    vip_expiry_date: session.user.user_metadata.vip_expiry_date || null
+      // } : {})
     };
 
     if (isUuid(finalProfile.id)) {
@@ -484,7 +490,7 @@ export const deleteArchive = async (id: string): Promise<UserProfile[]> => {
 
 export const updateArchive = async (p: UserProfile) => saveArchive(p);
 
-export const saveAiReportToArchive = async (pid: string, content: string, type: 'bazi'|'ziwei') => {
+export const saveAiReportToArchive = async (pid: string, content: string, type: 'bazi'|'ziwei'|'qimen') => {
   const archives = await getArchives();
   const idx = archives.findIndex(p => p.id === pid);
   if (idx > -1) {
@@ -512,16 +518,39 @@ export const getVipStatus = async (): Promise<boolean> => {
   return localStorage.getItem('is_vip_user') === 'true';
 };
 
-export const activateVipOnCloud = async (): Promise<boolean> => {
+export const activateVipOnCloud = async (method: 'alipay'|'key' = 'key'): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return false;
-    const { error } = await supabase.auth.updateUser({ data: { is_vip_user: true } });
+    
+    // 更新用户元数据
+    const updates = {
+        is_vip_user: true,
+        vip_activation_method: method,
+        vip_start_date: new Date().toISOString()
+    };
+    
+    const { error } = await supabase.auth.updateUser({ data: updates });
     if (error) {
       console.error('激活VIP失败:', error.message);
       return false;
     }
+    
+    // 尝试同步更新到 archives 表中的本人档案
+    try {
+        await supabase.from('archives')
+            .update({ 
+                vip_status: true, 
+                vip_activation_method: method,
+                vip_expiry_date: null // 永久
+            })
+            .eq('user_id', session.user.id)
+            .eq('is_self', true);
+    } catch (e) {
+        console.error('同步VIP到档案失败', e);
+    }
+    
     return true;
   } catch (e: any) {
     console.error('激活VIP异常:', e?.message || e);

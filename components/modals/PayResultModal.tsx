@@ -86,10 +86,11 @@ export const PayResultModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
             setInfo({ subject: data.subject, amount: String(data.amount), paid_at: data.paid_at });
             
             // If success, stop polling
-            if (newStatus === 'success') {
-               setLoading(false);
-               return;
-            }
+          if (newStatus === 'success') {
+             activateVipOnCloud('alipay');
+             setLoading(false);
+             return;
+          }
           } else {
             // Data not found
             setStatus('unknown');

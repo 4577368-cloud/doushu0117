@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, MessageCircle, Crown, Activity, Sparkles, Compass, CheckCircle, Lock, KeyRound } from 'lucide-react';
+import { RotateCcw, MessageCircle, Crown, Activity, Sparkles, Compass, CheckCircle, Lock, KeyRound, LayoutGrid } from 'lucide-react';
 import { supabase, safeSignOut, supabaseReady, safeAuth } from './services/supabase';
 import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
@@ -28,6 +28,7 @@ import { ArchiveView } from './views/ArchiveView';
 import { BaziChartView } from './views/BaziChartView';
 import { AiChatView } from './views/AiChatView';
 import ZiweiView from './components/ZiweiView'; 
+import QimenView from './components/QimenView';
 
 // --- 内联组件：密码重置弹窗 ---
 const PasswordResetModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -104,7 +105,7 @@ const WelcomeModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
 );
 
 const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.HOME);
+  const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.ARCHIVE);
   const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
   const [baziChart, setBaziChart] = useState<BaziChart | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -165,7 +166,7 @@ const App: React.FC = () => {
             setIsVip(false); 
             setBaziChart(null); 
             setCurrentProfile(null);
-            setCurrentTab(AppTab.HOME);
+            setCurrentTab(AppTab.ARCHIVE);
             try { localStorage.removeItem('is_vip_user'); localStorage.removeItem('bazi_archives:guest'); } catch {}
         }
     });
@@ -186,7 +187,7 @@ const App: React.FC = () => {
     if (outTradeNo && tradeNo) {
         setIsVip(true);
         try { localStorage.setItem('is_vip_user', 'true'); } catch {}
-        activateVipOnCloud().catch(console.error);
+        activateVipOnCloud('alipay').catch(console.error);
     }
   }, []);
 
@@ -256,7 +257,7 @@ const App: React.FC = () => {
 
   const handleActivateVip = async () => {
       if (!session) { alert("请先登录！"); return; }
-      const success = await activateVipOnCloud(); 
+      const success = await activateVipOnCloud('key'); 
       if (success) { 
           setIsVip(true); 
           setShowVipModal(false);
@@ -368,10 +369,32 @@ const App: React.FC = () => {
                       isVip={isVip} 
                   />
               );
+
+          case AppTab.QIMEN:
+              if (!currentProfile) return (
+                  <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
+                      <div className="bg-stone-200 p-4 rounded-full"><LayoutGrid size={48} className="text-stone-300" /></div>
+                      <h3 className="font-bold text-lg text-stone-700">奇门遁甲</h3>
+                      <p className="text-sm text-stone-500 font-medium">请先在【首页】输入生辰信息，<br/>即可生成奇门遁甲排盘。</p>
+                      <button onClick={() => setCurrentTab(AppTab.HOME)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                          <Compass size={18} /> 立即排盘
+                      </button>
+                  </div>
+              );
+              return (
+                  <QimenView 
+                      profile={currentProfile} 
+                      onSaveReport={async (r) => { 
+                          const updated = await saveAiReportToArchive(currentProfile.id, r, 'qimen'); 
+                          setArchives(updated); 
+                      }} 
+                      isVip={isVip} 
+                  />
+              );
           
           case AppTab.ARCHIVE:
-              if (!session) return <div className="flex flex-col items-center justify-center h-full p-6 bg-[#f5f5f4]"><Auth onLoginSuccess={()=>{}} /></div>;
-              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.HOME); } }}/>; 
+              if (!session) return <div className="flex flex-col items-center justify-center h-full p-6 bg-[#f5f5f4]"><Auth onLoginSuccess={()=>{setCurrentTab(AppTab.HOME)}} /></div>;
+              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); } }} onNewChart={() => setCurrentTab(AppTab.HOME)}/>; 
           
           default:
               return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
@@ -379,7 +402,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-[100dvh] overflow-hidden text-stone-950 font-sans select-none transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
+    <div className={`flex flex-col h-[100dvh] overflow-hidden text-stone-950 font-sans transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
       {!hideChrome && (
         <AppHeader title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} isVip={isVip} />
       )}

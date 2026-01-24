@@ -2,7 +2,7 @@ import React from 'react';
 import { Crown } from 'lucide-react';
 
 export const AppHeader: React.FC<{ title: string; rightAction?: React.ReactNode; isVip: boolean }> = ({ title, rightAction, isVip }) => (
-  <header className={`sticky top-0 z-50 pt-[env(safe-area-inset-top)] transition-all duration-500 ${isVip ? 'bg-[#1c1917] border-b border-amber-900/30 shadow-2xl' : 'bg-white/90 backdrop-blur-md border-b border-stone-200 text-stone-900'}`}>
+  <header className={`sticky top-0 z-50 select-none pt-[env(safe-area-inset-top)] transition-all duration-500 ${isVip ? 'bg-[#1c1917] border-b border-amber-900/30 shadow-2xl' : 'bg-white/90 backdrop-blur-md border-b border-stone-200 text-stone-900'}`}>
     <div className="h-16 px-5 flex items-center justify-between">
       <h1 className={`text-lg font-serif font-black tracking-wider flex items-center gap-2.5 ${isVip ? 'text-amber-100' : 'text-stone-900'}`}>
         {isVip && (

@@ -13,6 +13,7 @@ interface ArchiveViewProps {
     onVipClick: () => void;
     session: any; 
     onLogout: () => void;
+    onNewChart: () => void;
 }
 
 const PRESET_TAGS = ["客户", "朋友", "家人", "同事", "VIP", "重要", "案例"];
@@ -41,7 +42,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     isVip, 
     onVipClick,
     session,
-    onLogout
+    onLogout,
+    onNewChart
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [syncStatus, setSyncStatus] = useState<'idle'|'loading'|'success'|'error'>('idle');
@@ -320,6 +322,32 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
             {/* 列表内容区 */}
             <div className="flex-1 overflow-y-auto p-4 pt-3 space-y-3 custom-scrollbar">
+                
+                {/* 新建排盘卡片 - Redesigned */}
+                <div 
+                    onClick={onNewChart}
+                    className="group relative overflow-hidden rounded-2xl p-5 cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-lg hover:shadow-xl border border-amber-500/30 bg-gradient-to-br from-stone-900 to-[#1c1917]"
+                >
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-amber-500/20 transition-all duration-500"></div>
+                    
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-900/40 group-hover:scale-110 transition-transform duration-300">
+                                <Plus size={24} className="text-[#1c1917]" strokeWidth={3} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-amber-100 group-hover:text-white transition-colors">新建排盘</h3>
+                                <p className="text-xs text-amber-500/60 font-medium mt-0.5 group-hover:text-amber-400/80 transition-colors">开启新的命理探索</p>
+                            </div>
+                        </div>
+                        
+                        <div className="w-8 h-8 rounded-full bg-stone-800/50 flex items-center justify-center border border-stone-700/50 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 transition-all">
+                            <ChevronRight size={16} className="text-stone-500 group-hover:text-amber-400" />
+                        </div>
+                    </div>
+                </div>
+
                 {displayList.map((profile, index) => {
                     const isSelf = profile.isSelf;
                     return (

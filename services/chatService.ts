@@ -1,6 +1,6 @@
 import { BaziChart, UserProfile } from "../types";
 
-export type ChatMode = 'bazi' | 'ziwei';
+export type ChatMode = 'bazi' | 'ziwei' | 'qimen';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -145,11 +145,58 @@ ${chartStr}
 `;
 };
 
+const getQimenSystemPrompt = (profile: UserProfile, chartStr: string, timeContext: string): string => {
+  const userName = getUserName(profile);
+
+  return `
+你是一位精通“奇门遁甲”的预测大师。
+
+【SECTION 1: 交互对象 (最高优先级)】
+- 你的客户当前称呼是：**${userName}**。
+- ⚠️ **重要指令**：请**忽略**历史记录中的任何旧名字，**只称呼我为"${userName}"**。
+
+【SECTION 2: 命主档案】
+- 性别：${profile.gender === 'male' ? '男' : '女'}
+- 公历：${profile.birthDate} ${profile.birthTime}
+
+【SECTION 3: 奇门局象数据】
+${chartStr}
+
+【SECTION 4: 当前时空 (起局依据)】
+- **当前准确时间**：${timeContext}
+
+【回答规则】
+1. **自动提取用神**：
+   - 根据用户的问题，自动识别日干（代表求测人）与时干（代表所测之事）。
+   - 自动提取相关用神（如：求财看戊/生门，求官看开门，求学看天辅/景门，感情看乙庚等）。
+2. **结构化输出**：
+   - 必须包含以下四个板块：
+     (1) **吉凶判断**：基于旺相休囚与格局组合（如星门反吟/伏吟、吉凶格）。
+     (2) **有利方位**：基于九宫生克与吉门吉神所在的宫位方位。
+     (3) **最佳时机**：分析近期或当天的吉利时辰。
+     (4) **行动建议**：将“宜主动”、“宜守”、“需防小人”等术语翻译为通俗的生活语言。
+3. **禁止动作描写**。
+4. **强制建议生成**：
+   回答结尾必须提供3个建议，且与本次回答的核心结论和【当前时间】强相关。格式：
+   |||建议1;建议2;建议3
+
+【Starter Intents 处理（不可展示括号内容）】
+当用户输入以下简短意图时，请遵循下述输出要求：
+1) “以当前时间起盘” / “今日运势”
+   - 以【${timeContext}】为基准，默认以日干落宫为主，分析今日整体运势（工作/财运/健康）。
+   - 必须包含：核心运势评分（吉/平/凶）、关键避坑指南、今日幸运方位。
+2) “适合跳槽吗” / “找工作方向”
+   - 重点分析开门（工作）与日干（求测人）的生克关系。
+   - 给出明确的“利/不利”判断，推荐有利的求职方位（如“西北方”）。
+`;
+};
+
 export const sendChatMessage = async (
   history: ChatMessage[],
   profile: UserProfile,
   baziChart: BaziChart,
   ziweiChartString: string, 
+  qimenChartString: string,
   mode: ChatMode,
   onStream: (chunk: string) => void,
   isVip: boolean = false,
@@ -161,9 +208,14 @@ export const sendChatMessage = async (
     throw new Error("API Key missing - 请在设置中输入 Key，或升级 VIP 免 Key 使用");
   }
 
-  const systemInstruction = mode === 'bazi' 
-    ? getBaziSystemPrompt(baziChart, timeContext, profile)
-    : getZiweiSystemPrompt(profile, ziweiChartString, timeContext);
+  let systemInstruction = '';
+  if (mode === 'bazi') {
+    systemInstruction = getBaziSystemPrompt(baziChart, timeContext, profile);
+  } else if (mode === 'ziwei') {
+    systemInstruction = getZiweiSystemPrompt(profile, ziweiChartString, timeContext);
+  } else if (mode === 'qimen') {
+    systemInstruction = getQimenSystemPrompt(profile, qimenChartString, timeContext);
+  }
 
   const cleanHistory = history.filter(msg => msg.role !== 'system');
   

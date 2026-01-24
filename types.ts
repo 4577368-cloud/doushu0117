@@ -88,11 +88,15 @@ export interface UserProfile {
   province?: string;
   city?: string;
   longitude?: number;
+  latitude?: number;
   createdAt: number;
   avatar?: string;
   tags?: string[]; 
   isSelf?: boolean;
   aiReports?: HistoryItem[];
+  vipStatus?: boolean;
+  vipActivationMethod?: 'alipay' | 'key';
+  vipExpiryDate?: string | null;
 }
 
 export interface ModalData {
@@ -106,6 +110,7 @@ export enum AppTab {
   HOME = 'home',
   CHART = 'chart',
   ZIWEI = 'ziwei',
+  QIMEN = 'qimen',
   ARCHIVE = 'archive',
   CHAT = 'chat'
 }
@@ -162,5 +167,66 @@ export interface HistoryItem {
   id: string;
   date: number;
   content: string;
-  type: 'bazi' | 'ziwei';
+  type: 'bazi' | 'ziwei' | 'qimen';
+}
+
+// --- Qimen Dunjia Types ---
+
+export type QM_ElementType = '木' | '火' | '土' | '金' | '水';
+
+export interface QM_Pillar {
+  label: '年' | '月' | '日' | '时';
+  gan: string;
+  zhi: string;
+  ganElement: QM_ElementType;
+  zhiElement: QM_ElementType;
+  cangGan: string[]; // 藏干
+}
+
+export interface QM_Star {
+  name: string;
+  element: QM_ElementType;
+  originalPalace: number; // 原始宫位
+  auspiciousness: '吉' | '凶' | '平';
+}
+
+export interface QM_Door {
+  name: string;
+  element: QM_ElementType;
+  originalPalace: number;
+  auspiciousness: '吉' | '凶' | '中';
+}
+
+export interface QM_Deity {
+  name: string;
+  element: QM_ElementType;
+  nature: '阳' | '阴';
+}
+
+export interface QM_Palace {
+  index: number; 
+  name: string; // 卦名
+  element: QM_ElementType;
+  heavenStem: string;
+  earthStem: string;
+  star: QM_Star;
+  door: QM_Door;
+  deity: QM_Deity;
+  state: string; 
+  isKongWang: boolean;
+  isMaXing: boolean;
+  cangGan: string[]; // 随地支而来的藏干
+}
+
+export interface QM_Ju {
+  juName: string;
+  yinYang: '阴' | '阳';
+  juNumber: number;
+  pillars: QM_Pillar[];
+  dutyStar: string;
+  dutyStarKey?: string;
+  dutyDoor: string;
+  dutyDoorKey?: string;
+  xunShou: string; // 旬首 (如: 甲子戊)
+  palaces: QM_Palace[];
 }

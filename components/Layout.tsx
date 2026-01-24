@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Activity, MessageCircle, Sparkles, User } from 'lucide-react';
+import { Compass, MessageCircle, User, ScrollText, MoonStar, Grid3x3 } from 'lucide-react';
 import { AppTab } from '../types';
 
 interface BottomNavProps {
@@ -10,15 +10,15 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange }) => {
   // 🔥 新的 5 项导航结构
   const navItems = [
-    { id: AppTab.HOME, label: '首页', icon: Compass },
-    { id: AppTab.CHART, label: '八字', icon: Activity },
+    { id: AppTab.CHART, label: '八字', icon: ScrollText },
+    { id: AppTab.ZIWEI, label: '紫微', icon: MoonStar },
     { id: AppTab.CHAT, label: '对话', icon: MessageCircle }, // C位
-    { id: AppTab.ZIWEI, label: '紫微', icon: Sparkles },
-    { id: AppTab.ARCHIVE, label: '档案', icon: User },
+    { id: AppTab.QIMEN, label: '奇门', icon: Grid3x3 },
+    { id: AppTab.ARCHIVE, label: '我的', icon: User },
   ];
 
   return (
-    <div className="bg-white border-t border-stone-200 flex items-start justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] relative z-50">
+    <div className="bg-white border-t border-stone-200 flex items-start justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] relative z-50 select-none">
       {navItems.map((item, idx) => {
         const isActive = currentTab === item.id;
         // 如果是中间的“对话”按钮，可以给它特殊的样式（可选，这里保持统一风格但加重颜色）

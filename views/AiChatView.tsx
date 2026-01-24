@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
-import { Send, Crown, HelpCircle, Activity, Sparkles, User, Copy, Check, Trash2, ArrowDown, Lightbulb } from 'lucide-react';
+import { Send, Crown, HelpCircle, Activity, Sparkles, User, Copy, Check, Trash2, ArrowDown, Lightbulb, Grid3x3 } from 'lucide-react';
 import { BaziChart, UserProfile } from '../types';
 import { ChatMessage, sendChatMessage, ChatMode } from '../services/chatService';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
 import { calculateChart } from '../ziwei/services/astrologyService';
 import { calculateBazi } from '../services/baziService'; 
+import { initializeQM_Ju, generateQimenString } from '../services/qimenService';
 import { Solar } from 'lunar-javascript';
 
 // --- 子组件：复制按钮 ---
@@ -104,6 +105,9 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
         if (mode === 'ziwei') {
             return ['以当前时间起盘', '今日流日四化重点与禁忌', '今日财运与风控提示'];
         }
+        if (mode === 'qimen') {
+            return ['以当前时间起盘', '近期财运如何？', '事业发展建议'];
+        }
         return ['以当前时间起盘', '今日应避事项', '今日财运机会'];
     }, [loading, mode]);
     
@@ -161,9 +165,14 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
     }, []);
 
     useEffect(() => {
-        const resetMsg = mode === 'ziwei'
-            ? { role: 'assistant' as const, content: `已切换为紫微斗数模式。当前时空【${timeContext}】。请问您今天想了解哪方面的星象？` }
-            : { role: 'assistant' as const, content: `已切换为八字模式。当前时空【${timeContext}】。请问您今天想了解哪方面的运势？` };
+        let content = `已切换为八字模式。当前时空【${timeContext}】。请问您今天想了解哪方面的运势？`;
+        if (mode === 'ziwei') {
+            content = `已切换为紫微斗数模式。当前时空【${timeContext}】。请问您今天想了解哪方面的星象？`;
+        } else if (mode === 'qimen') {
+            content = `已切换为奇门遁甲模式。当前时空【${timeContext}】。请告诉我您的问题，我将为您起局分析。`;
+        }
+        
+        const resetMsg = { role: 'assistant' as const, content };
         setMessages([resetMsg]);
         setIsUserScrolledUp(false);
         if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -205,12 +214,14 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
             let fullText = ""; 
             const freshBaziChart = calculateBazi(profile);
             const freshZiweiString = generateZiweiString(profile);
+            const freshQimenString = generateQimenString(initializeQM_Ju(profile, Date.now()));
 
             await sendChatMessage(
                 [...messages, userMsg], 
                 profile,        
                 freshBaziChart,   
                 freshZiweiString, 
+                freshQimenString,
                 mode, 
                 (chunk) => {
                     fullText += chunk;
@@ -245,6 +256,7 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                 <div className="bg-stone-100 p-1 rounded-xl flex gap-1">
                     <button onClick={() => setMode('bazi')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${mode === 'bazi' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}><Activity size={14} /> 八字</button>
                     <button onClick={() => setMode('ziwei')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${mode === 'ziwei' ? 'bg-white shadow-sm text-indigo-600' : 'text-stone-400'}`}><Sparkles size={14} /> 紫微</button>
+                    <button onClick={() => setMode('qimen')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${mode === 'qimen' ? 'bg-white shadow-sm text-emerald-600' : 'text-stone-400'}`}><Grid3x3 size={14} /> 奇门</button>
                 </div>
                 <button onClick={handleClearHistory} className="w-8 h-8 flex items-center justify-center text-stone-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"><Trash2 size={16} /></button>
             </div>
@@ -258,8 +270,8 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start items-start'}`}>
                         {msg.role === 'assistant' && (
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 mt-1 shadow-sm ${mode === 'ziwei' ? 'bg-indigo-900 text-white' : 'bg-stone-900 text-amber-400'}`}>
-                                {mode === 'ziwei' ? <Sparkles size={14}/> : <Crown size={14} fill="currentColor"/>}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-2 mt-1 shadow-sm ${mode === 'ziwei' ? 'bg-indigo-900 text-white' : (mode === 'qimen' ? 'bg-emerald-900 text-emerald-200' : 'bg-stone-900 text-amber-400')}`}>
+                                {mode === 'ziwei' ? <Sparkles size={14}/> : (mode === 'qimen' ? <Grid3x3 size={14} /> : <Crown size={14} fill="currentColor"/>)}
                             </div>
                         )}
                         <div className="flex flex-col max-w-[85%]">
@@ -298,7 +310,7 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                     </div>
                 )}
                 <div className="flex gap-2 items-end">
-                    <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder={mode === 'bazi' ? "问问八字运势..." : "问问紫微星象..."} className="flex-1 bg-stone-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none max-h-24 transition-colors focus:bg-white focus:ring-2 focus:ring-stone-200" rows={1} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}/>
+                    <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder={mode === 'bazi' ? "问问八字运势..." : (mode === 'ziwei' ? "问问紫微星象..." : "问问奇门遁甲...")} className="flex-1 bg-stone-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none max-h-24 transition-colors focus:bg-white focus:ring-2 focus:ring-stone-200" rows={1} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}/>
                     <button onClick={()=>handleSend()} disabled={loading||!input.trim()} className={`p-3 rounded-full flex items-center justify-center transition-all ${loading||!input.trim() ? 'bg-stone-200 text-stone-400' : 'bg-stone-900 text-amber-400 shadow-lg active:scale-95'}`}>{loading ? <Activity size={20} className="animate-spin"/> : <Send size={20} />}</button>
                 </div>
             </div>

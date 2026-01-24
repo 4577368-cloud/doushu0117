@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle } from 'lucide-react';
+import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { UserProfile, BaziChart, ChartSubTab, BaziReport as AiBaziReport } from '../types';
 import { getArchives, saveAiReportToArchive } from '../services/storageService';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
@@ -28,6 +28,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   const [loadingFortune, setLoadingFortune] = useState(false);
   const [fortuneError, setFortuneError] = useState(false);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
+  const [showMilestones, setShowMilestones] = useState(false);
 
   const allHistoryReports = useMemo(() => {
       const all: any[] = [];
@@ -223,9 +224,20 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                      })()}
                    </div>
 
-                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
-                     <div className="flex items-center gap-2 mb-2"><Check size={16} className="text-stone-700"/><h4 className="text-sm font-black text-stone-900">重大节点提醒清单</h4></div>
-                     {(() => {
+                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm transition-all">
+                     <div 
+                        className="flex items-center justify-between mb-2 cursor-pointer select-none"
+                        onClick={() => setShowMilestones(!showMilestones)}
+                     >
+                        <div className="flex items-center gap-2">
+                            <Check size={16} className="text-stone-700"/>
+                            <h4 className="text-sm font-black text-stone-900">重大节点提醒清单</h4>
+                            {!showMilestones && <span className="text-[10px] text-stone-400 font-normal ml-2">(点击展开)</span>}
+                        </div>
+                        {showMilestones ? <ChevronUp size={16} className="text-stone-400"/> : <ChevronDown size={16} className="text-stone-400"/>}
+                     </div>
+                     
+                     {showMilestones && (() => {
                        const now = new Date();
                        const dayZhi = chart.pillars.day.ganZhi.zhi;
                        const monthBaseZhi = chart.pillars.month.ganZhi.zhi;
