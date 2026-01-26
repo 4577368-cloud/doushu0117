@@ -33,7 +33,6 @@ import {
   LIU_XIA_MAP,
   CHAR_MEANINGS,
   NA_YIN_DESCRIPTIONS,
-  // 🔥 新增引入
   ANNUAL_TEN_GODS_READING,
   BRANCH_XING,
   BRANCH_HAI,
@@ -694,7 +693,7 @@ export const interpretLuckPillar = (chart: BaziChart, luckGz: GanZhi): PillarInt
 // 🔥 核心升级：流年深度解读函数
 // ==========================================
 
-export const interpretAnnualPillar = (chart: BaziChart, annualGz: GanZhi): PillarInterpretation => {
+export const interpretAnnualPillar = (chart: BaziChart, annualGz: GanZhi, monthGz?: GanZhi, dayGz?: GanZhi): PillarInterpretation => {
   const tenGod = annualGz.shiShenGan;
   const element = annualGz.ganElement;
   const annualZhi = annualGz.zhi;
@@ -796,21 +795,100 @@ export const interpretAnnualPillar = (chart: BaziChart, annualGz: GanZhi): Pilla
   // 🔥 4. 流年神煞计算
   // ==========================================
   const shenShaList = getShenShaForDynamicPillar(annualGz.gan, annualGz.zhi, chart);
+  const shenShaText = shenShaList.length > 0 ? `(🌟 流年神煞：${shenShaList.join('、')})` : '';
   
   // ==========================================
-  // 🔥 5. 整合输出
+  // 🔥 4.5 流月流日补充分析
   // ==========================================
-  const integratedSummary = `
-    ${coreSymbolism}
-    
-    ${actionableAdvice}
-    
-    ${triggers.length > 0 ? "⚡ **全盘引动（重点关注）**：\n" + triggers.join('\n\n') : "🌊 **运势总评**：\n流年与原局无显著冲刑，运势平稳。平运即是好运，宜按部就班，积蓄力量。"}
-    
-    ${shenShaList.length > 0 ? "\n🌟 **流年神煞**：\n" + shenShaList.join('、') : ""}
-    
-    (纳音：${annualGz.naYin})
-  `.trim();
+  let dailyMonthlyAnalysis = "";
+  if (monthGz && dayGz) {
+     const mGan = monthGz.gan;
+     const mZhi = monthGz.zhi;
+     const dGan = dayGz.gan;
+     const dZhi = dayGz.zhi;
+     const dm = chart.dayMaster;
+     
+     const parts: string[] = [];
+     
+     // 1. 标题与气场
+     const dmIdx = getStemIndex(dm);
+     const dayZhiIdx = EARTHLY_BRANCHES.indexOf(dZhi);
+     const dayStage = LIFE_STAGES_TABLE[dmIdx][dayZhiIdx];
+     
+     parts.push(`**📅 ${annualGz.gan}${annualGz.zhi}年 ${mGan}${mZhi}月 ${dGan}${dZhi}日**`);
+     parts.push(`**今日气场**：日主坐${dayStage}地，${dayStage === '帝旺' || dayStage === '临官' ? '能量充沛，适宜进取' : dayStage === '死' || dayStage === '绝' ? '能量内敛，适宜规划' : '运势平稳'}。`);
+
+     // 2. 五行运化
+     const dayEl = getElement(dGan);
+     const dmEl = FIVE_ELEMENTS[dm];
+     const rel = getRelation(dayEl, dmEl);
+     let elText = "";
+     if (rel === '泄') elText = "今日五行生助日主，易得贵人或长辈支持，做事顺遂。";
+     else if (rel === '同') elText = "今日五行比助，利于合作、社交，但也需防竞争。";
+     else if (rel === '克') elText = "今日五行克身，压力稍大，需变压力为动力，注意休息。";
+     else if (rel === '生') elText = "今日五行泄秀，才华易显，利于发挥，但也易疲劳。";
+     else if (rel === '耗') elText = "今日五行耗身，财运虽有但需劳力，多劳多得。";
+     parts.push(`**五行运化**：${elText}`);
+
+     // 3. 十神每日指引 (增强版)
+     const dailyTenGod = dayGz.shiShenGan;
+     const adviceMap: Record<string, string> = {
+          '正官': '✨ **正官日**：贵气在身，利于面试、考学或拜见贵人。言行宜稳重，忌轻浮。',
+          '七杀': '⚔️ **七杀日**：魄力增强，利于开拓新局或解决难题。但需防脾气急躁，忌冲动。',
+          '正财': '💰 **正财日**：财气通门户，利于理财、储蓄或按部就班工作。忌投机取巧。',
+          '偏财': '💸 **偏财日**：意外惊喜，利于投资、社交或商业谈判。忌贪多嚼不烂。',
+          '食神': '🍵 **食神日**：福气满满，利于聚餐、享乐或艺术创作。心情愉悦，忌懒散。',
+          '伤官': '💡 **伤官日**：灵感迸发，利于策划、演讲或打破常规。忌口舌是非，防顶撞上司。',
+          '正印': '📖 **正印日**：静心之日，利于学习、修养或寻求庇护。忌封闭自我。',
+          '偏印': '🔮 **偏印日**：直觉敏锐，利于研究偏门学问或独处思考。忌多疑焦虑。',
+          '比肩': '🤝 **比肩日**：并肩作战，利于合伙、交友或体育竞技。忌固执己见。',
+          '劫财': '🔥 **劫财日**：热情高涨，利于社交应酬。但需捂紧钱包，忌盲目冲动。'
+     };
+     if (adviceMap[dailyTenGod]) parts.push(adviceMap[dailyTenGod]);
+
+     // 4. 微观互动 (冲合刑害)
+     const interactions: string[] = [];
+     if (BRANCH_CLASHES[mZhi] === annualGz.zhi) interactions.push(`⚠️ **月令冲太岁**（波动）`);
+     if (BRANCH_CLASHES[dZhi] === mZhi) interactions.push(`⚡ **日月相冲**（情绪易烦躁）`);
+     else if (BRANCH_COMBINATIONS[dZhi] === mZhi) interactions.push(`❤️ **日月相合**（心情舒畅）`);
+     
+     if (dZhi === chart.pillars.day.ganZhi.zhi) interactions.push(`🛑 **日柱伏吟**（宜静修）`);
+     if (BRANCH_CLASHES[dZhi] === chart.pillars.day.ganZhi.zhi) interactions.push(`💥 **日冲夫妻宫**（防口舌）`);
+
+     if (interactions.length > 0) parts.push(`**特别提示**：${interactions.join('，')}。`);
+
+     dailyMonthlyAnalysis = parts.join('\n\n');
+  }
+
+  // ==========================================
+  // 🔥 5. 整合输出 (流月流日优先)
+  // ==========================================
+  let integratedSummary = "";
+
+  if (dailyMonthlyAnalysis) {
+      // 模式 A：选中了流月流日 -> 优先展示微观分析，流年信息后置且精简
+      integratedSummary = `
+${dailyMonthlyAnalysis}
+
+**${annualGz.gan}${annualGz.zhi}流年背景**：
+${coreSymbolism} ${shenShaText}
+
+${actionableAdvice}
+
+${triggers.length > 0 ? "**流年引动**：" + triggers.join('；') : "流年平稳。"}
+      `.trim();
+  } else {
+      // 模式 B：仅看流年 -> 保持原有详尽结构，神煞更紧凑
+      integratedSummary = `
+${coreSymbolism} ${shenShaText}
+
+${actionableAdvice}
+
+${triggers.length > 0 ? "⚡ **全盘引动（重点关注）**：\n" + triggers.join('\n\n') : "🌊 **运势总评**：\n流年与原局无显著冲刑，运势平稳。平运即是好运，宜按部就班，积蓄力量。"}
+
+(纳音：${annualGz.naYin})
+      `.trim();
+  }
 
   return {
     pillarName: '流年',

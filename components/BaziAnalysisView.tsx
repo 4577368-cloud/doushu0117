@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { BaziChart, GanZhi } from '../types';
-import { calculateAnnualFortune, interpretAnnualPillar, getGanZhiForYear, getShenShaForDynamicPillar } from '../services/baziService';
+import { calculateAnnualFortune, interpretAnnualPillar, getGanZhiForYear, getShenShaForDynamicPillar, createGanZhi, getStemIndex } from '../services/baziService';
 import { Sparkles, CheckCircle, ClipboardCopy } from 'lucide-react';
 import { ElementText } from './ui/BaziUI';
+import { Solar } from 'lunar-javascript';
 
 // --- 内部辅助组件 (确保独立运行时不缺件) ---
 
@@ -59,13 +60,13 @@ const MarkdownParser: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-// 🔥 修复版：六柱网格组件 (包含完整信息)
-const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }> = ({ chart, year, onShowModal }) => {
+// 🔥 修复版：八柱网格组件 (包含流月流日)
+const FortuneGrid: React.FC<{ chart: BaziChart; year: number; monthGz?: GanZhi; dayGz?: GanZhi; onShowModal: any }> = ({ chart, year, monthGz, dayGz, onShowModal }) => {
     const annualGz = getGanZhiForYear(year, chart.dayMaster);
     const luckIdx = chart.luckPillars.findIndex(l => year >= l.startYear && year <= l.endYear);
     const currentLuck = chart.luckPillars[luckIdx !== -1 ? luckIdx : 0] || chart.luckPillars[0];
 
-    // 构造六柱数据
+    // 构造八柱数据
     const pillars = [
         { title: '年柱', gz: chart.pillars.year.ganZhi, ss: chart.pillars.year.shenSha, type: 'static', name: '年柱' },
         { title: '月柱', gz: chart.pillars.month.ganZhi, ss: chart.pillars.month.shenSha, type: 'static', name: '月柱' },
@@ -75,18 +76,33 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
         { title: '流年', gz: annualGz, ss: getShenShaForDynamicPillar(annualGz.gan, annualGz.zhi, chart), type: 'year', name: '流年', highlightClass: 'bg-amber-50 border-x border-amber-100' }
     ];
 
+    if (monthGz) {
+        pillars.push({ title: '流月', gz: monthGz, ss: getShenShaForDynamicPillar(monthGz.gan, monthGz.zhi, chart), type: 'month', name: '流月', highlightClass: 'bg-orange-50 border-x border-orange-100' });
+    }
+    if (dayGz) {
+        pillars.push({ title: '流日', gz: dayGz, ss: getShenShaForDynamicPillar(dayGz.gan, dayGz.zhi, chart), type: 'day', name: '流日', highlightClass: 'bg-yellow-50 border-x border-yellow-100' });
+    }
+
+    // Tailwind 动态类映射 (确保 purge 时不被移除)
+    const gridColsMap: Record<number, string> = {
+        7: 'grid-cols-7',
+        8: 'grid-cols-8',
+        9: 'grid-cols-9'
+    };
+    const gridCols = gridColsMap[pillars.length + 1] || 'grid-cols-7';
+
     return (
         <div className="bg-white border border-stone-300 rounded-3xl overflow-hidden shadow-sm mb-4">
             {/* 1. 表头 */}
-            <div className="grid grid-cols-7 border-b border-stone-300">
-                 <div className="bg-stone-100 text-stone-500 font-black text-[10px] flex items-center justify-center uppercase tracking-wider py-2">六柱</div>
+            <div className={`grid ${gridCols} border-b border-stone-300`}>
+                 <div className="bg-stone-100 text-stone-500 font-black text-[10px] flex items-center justify-center uppercase tracking-wider py-2">八柱</div>
                  {pillars.map((p, i) => (
                      <div key={i} className={`flex items-center justify-center py-2 text-[11px] font-black ${p.highlightClass ? 'text-stone-900 ' + p.highlightClass : 'bg-stone-100 text-stone-600 border-l border-stone-200'}`}>{p.title}</div>
                  ))}
             </div>
 
             {/* 2. 天干 */}
-            <div className="grid grid-cols-7 border-b border-stone-200 items-stretch min-h-[64px]">
+            <div className={`grid ${gridCols} border-b border-stone-200 items-stretch min-h-[64px]`}>
                  <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">天干</div>
                  {pillars.map((p, i) => (
                      <div key={i} onClick={() => onShowModal(p.title + '详情', p.gz, p.name, p.ss)} className={`relative flex flex-col items-center justify-center py-2 cursor-pointer hover:bg-black/5 transition-colors ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -97,7 +113,7 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
             </div>
 
             {/* 3. 地支 */}
-            <div className="grid grid-cols-7 border-b border-stone-200 items-stretch min-h-[50px]">
+            <div className={`grid ${gridCols} border-b border-stone-200 items-stretch min-h-[50px]`}>
                  <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">地支</div>
                  {pillars.map((p, i) => (
                      <div key={i} onClick={() => onShowModal(p.title + '详情', p.gz, p.name, p.ss)} className={`flex flex-col items-center justify-center py-2 cursor-pointer hover:bg-black/5 transition-colors ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -107,7 +123,7 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
             </div>
 
             {/* 4. 🔥 补全：藏干 */}
-            <div className="grid grid-cols-7 border-b border-stone-200 items-stretch">
+            <div className={`grid ${gridCols} border-b border-stone-200 items-stretch`}>
                 <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">藏干</div>
                 {pillars.map((p, i) => (
                     <div key={i} className={`flex flex-col items-center justify-center py-2 gap-0.5 ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -122,7 +138,7 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
             </div>
 
             {/* 5. 🔥 补全：星运 */}
-            <div className="grid grid-cols-7 border-b border-stone-200 items-stretch min-h-[30px]">
+            <div className={`grid ${gridCols} border-b border-stone-200 items-stretch min-h-[30px]`}>
                 <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">星运</div>
                 {pillars.map((p, i) => (
                     <div key={i} className={`flex items-center justify-center py-1.5 ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -132,7 +148,7 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
             </div>
 
             {/* 6. 🔥 补全：神煞 */}
-            <div className="grid grid-cols-7 border-b border-stone-200 items-stretch min-h-[40px]">
+            <div className={`grid ${gridCols} border-b border-stone-200 items-stretch min-h-[40px]`}>
                 <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">神煞</div>
                 {pillars.map((p, i) => (
                     <div key={i} onClick={() => onShowModal(p.title + '详情', p.gz, p.name, p.ss)} className={`flex flex-col items-center justify-start pt-2 px-0.5 gap-1 cursor-pointer hover:bg-black/5 transition-colors ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -142,7 +158,7 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
             </div>
 
             {/* 7. 🔥 补全：纳音 */}
-            <div className="grid grid-cols-7 items-stretch min-h-[30px]">
+            <div className={`grid ${gridCols} items-stretch min-h-[30px]`}>
                 <div className="bg-stone-50/50 text-stone-400 font-black text-[9px] flex items-center justify-center border-r border-stone-200">纳音</div>
                 {pillars.map((p, i) => (
                     <div key={i} className={`flex items-center justify-center py-1.5 ${p.highlightClass || 'border-l border-stone-200'}`}>
@@ -156,8 +172,43 @@ const FortuneGrid: React.FC<{ chart: BaziChart; year: number; onShowModal: any }
 
 export const BaziAnalysisView: React.FC<BaziAnalysisViewProps> = ({ chart, onShowModal }) => {
   const [analysisYear, setAnalysisYear] = useState(new Date().getFullYear());
+  const [analysisMonth, setAnalysisMonth] = useState(new Date().getMonth() + 1);
+  const [analysisDay, setAnalysisDay] = useState(new Date().getDate());
   const [selectedLuckStartYear, setSelectedLuckStartYear] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // 1. 获取当前真实日期 (用于标记)
+  const today = useMemo(() => new Date(), []);
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
+  const isCurrentYear = analysisYear === currentYear;
+
+  // 2. 自动滚动到选中项 (仅水平滚动，避免触发页面级滚动)
+  const monthContainerRef = React.useRef<HTMLDivElement>(null);
+  const dayContainerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (monthContainerRef.current) {
+        const btn = document.getElementById(`month-btn-${analysisMonth}`);
+        if (btn) {
+            const container = monthContainerRef.current;
+            const scrollLeft = btn.offsetLeft - container.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+            container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+        }
+    }
+  }, [analysisMonth, analysisYear]);
+
+  useEffect(() => {
+    if (dayContainerRef.current) {
+        const btn = document.getElementById(`day-btn-${analysisDay}`);
+        if (btn) {
+            const container = dayContainerRef.current;
+            const scrollLeft = btn.offsetLeft - container.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+            container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+        }
+    }
+  }, [analysisDay, analysisMonth]);
 
   useEffect(() => {
     const currentYear = new Date().getFullYear();
@@ -166,7 +217,22 @@ export const BaziAnalysisView: React.FC<BaziAnalysisViewProps> = ({ chart, onSho
   }, [chart]);
 
   const fortune = useMemo(() => calculateAnnualFortune(chart, analysisYear), [chart, analysisYear]);
-  const interpretation = useMemo(() => interpretAnnualPillar(chart, fortune.ganZhi), [chart, fortune]);
+
+  // 计算流月、流日干支
+  const { monthGz, dayGz } = useMemo(() => {
+    const dmIdx = getStemIndex(chart.dayMaster);
+    const solar = Solar.fromYmd(analysisYear, analysisMonth, analysisDay);
+    const lunar = solar.getLunar();
+    const bazi = lunar.getEightChar();
+    bazi.setSect(1);
+
+    const monthGz = createGanZhi(bazi.getMonthGan(), bazi.getMonthZhi(), dmIdx);
+    const dayGz = createGanZhi(bazi.getDayGan(), bazi.getDayZhi(), dmIdx);
+    return { monthGz, dayGz };
+  }, [analysisYear, analysisMonth, analysisDay, chart.dayMaster]);
+
+  const interpretation = useMemo(() => interpretAnnualPillar(chart, fortune.ganZhi, monthGz, dayGz), [chart, fortune, monthGz, dayGz]);
+
 
   const currentLuckYears = useMemo(() => {
      if (!selectedLuckStartYear) return [];
@@ -182,8 +248,8 @@ export const BaziAnalysisView: React.FC<BaziAnalysisViewProps> = ({ chart, onSho
 
   return (
     <div className="space-y-4 animate-fade-in pb-10">
-      {/* 渲染完整的六柱网格 */}
-      <FortuneGrid chart={chart} year={analysisYear} onShowModal={onShowModal} />
+      {/* 渲染完整的八柱网格 (含流月流日) */}
+      <FortuneGrid chart={chart} year={analysisYear} monthGz={monthGz} dayGz={dayGz} onShowModal={onShowModal} />
 
       <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm space-y-4">
          <div>
@@ -219,6 +285,48 @@ export const BaziAnalysisView: React.FC<BaziAnalysisViewProps> = ({ chart, onSho
                     );
                 })}
              </div>
+         </div>
+         
+         {/* 流月流日选择 */}
+         <div className="pt-2 border-t border-stone-100 grid grid-cols-2 gap-4">
+            <div>
+                <div className="flex items-center gap-1.5 mb-2"><div className="w-1 h-3 bg-orange-500 rounded-full"/><span className="text-[10px] font-black text-stone-500 uppercase tracking-wider">流月</span></div>
+                <div ref={monthContainerRef} className="flex overflow-x-auto no-scrollbar gap-2 pb-1">
+                    {Array.from({length: 12}, (_, i) => i + 1).map(m => {
+                        const isToday = isCurrentYear && m === currentMonth;
+                        return (
+                            <button 
+                                key={m}
+                                id={`month-btn-${m}`}
+                                onClick={() => setAnalysisMonth(m)}
+                                className={`relative flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-bold transition-all ${analysisMonth === m ? 'bg-orange-500 border-orange-500 text-white' : 'bg-stone-50 border-stone-200 text-stone-600'}`}
+                            >
+                                {isToday && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white z-10" />}
+                                {m}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+            <div>
+                <div className="flex items-center gap-1.5 mb-2"><div className="w-1 h-3 bg-yellow-500 rounded-full"/><span className="text-[10px] font-black text-stone-500 uppercase tracking-wider">流日</span></div>
+                <div ref={dayContainerRef} className="flex overflow-x-auto no-scrollbar gap-2 pb-1">
+                    {Array.from({length: 31}, (_, i) => i + 1).map(d => {
+                        const isToday = isCurrentYear && analysisMonth === currentMonth && d === currentDay;
+                        return (
+                            <button 
+                                key={d} 
+                                id={`day-btn-${d}`}
+                                onClick={() => setAnalysisDay(d)}
+                                className={`relative flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-bold transition-all ${analysisDay === d ? 'bg-yellow-500 border-yellow-500 text-white' : 'bg-stone-50 border-stone-200 text-stone-600'}`}
+                            >
+                                {isToday && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white z-10" />}
+                                {d}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
          </div>
       </div>
 
