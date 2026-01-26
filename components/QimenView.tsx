@@ -12,6 +12,7 @@ import { QimenPalaceItem } from './qimen/QimenPalaceItem';
 import { QimenSpatialLayers } from './qimen/QimenSpatialLayers';
 import { QimenCompass } from './qimen/QimenCompass';
 import { QimenCalendar } from './qimen/QimenCalendar';
+import { QIMEN_KNOWLEDGE } from '../services/knowledgeContent';
 import {
   Zap,
   Compass,
@@ -25,7 +26,9 @@ import {
   Sparkles,
   Activity,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle,
+  X
 } from 'lucide-react';
 
 interface QimenViewProps {
@@ -36,6 +39,7 @@ interface QimenViewProps {
 
 const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) => {
   const [activeTab, setActiveTab] = useState<'paipan' | 'zeji' | 'calendar'>('paipan');
+  const [showKnowledge, setShowKnowledge] = useState(false);
   const [view, setView] = useState<'平面' | '立体' | '罗盘'>('平面');
   const [timestamp, setTimestamp] = useState(Date.now());
   const ju = useMemo(() => initializeQM_Ju(profile, timestamp), [timestamp, profile]);
@@ -633,7 +637,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       {/* Top Tab Switch */}
       <div className="flex justify-center pt-3 pb-2 bg-white border-b border-stone-100 z-40 shrink-0">
-        <div className="flex bg-stone-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-stone-100 rounded-lg p-1">
           <button 
              onClick={() => setActiveTab('paipan')}
              className={`px-6 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'paipan' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400'}`}
@@ -653,6 +657,13 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
             奇门日历
           </button>
         </div>
+        
+        <button 
+             onClick={() => setShowKnowledge(true)}
+             className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-stone-400 hover:text-indigo-600 transition-colors"
+        >
+             <HelpCircle size={18} />
+        </button>
       </div>
 
       {activeTab === 'zeji' ? (
@@ -684,6 +695,12 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
                 <span className="text-xs font-black text-gray-900 font-serif-zh">{userBirthYear}年人 · {QM_NAMES_MAP[userYearGan]}命</span>
                 <span className="w-[1px] h-3 bg-gray-200"></span>
                 <span className="text-xs font-black text-gray-900 font-serif-zh">{ju.yinYang}遁{ju.juNumber}局</span>
+                <button 
+                  onClick={() => setShowKnowledge(true)}
+                  className="p-0.5 hover:bg-stone-200 rounded-full transition-colors text-stone-400 hover:text-stone-600 ml-1"
+                >
+                  <HelpCircle size={12} />
+                </button>
              </div>
              <div className="flex items-center gap-3 mt-1">
                <div className="text-[9px] text-gray-400 font-bold tracking-wide">
@@ -870,6 +887,35 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
         )}
       </main>
         </>
+      )}
+
+      {/* 知识总纲弹窗 */}
+      {showKnowledge && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowKnowledge(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white border-b border-stone-100 p-4 flex items-center justify-between z-10">
+                    <h3 className="font-bold text-stone-800 flex items-center gap-2">
+                        <HelpCircle size={18} className="text-indigo-600" />
+                        {QIMEN_KNOWLEDGE.title}
+                    </h3>
+                    <button onClick={() => setShowKnowledge(false)} className="p-1 hover:bg-stone-100 rounded-full text-stone-400">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-5 space-y-6">
+                    {QIMEN_KNOWLEDGE.sections.map((section, idx) => (
+                        <div key={idx} className="space-y-2">
+                            <h4 className="font-bold text-stone-700 text-sm border-l-4 border-indigo-500 pl-2">{section.title}</h4>
+                            <div className="text-xs text-stone-600 leading-relaxed space-y-1.5 pl-3">
+                                {section.content.map((p, i) => (
+                                    <p key={i}>{p}</p>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
       )}
     </div>
   );

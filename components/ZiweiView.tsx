@@ -3,9 +3,10 @@ import { calculateChart } from '../ziwei/services/astrologyService';
 import { generateRuleBasedAnalysis } from '../ziwei/services/interpretationService';
 import { callDeepSeekAPI } from '../ziwei/services/aiService';
 import { UserProfile } from '../types';
-import { BrainCircuit, Activity, Sparkles, ClipboardCopy, Crown } from 'lucide-react';
+import { BrainCircuit, Activity, Sparkles, ClipboardCopy, Crown, HelpCircle, X } from 'lucide-react';
 import { ZiweiChartView } from './ZiweiChartView'; 
 import { SmartTextRenderer } from './ui/BaziUI';
+import { ZIWEI_KNOWLEDGE } from '../services/knowledgeContent';
 
 interface ZiweiViewProps {
   profile: UserProfile;
@@ -17,6 +18,7 @@ const PALACE_NAMES = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄'
 
 const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) => {
   const [timeMode, setTimeMode] = useState<'natal' | 'year' | 'month' | 'day'>('natal');
+  const [showKnowledge, setShowKnowledge] = useState(false);
   const now = new Date();
   
   // 时间状态
@@ -201,6 +203,12 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
                 setSelectedDay(d.getDate()); 
                 setSelectedHour(d.getHours());
             }} className={`px-3 py-1.5 text-[11px] rounded-lg font-bold border ${timeMode==='day'?'bg-indigo-600 text-white border-indigo-600':'bg-white text-stone-500 border-stone-200'}`}>流日</button>
+            <button 
+                onClick={() => setShowKnowledge(true)}
+                className="p-1.5 hover:bg-stone-200 rounded-full transition-colors text-stone-400 hover:text-indigo-600"
+            >
+                <HelpCircle size={16} />
+            </button>
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 text-[11px] font-bold text-stone-600 shrink-0">
@@ -299,6 +307,34 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
               </div>
           </div>
       </div>
+      {/* 知识总纲弹窗 */}
+      {showKnowledge && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowKnowledge(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white border-b border-stone-100 p-4 flex items-center justify-between z-10">
+                    <h3 className="font-bold text-stone-800 flex items-center gap-2">
+                        <HelpCircle size={18} className="text-indigo-600" />
+                        {ZIWEI_KNOWLEDGE.title}
+                    </h3>
+                    <button onClick={() => setShowKnowledge(false)} className="p-1 hover:bg-stone-100 rounded-full text-stone-400">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-5 space-y-6">
+                    {ZIWEI_KNOWLEDGE.sections.map((section, idx) => (
+                        <div key={idx} className="space-y-2">
+                            <h4 className="font-bold text-stone-700 text-sm border-l-4 border-indigo-500 pl-2">{section.title}</h4>
+                            <div className="text-xs text-stone-600 leading-relaxed space-y-1.5 pl-3">
+                                {section.content.map((p, i) => (
+                                    <p key={i}>{p}</p>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

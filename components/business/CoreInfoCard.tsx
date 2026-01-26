@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, HelpCircle, X } from 'lucide-react';
+import { BAZI_KNOWLEDGE } from '../../services/knowledgeContent';
 import { UserProfile, BaziChart } from '../../types';
 import { Solar } from 'lunar-javascript';
 
@@ -7,6 +8,7 @@ export const CoreInfoCard: React.FC<{ profile: UserProfile; chart: BaziChart }> 
     const [currentGanZhi, setCurrentGanZhi] = useState({
         year: '', month: '', day: '', hour: ''
     });
+    const [showKnowledge, setShowKnowledge] = useState(false);
 
     useEffect(() => {
         const now = new Date();
@@ -30,6 +32,12 @@ export const CoreInfoCard: React.FC<{ profile: UserProfile; chart: BaziChart }> 
                 <div className="flex items-center gap-1.5">
                     <Info size={14} className="text-stone-600" />
                     <span className="font-black text-[10px] text-stone-700 uppercase tracking-wider">命盘整体</span>
+                    <button 
+                        onClick={() => setShowKnowledge(true)}
+                        className="p-0.5 hover:bg-stone-200 rounded-full transition-colors text-stone-400 hover:text-stone-600"
+                    >
+                        <HelpCircle size={12} />
+                    </button>
                 </div>
                 <div className="text-[9px] font-black text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
                     {profile.birthDate}
@@ -91,6 +99,35 @@ export const CoreInfoCard: React.FC<{ profile: UserProfile; chart: BaziChart }> 
                     {chart.startLuckText}
                 </div>
             </div>
+
+            {/* 知识总纲弹窗 */}
+            {showKnowledge && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowKnowledge(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-stone-100 p-4 flex items-center justify-between z-10">
+                            <h3 className="font-bold text-stone-800 flex items-center gap-2">
+                                <HelpCircle size={18} className="text-indigo-600" />
+                                {BAZI_KNOWLEDGE.title}
+                            </h3>
+                            <button onClick={() => setShowKnowledge(false)} className="p-1 hover:bg-stone-100 rounded-full text-stone-400">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-6">
+                            {BAZI_KNOWLEDGE.sections.map((section, idx) => (
+                                <div key={idx} className="space-y-2">
+                                    <h4 className="font-bold text-stone-700 text-sm border-l-4 border-indigo-500 pl-2">{section.title}</h4>
+                                    <div className="text-xs text-stone-600 leading-relaxed space-y-1.5 pl-3">
+                                        {section.content.map((p, i) => (
+                                            <p key={i}>{p}</p>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
