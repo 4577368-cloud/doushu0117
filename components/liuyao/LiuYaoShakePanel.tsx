@@ -16,10 +16,14 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     const [showCoins, setShowCoins] = useState(false);
 
     // Shake Detection
+    const lastX = useRef(0);
+    const lastY = useRef(0);
+    const lastZ = useRef(0);
+    const lastTime = useRef(0);
+
     useEffect(() => {
-        let lastX = 0, lastY = 0, lastZ = 0;
-        let lastTime = 0;
         const THRESHOLD = 15; // Sensitivity
+        let isFirst = true;
 
         const handleMotion = (event: DeviceMotionEvent) => {
             if (isProcessing || isShaking || isTossing || showCoins) return;
@@ -28,19 +32,27 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
             if (!current) return;
 
             const now = Date.now();
-            if ((now - lastTime) > 100) {
-                const diffTime = now - lastTime;
-                lastTime = now;
+            if ((now - lastTime.current) > 100) {
+                const diffTime = now - lastTime.current;
+                lastTime.current = now;
 
-                const speed = Math.abs(current.x! + current.y! + current.z! - lastX - lastY - lastZ) / diffTime * 10000;
+                if (isFirst) {
+                    lastX.current = current.x!;
+                    lastY.current = current.y!;
+                    lastZ.current = current.z!;
+                    isFirst = false;
+                    return;
+                }
+
+                const speed = Math.abs(current.x! + current.y! + current.z! - lastX.current - lastY.current - lastZ.current) / diffTime * 10000;
 
                 if (speed > THRESHOLD) {
                     triggerShake();
                 }
 
-                lastX = current.x!;
-                lastY = current.y!;
-                lastZ = current.z!;
+                lastX.current = current.x!;
+                lastY.current = current.y!;
+                lastZ.current = current.z!;
             }
         };
 
