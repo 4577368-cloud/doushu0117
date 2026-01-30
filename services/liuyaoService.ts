@@ -1,4 +1,16 @@
 import { HEXAGRAM_DATA, getHexagram, Trigram, TRIGRAMS } from './liuyaoData';
+import { YAO_TEXTS_PART1 } from './liuyaoYaoTexts1';
+import { YAO_TEXTS_PART2 } from './liuyaoYaoTexts2';
+
+// Combine Yao Texts
+export const YAO_TEXTS = { ...YAO_TEXTS_PART1, ...YAO_TEXTS_PART2 };
+
+export interface YaoText {
+    position: number;
+    name: string;
+    text: string;
+    vernacular: string;
+}
 
 // 0 = Yin (--), 1 = Yang (—)
 // Coin toss:
@@ -14,10 +26,12 @@ export interface LiuYaoResult {
     baseHexagram: {
         binary: number[];
         data: any;
+        key: string;
     };
     changedHexagram: {
         binary: number[];
         data: any;
+        key: string;
     } | null;
     timestamp: Date;
 }
@@ -50,10 +64,27 @@ export const castCoinLine = (): YaoValue => {
     return 6; // Old Yin
 };
 
+export const getHexagramKey = (binaryLines: number[]): string => {
+    // lines: array of 6 integers (0 or 1). Index 0 is Bottom line.
+    // Lower Trigram: lines[2], lines[1], lines[0]
+    const lowerBin = `${binaryLines[2]}${binaryLines[1]}${binaryLines[0]}`;
+    // Upper Trigram: lines[5], lines[4], lines[3]
+    const upperBin = `${binaryLines[5]}${binaryLines[4]}${binaryLines[3]}`;
+    return `${upperBin}-${lowerBin}`;
+};
+
+export const getYaoText = (hexagramKey: string, position: number): YaoText | null => {
+    // position: 1-6
+    const texts = (YAO_TEXTS as any)[hexagramKey];
+    if (!texts) return null;
+    return texts.find((t: YaoText) => t.position === position) || null;
+};
+
 export const analyzeHexagram = (lines: YaoValue[]) => {
     // 1. Build Base Hexagram (Original)
     // 6->0, 7->1, 8->0, 9->1
     const baseBinary = lines.map(v => (v === 7 || v === 9) ? 1 : 0);
+    const baseKey = getHexagramKey(baseBinary);
     const baseHex = getHexagram(baseBinary);
     
     // 2. Build Changed Hexagram (Future)
@@ -63,6 +94,7 @@ export const analyzeHexagram = (lines: YaoValue[]) => {
     
     let changedHex = null;
     let changedBinary: number[] = [];
+    let changedKey = "";
     
     if (hasMoving) {
         changedBinary = lines.map(v => {
@@ -71,6 +103,7 @@ export const analyzeHexagram = (lines: YaoValue[]) => {
             if (v === 7) return 1;
             return 0; // 8
         });
+        changedKey = getHexagramKey(changedBinary);
         changedHex = getHexagram(changedBinary);
     }
 
@@ -78,11 +111,13 @@ export const analyzeHexagram = (lines: YaoValue[]) => {
         lines,
         base: {
             binary: baseBinary,
-            info: baseHex
+            info: baseHex,
+            key: baseKey
         },
         changed: hasMoving ? {
             binary: changedBinary,
-            info: changedHex
+            info: changedHex,
+            key: changedKey
         } : null,
         movingLines: lines.map((v, i) => (v === 6 || v === 9) ? i + 1 : null).filter(Boolean) as number[]
     };

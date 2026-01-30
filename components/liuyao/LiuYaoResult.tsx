@@ -1,5 +1,5 @@
 import React from 'react';
-import { LiuYaoResult as ResultType } from '../../services/liuyaoService';
+import { LiuYaoResult as ResultType, getYaoText, analyzeHexagram } from '../../services/liuyaoService';
 import { LiuYaoHexagram } from './LiuYaoHexagram';
 
 interface LiuYaoResultProps {
@@ -9,6 +9,12 @@ interface LiuYaoResultProps {
 
 export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset }) => {
     const { base, changed, movingLines } = analyzeResult(result);
+
+    // Check for Use Nine / Use Six
+    // Qian (111-111) with all moving lines (all 9s -> movingLines.length === 6)
+    const isQianAllMoving = base.key === "111-111" && movingLines.length === 6;
+    // Kun (000-000) with all moving lines (all 6s -> movingLines.length === 6)
+    const isKunAllMoving = base.key === "000-000" && movingLines.length === 6;
 
     return (
         <div className="bg-stone-900 text-stone-200 p-4 rounded-xl space-y-6 max-h-[80vh] overflow-y-auto">
@@ -54,7 +60,7 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset }) =
                 
                 <div className="space-y-4">
                     <div>
-                        <div className="text-xs text-stone-500 mb-1">原文</div>
+                        <div className="text-xs text-stone-500 mb-1">卦辞（本卦）</div>
                         <div className="text-lg font-serif text-stone-300 leading-relaxed">
                             {base.info?.description}
                         </div>
@@ -67,13 +73,55 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset }) =
                         </div>
                     </div>
 
-                    {movingLines.length > 0 && (
+                    {/* Use Nine / Use Six Special Handling */}
+                    {(isQianAllMoving || isKunAllMoving) && (
                         <div className="bg-amber-900/20 p-3 rounded border border-amber-900/30 mt-4">
-                            <div className="text-xs text-amber-500 font-bold mb-1">动爻提示</div>
-                            <div className="text-xs text-amber-200/80">
-                                动爻位于：{movingLines.map(l => `第${l}爻`).join('、')}。
-                                <br/>
-                                凡有动爻，吉凶悔吝系于动爻。请重点参考动爻位置的爻辞（本版本暂未收录完整384爻辞，建议结合AI解读或查阅书籍）。
+                            <div className="text-xs text-amber-500 font-bold mb-2">
+                                {isQianAllMoving ? '用九' : '用六'}
+                            </div>
+                            {(() => {
+                                const specialText = getYaoText(base.key, 7);
+                                if (!specialText) return null;
+                                return (
+                                    <div className="space-y-2">
+                                        <div className="text-md font-serif text-stone-200">
+                                            {specialText.text}
+                                        </div>
+                                        <div className="text-sm text-stone-400">
+                                            {specialText.vernacular}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {/* Moving Lines */}
+                    {!isQianAllMoving && !isKunAllMoving && movingLines.length > 0 && (
+                        <div className="mt-6 space-y-4">
+                             <div className="text-sm text-amber-500 font-bold border-b border-stone-700 pb-2">
+                                动爻详解
+                            </div>
+                            {movingLines.map(pos => {
+                                const yaoText = getYaoText(base.key, pos);
+                                if (!yaoText) return null;
+                                return (
+                                    <div key={pos} className="bg-stone-900/50 p-3 rounded border border-stone-700/50">
+                                        <div className="flex items-baseline gap-2 mb-1">
+                                            <span className="text-amber-400 font-bold text-sm">{yaoText.name}</span>
+                                            <span className="text-xs text-stone-500">第{pos}爻</span>
+                                        </div>
+                                        <div className="text-md font-serif text-stone-200 mb-2">
+                                            {yaoText.text}
+                                        </div>
+                                        <div className="text-sm text-stone-400 leading-relaxed">
+                                            {yaoText.vernacular}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div className="text-xs text-stone-500 italic mt-2">
+                                * 吉凶悔吝主要参考动爻，若多爻变动，请结合变卦综合判断。
                             </div>
                         </div>
                     )}
@@ -92,7 +140,6 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset }) =
 };
 
 // Helper to bridge service types
-import { analyzeHexagram } from '../../services/liuyaoService';
 const analyzeResult = (result: ResultType) => {
     return analyzeHexagram(result.lines);
 };

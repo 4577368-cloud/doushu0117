@@ -22,8 +22,13 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     const lastTime = useRef(0);
 
     useEffect(() => {
-        const THRESHOLD = 15; // Sensitivity
+        const SHAKE_THRESHOLD = 15;
+        const STEADY_THRESHOLD = 5;
+        const STEADY_DURATION = 500; // ms
+
         let isFirst = true;
+        let isReady = false;
+        let steadyStart = 0;
 
         const handleMotion = (event: DeviceMotionEvent) => {
             if (isProcessing || isShaking || isTossing || showCoins) return;
@@ -41,13 +46,26 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                     lastY.current = current.y!;
                     lastZ.current = current.z!;
                     isFirst = false;
+                    steadyStart = now; // Start tracking steady state
                     return;
                 }
 
                 const speed = Math.abs(current.x! + current.y! + current.z! - lastX.current - lastY.current - lastZ.current) / diffTime * 10000;
 
-                if (speed > THRESHOLD) {
-                    triggerShake();
+                if (!isReady) {
+                    if (speed < STEADY_THRESHOLD) {
+                        if (steadyStart === 0) steadyStart = now;
+                        else if (now - steadyStart > STEADY_DURATION) {
+                            isReady = true;
+                            // console.log("Ready to shake!");
+                        }
+                    } else {
+                        steadyStart = 0; // Reset steady timer if moving too much
+                    }
+                } else {
+                    if (speed > SHAKE_THRESHOLD) {
+                        triggerShake();
+                    }
                 }
 
                 lastX.current = current.x!;
@@ -58,7 +76,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
 
         window.addEventListener('devicemotion', handleMotion);
         return () => window.removeEventListener('devicemotion', handleMotion);
-    }, [isProcessing, isShaking, isTossing, showCoins]);
+    }, [isProcessing, isShaking, isTossing, showCoins, step]);
 
     const triggerShake = () => {
         if (isShaking || isProcessing || isTossing || showCoins) return;
