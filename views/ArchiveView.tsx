@@ -252,28 +252,28 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                 <div className="absolute top-[-50%] right-[-10%] w-[60%] h-[160%] bg-gradient-to-b from-amber-500/10 via-transparent to-transparent rotate-12 pointer-events-none blur-2xl"></div>
                 
                 {/* 头部用户信息 */}
-                <div className="relative flex justify-between items-start z-10">
-                    <div className="flex items-center gap-3">
+                <div className="relative flex justify-between items-center z-10 w-full overflow-hidden">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-hidden mr-2">
                         {selfProfile?.avatar ? (
-                          <img src={selfProfile.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover border border-amber-500/40 shadow-lg" />
+                          <img src={selfProfile.avatar} alt="avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-amber-500/40 shadow-lg shrink-0" />
                         ) : (
-                          <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50">
-                            <div className="w-full h-full rounded-full bg-[#1c1917] flex items-center justify-center text-xl">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-amber-300 via-amber-500 to-amber-200 shadow-lg shadow-amber-900/50 shrink-0">
+                            <div className="w-full h-full rounded-full bg-[#1c1917] flex items-center justify-center text-lg sm:text-xl">
                                 {selfProfile ? emojiForProfile(selfProfile) : '🙂'}
                             </div>
                           </div>
                         )}
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-stone-100 font-bold text-lg tracking-wide font-serif">
+                        <div className="min-w-0 flex flex-col justify-center">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <h2 className="text-stone-100 font-bold text-base sm:text-lg tracking-wide font-serif truncate">
                                 {selfProfile ? selfProfile.name : (session ? (session.user.user_metadata?.name || session.user.email?.split('@')[0] || '命理师') : '访客')}
                             </h2>
                                 {isVip ? (
-                                    <span className="flex items-center gap-1 bg-gradient-to-r from-amber-300 to-amber-500 text-[#1c1917] text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                        <Crown size={10} fill="currentColor"/> VIP
+                                    <span className="shrink-0 flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-300 to-amber-500 text-[#1c1917] text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+                                        <Crown size={9} className="sm:w-[10px] sm:h-[10px]" fill="currentColor"/> VIP
                                     </span>
                                 ) : (
-                                    <span onClick={onVipClick} className="flex items-center gap-1 bg-stone-800 text-stone-500 border border-stone-700 text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer hover:text-stone-300">
+                                    <span onClick={onVipClick} className="shrink-0 flex items-center gap-0.5 sm:gap-1 bg-stone-800 text-stone-500 border border-stone-700 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full cursor-pointer hover:text-stone-300 whitespace-nowrap">
                                         普通用户
                                     </span>
                                 )}
@@ -284,19 +284,21 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                         </div>
                     </div>
                     {session ? (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <button 
                                 onClick={handleSync}
                                 disabled={syncStatus === 'loading' || syncStatus === 'success'}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200 active:scale-95'}`}
+                                className={`flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border whitespace-nowrap min-w-[60px] sm:min-w-[70px] ${syncStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-stone-800 border-stone-700 text-stone-400 hover:text-stone-200 active:scale-95'}`}
                             >
-                                <RefreshCw size={13} className={syncStatus === 'loading' ? 'animate-spin' : ''} />
-                                {syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '同步'}
+                                <RefreshCw size={12} className={`sm:w-[13px] sm:h-[13px] ${syncStatus === 'loading' ? 'animate-spin' : ''}`} />
+                                <span>{syncStatus === 'loading' ? '同步中' : syncStatus === 'success' ? '已同步' : '同步'}</span>
                             </button>
-                            <button onClick={onLogout} className="text-xs text-stone-500 hover:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 bg-stone-800/50 border border-stone-700/50 rounded-full active:scale-95 transition-all"><LogOut size={13}/> 退出</button>
+                            <button onClick={onLogout} className="text-[10px] sm:text-xs text-stone-500 hover:text-rose-400 flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-stone-800/50 border border-stone-700/50 rounded-full active:scale-95 transition-all whitespace-nowrap">
+                                <LogOut size={12} className="sm:w-[13px] sm:h-[13px]"/> 退出
+                            </button>
                     </div>
                 ) : (
-                    <button onClick={onLogin} className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold shadow-md hover:bg-amber-400 active:scale-95 transition-all">登录 / 注册</button>
+                    <button onClick={onLogin} className="shrink-0 text-[10px] sm:text-xs bg-amber-500 text-[#1c1917] px-3 sm:px-4 py-1.5 rounded-full font-bold shadow-md hover:bg-amber-400 active:scale-95 transition-all whitespace-nowrap">登录 / 注册</button>
                 )}
             </div>
             

@@ -487,7 +487,7 @@ const App: React.FC = () => {
                     isVip={isVip} 
                     onVipClick={() => setShowVipModal(true)} 
                     session={session} 
-                    onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); } }} 
+                    onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); setSession(null); } }} 
                     onLogin={() => setShowAuthModal(true)}
                     onNewChart={() => setCurrentTab(AppTab.HOME)}
                 />
