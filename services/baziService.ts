@@ -815,7 +815,7 @@ export const interpretAnnualPillar = (chart: BaziChart, annualGz: GanZhi, monthG
      const dayZhiIdx = EARTHLY_BRANCHES.indexOf(dZhi);
      const dayStage = LIFE_STAGES_TABLE[dmIdx][dayZhiIdx];
      
-     parts.push(`**${annualGz.gan}${annualGz.zhi}年 ${mGan}${mZhi}月 ${dGan}${dZhi}日**`);
+     parts.push(`**${annualGz.gan}${annualGz.zhi}年**\n\n**${mGan}${mZhi}月**\n\n**${dGan}${dZhi}日**`);
      parts.push(`**今日气场**：日主坐${dayStage}地，${dayStage === '帝旺' || dayStage === '临官' ? '能量充沛，适宜进取' : dayStage === '死' || dayStage === '绝' ? '能量内敛，适宜规划' : '运势平稳'}。`);
 
      // 2. 五行运化

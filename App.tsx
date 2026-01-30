@@ -28,6 +28,7 @@ import { HomeView } from './views/HomeView';
 import { ArchiveView } from './views/ArchiveView';
 import { BaziChartView } from './views/BaziChartView';
 import { AiChatView } from './views/AiChatView';
+import { LiuYaoView } from './views/LiuYaoView';
 import ZiweiView from './components/ZiweiView'; 
 import QimenView from './components/QimenView';
 
@@ -487,10 +488,39 @@ const App: React.FC = () => {
                     isVip={isVip} 
                     onVipClick={() => setShowVipModal(true)} 
                     session={session} 
-                    onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); setSession(null); } }} 
+                    onLogout={async () => { 
+                        // 1. 立即清理本地状态，给用户即时反馈
+                        setArchives([]); 
+                        setIsVip(false); 
+                        setBaziChart(null); 
+                        setCurrentProfile(null); 
+                        setCurrentTab(AppTab.ARCHIVE); 
+                        setSession(null); 
+                        try { 
+                            localStorage.removeItem('bazi_archives:guest'); 
+                            localStorage.removeItem('is_vip_user'); 
+                            // 清理 Supabase 认证 token
+                            Object.keys(localStorage).forEach(key => {
+                                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                                    localStorage.removeItem(key);
+                                }
+                            });
+                        } catch {} 
+
+                        // 2. 后台尝试退出 Supabase (不阻塞 UI)
+                        try { await safeSignOut(); } catch (e) { console.error('SignOut warning:', e); }
+                    }} 
                     onLogin={() => setShowAuthModal(true)}
                     onNewChart={() => setCurrentTab(AppTab.HOME)}
+                    onLiuYao={() => setCurrentTab(AppTab.LIUYAO)}
                 />
+              );
+
+          case AppTab.LIUYAO:
+              return (
+                  <LiuYaoView 
+                      onBack={() => setCurrentTab(AppTab.ARCHIVE)}
+                  />
               );
           
           default:

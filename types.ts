@@ -108,11 +108,12 @@ export interface ModalData {
 
 export enum AppTab {
   HOME = 'home',
-  CHART = 'chart',
-  ZIWEI = 'ziwei',
-  QIMEN = 'qimen',
-  ARCHIVE = 'archive',
-  CHAT = 'chat'
+  ARCHIVE = 'archive', // 对应 "我的"
+  CHART = 'chart',     // 对应 "八字"
+  ZIWEI = 'ziwei',     // 对应 "紫微"
+  CHAT = 'chat',       // 对应 "AI"
+  QIMEN = 'qimen',     // 对应 "奇门"
+  LIUYAO = 'liuyao'    // 对应 "六爻"
 }
 
 export enum ChartSubTab {

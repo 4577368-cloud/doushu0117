@@ -15,6 +15,7 @@ interface ArchiveViewProps {
     onLogout: () => void;
     onLogin?: () => void;
     onNewChart: () => void;
+    onLiuYao: () => void;
 }
 
 const PRESET_TAGS = ["客户", "朋友", "家人", "同事", "VIP", "重要", "案例"];
@@ -45,7 +46,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     session,
     onLogout,
     onLogin,
-    onNewChart
+    onNewChart,
+    onLiuYao
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [syncStatus, setSyncStatus] = useState<'idle'|'loading'|'success'|'error'>('idle');
@@ -352,6 +354,25 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                         <div className="w-8 h-8 rounded-full bg-stone-800/50 flex items-center justify-center border border-stone-700/50 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 transition-all">
                             <ChevronRight size={16} className="text-stone-500 group-hover:text-amber-400" />
                         </div>
+                    </div>
+                </div>
+
+                {/* 六爻卜卦入口 */}
+                <div 
+                    onClick={onLiuYao}
+                    className="group relative overflow-hidden rounded-2xl p-4 cursor-pointer transition-all duration-300 active:scale-[0.98] shadow-md hover:shadow-lg border border-stone-800 hover:border-amber-900/50 bg-[#1c1917]"
+                >
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center border border-stone-700 group-hover:border-amber-500/50 transition-colors">
+                                <Layers size={18} className="text-stone-400 group-hover:text-amber-500 transition-colors" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-stone-300 group-hover:text-amber-100 transition-colors">六爻卜卦</h3>
+                                <p className="text-[10px] text-stone-500 group-hover:text-stone-400 transition-colors">金钱卦 · 梅花易数 · 灵感占卜</p>
+                            </div>
+                        </div>
+                        <ChevronRight size={14} className="text-stone-600 group-hover:text-amber-500/50 transition-colors" />
                     </div>
                 </div>
 
