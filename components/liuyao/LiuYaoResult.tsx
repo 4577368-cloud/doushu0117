@@ -36,7 +36,7 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset }) =
                                 Actually for Changed Hexagram, we just show the resulting static lines (7/8) 
                                 derived from the change. 
                             */}
-                            <LiuYaoHexagram lines={result.changed!.binary.map(b => b === 1 ? 7 : 8)} showMoving={false} />
+                            <LiuYaoHexagram lines={changed!.binary.map(b => b === 1 ? 7 : 8)} showMoving={false} />
                             <div className="mt-2 text-center">
                                 <div className="text-xl font-bold text-amber-400">{changed.info?.name}</div>
                                 <div className="text-4xl text-stone-600 mt-1">{changed.info?.symbol}</div>
