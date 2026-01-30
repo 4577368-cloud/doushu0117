@@ -246,7 +246,6 @@ const readStreamResponse = async (response: Response): Promise<string> => {
 };
 
 export const callDeepSeekAPI = async (
-  apiKey: string | undefined, 
   chartData: any, 
   age: number, 
   gender: string, 
@@ -314,7 +313,6 @@ ${JSON.stringify(enhancedData.keyPalaces, null, 2)}
         'X-Analysis-Type': 'ziwei-enhanced' 
       },
       body: JSON.stringify({
-        apiKey: apiKey || '', 
         messages: [
           { 
             role: "system", 

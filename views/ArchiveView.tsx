@@ -13,6 +13,7 @@ interface ArchiveViewProps {
     onVipClick: () => void;
     session: any; 
     onLogout: () => void;
+    onLogin?: () => void;
     onNewChart: () => void;
 }
 
@@ -43,6 +44,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     onVipClick,
     session,
     onLogout,
+    onLogin,
     onNewChart
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +52,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<{ name: string; tags: string; gender: 'male'|'female'; birthDate: string; birthTime: string }>({ name: '', tags: '', gender: 'male', birthDate: '', birthTime: '00:00' });
     const [birthDateDigits, setBirthDateDigits] = useState<string>('');
+    const [birthDateError, setBirthDateError] = useState<string | null>(null);
     const [editHour, setEditHour] = useState<string>('00');
     const [editMinute, setEditMinute] = useState<string>('00');
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -181,11 +184,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         }
     };
 
+    const isBirthDateInvalid = birthDateDigits.length > 0 && (!!birthDateError || birthDateDigits.length !== 8);
+
     const saveEdit = async () => {
         const editingProfile = archives.find(p => p.id === editingId);
         if (!editingProfile) return;
         if (!editForm.name.trim()) return alert("姓名不能为空");
-        if (birthDateDigits.length === 8) {
+        if (birthDateDigits.length === 8 && !birthDateError) {
             const y = birthDateDigits.slice(0,4);
             const m = birthDateDigits.slice(4,6);
             const d = birthDateDigits.slice(6,8);
@@ -291,7 +296,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                             <button onClick={onLogout} className="text-xs text-stone-500 hover:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 bg-stone-800/50 border border-stone-700/50 rounded-full active:scale-95 transition-all"><LogOut size={13}/> 退出</button>
                     </div>
                 ) : (
-                    <button className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold">登录</button>
+                    <button onClick={onLogin} className="text-xs bg-amber-500 text-[#1c1917] px-4 py-1 rounded-full font-bold shadow-md hover:bg-amber-400 active:scale-95 transition-all">登录 / 注册</button>
                 )}
             </div>
             
@@ -488,7 +493,56 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-stone-500 ml-1">生诞 (YYYYMMDD)</label>
-                                    <input value={birthDateDigits} onChange={e => { const v = e.target.value.replace(/\D/g,'').slice(0,8); setBirthDateDigits(v); if (v.length === 8) { const y=v.slice(0,4), m=v.slice(4,6), d=v.slice(6,8); setEditForm(prev => ({...prev, birthDate: `${y}-${m}-${d}`})); } }} placeholder="19900101" inputMode="numeric" maxLength={8} className="w-full bg-stone-900/50 rounded-xl px-3.5 py-2.5 text-sm text-stone-300 outline-none border border-stone-800 focus:border-amber-500/50 transition-all"/>
+                                    <input
+                                        value={birthDateDigits}
+                                        onChange={e => {
+                                            const v = e.target.value.replace(/\D/g,'').slice(0,8);
+                                            setBirthDateDigits(v);
+                                            if (!v) {
+                                                setBirthDateError(null);
+                                                setEditForm(prev => ({ ...prev, birthDate: '' }));
+                                                return;
+                                            }
+                                            if (v.length === 8) {
+                                                const yNum = parseInt(v.slice(0,4), 10);
+                                                const mNum = parseInt(v.slice(4,6), 10);
+                                                const dNum = parseInt(v.slice(6,8), 10);
+                                                if (!Number.isFinite(yNum) || !Number.isFinite(mNum) || !Number.isFinite(dNum)) {
+                                                    setBirthDateError('请输入正确的数字日期');
+                                                    return;
+                                                }
+                                                if (yNum < 1900 || yNum > 2100) {
+                                                    setBirthDateError('年份需在 1900-2100 之间');
+                                                    return;
+                                                }
+                                                if (mNum < 1 || mNum > 12) {
+                                                    setBirthDateError('月份需在 1-12 之间');
+                                                    return;
+                                                }
+                                                const maxDay = new Date(yNum, mNum, 0).getDate();
+                                                if (dNum < 1 || dNum > maxDay) {
+                                                    setBirthDateError(`该月日期需在 1-${maxDay} 之间`);
+                                                    return;
+                                                }
+                                                setBirthDateError(null);
+                                                const y = v.slice(0,4);
+                                                const m = v.slice(4,6);
+                                                const d = v.slice(6,8);
+                                                setEditForm(prev => ({...prev, birthDate: `${y}-${m}-${d}`}));
+                                            } else {
+                                                setBirthDateError(null);
+                                            }
+                                        }}
+                                        placeholder="19900101"
+                                        inputMode="numeric"
+                                        maxLength={8}
+                                        className={`w-full bg-stone-900/50 rounded-xl px-3.5 py-2.5 text-sm text-stone-300 outline-none border transition-all ${
+                                            birthDateError ? 'border-red-500 bg-red-900/40 focus:border-red-400' : 'border-stone-800 focus:border-amber-500/50'
+                                        }`}
+                                    />
+                                    {birthDateError && (
+                                        <p className="mt-1 text-[11px] text-red-400">{birthDateError}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-stone-500 ml-1">出生时间</label>
@@ -514,7 +568,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                             </div>
                         <div className="flex gap-3 pt-2 sticky bottom-0 left-0 bg-[#1c1917]">
                             <button onClick={() => setEditingId(null)} disabled={savingEdit} className={`flex-1 py-3.5 rounded-xl text-sm font-bold ${savingEdit?'opacity-60 cursor-not-allowed':''} text-stone-400 bg-stone-800 hover:bg-stone-700`}>取消</button>
-                            <button onClick={saveEdit} disabled={savingEdit} className={`flex-1 py-3.5 rounded-xl text-sm font-bold text-[#1c1917] bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-900/20 ${savingEdit?'opacity-60 cursor-not-allowed':''}`}>
+                            <button
+                                onClick={saveEdit}
+                                disabled={savingEdit || isBirthDateInvalid}
+                                className={`flex-1 py-3.5 rounded-xl text-sm font-bold text-[#1c1917] bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-900/20 ${
+                                    savingEdit || isBirthDateInvalid ? 'opacity-60 cursor-not-allowed' : ''
+                                }`}
+                            >
                                 {savingEdit ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin"/> 保存中...</span> : '保存修改'}
                             </button>
                         </div>

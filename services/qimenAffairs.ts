@@ -5,9 +5,10 @@ export type QM_SymbolKey =
   | 'Jia' | 'Yi' | 'Bing' | 'Ding' | 'Wu' | 'Ji' | 'Geng' | 'Xin' | 'Ren' | 'Gui' 
   | 'KaiMen' | 'ShengMen' | 'XiuMen' | 'ShangMen' | 'DuMen' | 'JingMen' | 'SiMen' | 'JingMen2' // 惊门 
   | 'TianPeng' | 'TianRui' | 'TianChong' | 'TianFu' | 'TianQin' | 'TianXin' | 'TianZhu' | 'TianRen' | 'TianYing' 
-  | 'ZhiFu' | 'TengShe' | 'TaiYin' | 'LiuHe' | 'BaiHu' | 'XuanWu' | 'JiuDi' | 'JiuTian';
+  | 'ZhiFu' | 'TengShe' | 'TaiYin' | 'LiuHe' | 'BaiHu' | 'XuanWu' | 'JiuDi' | 'JiuTian'
+  | 'TianYi'; // 天乙（奇门中通常指值符落宫的地盘之星，或特定神煞，此处作为符号占位）
 
-export type QM_StateKey = 'Wang' | 'Xiang' | 'Xiu' | 'Qiu' | 'SiState' | 'KongWang' | 'RuMu';
+export type QM_StateKey = 'Wang' | 'Xiang' | 'Xiu' | 'Qiu' | 'SiState' | 'KongWang' | 'RuMu' | 'JiXing';
 
 export const QM_INDUSTRIES = {
   '通用': '通用场景',
@@ -121,7 +122,6 @@ export const QM_AFFAIR_SYMBOLS: Record<QM_AffairCategory, Record<string, QMAffai
     },
     debt: {
       label: '讨债追账',
-      primary: ['ZhiFu', 'TianYi'], // TianYi? Usually ShangMen for debt collector? Or Wu vs RiGan?
       // Simplified: Debt is ShangMen? Or Value (Wu).
       // Standard: Lender (RiGan/ZhiFu), Borrower (TianYi/ShiGan).
       // Let's use generic symbols for now.

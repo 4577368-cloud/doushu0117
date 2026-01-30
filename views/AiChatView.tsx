@@ -59,7 +59,7 @@ const InChatSuggestions: React.FC<{ rawContent: string; onSend: (text: string) =
     );
 };
 
-export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVip: boolean }> = ({ chart, profile, isVip }) => {
+export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVip: boolean; onVipClick: () => void }> = ({ chart, profile, isVip, onVipClick }) => {
     
     // --- 1. 时间计算 (修复版：包含时辰) ---
     const timeContext = useMemo(() => {

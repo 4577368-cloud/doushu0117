@@ -202,10 +202,9 @@ export const sendChatMessage = async (
   isVip: boolean = false,
   timeContext: string = ''
 ) => {
-  const apiKey = sessionStorage.getItem('ai_api_key');
-  
-  if (!isVip && !apiKey) {
-    throw new Error("API Key missing - 请在设置中输入 Key，或升级 VIP 免 Key 使用");
+  // 统一权限管理：移除 API Key 逻辑，所有 AI 功能需 VIP
+  if (!isVip) {
+    throw new Error("VIP 权限未激活 - 请升级 VIP 解锁 AI 深度对话");
   }
 
   let systemInstruction = '';
@@ -232,7 +231,6 @@ export const sendChatMessage = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        apiKey: apiKey || undefined, 
         messages: messagesForAi
       })
     });

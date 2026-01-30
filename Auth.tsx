@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { safeAuth, supabaseReady } from './services/supabase';
-import { Mail, Lock, Loader2, ArrowLeft, KeyRound, Check } from 'lucide-react';
+import { Mail, Lock as LockIcon, Loader2, ArrowLeft, KeyRound, Check } from 'lucide-react';
 import { PolicyModal } from './components/modals/PolicyModals';
 
 export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess }) => {
@@ -99,7 +99,7 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
           <div>
             <label className="block text-xs font-bold text-stone-500 mb-1 ml-1">密码</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-3.5 text-stone-400" size={18} />
+              <LockIcon className="absolute left-4 top-3.5 text-stone-400" size={18} />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-stone-900 transition-colors font-bold text-stone-800" placeholder="••••••••" required />
             </div>
           </div>
@@ -129,7 +129,7 @@ export const Auth: React.FC<{ onLoginSuccess: () => void }> = ({ onLoginSuccess 
         )}
 
         <button disabled={loading} className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
-          {loading ? <Loader2 className="animate-spin" size={20} /> : mode === 'forgot' ? <KeyRound size={20}/> : <Lock size={20} />}
+          {loading ? <Loader2 className="animate-spin" size={20} /> : mode === 'forgot' ? <KeyRound size={20}/> : <LockIcon size={20} />}
           {loading ? '处理中...' : mode === 'login' ? '立即登录' : mode === 'register' ? '注册账号' : '发送重置邮件'}
         </button>
       </form>

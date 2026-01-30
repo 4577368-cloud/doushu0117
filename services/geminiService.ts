@@ -87,16 +87,14 @@ JSON 结构规范：
   const userPrompt = `请基于以下命盘生成深度财富分析报告：\n${chartDescription}`;
 
   try {
-    const finalKey = apiKey || sessionStorage.getItem('ai_api_key') || '';
-    if (!finalKey && !isVip) {
-      throw new Error("API Key 未设置，请先在设置中输入 DeepSeek API Key");
+    if (!isVip) {
+      throw new Error("VIP 权限未激活 - 请升级 VIP 解锁深度分析");
     }
 
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        apiKey: finalKey,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

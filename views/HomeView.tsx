@@ -3,7 +3,12 @@ import { Compass, History, Sun, MapPin, Map, Calendar, Clock, X } from 'lucide-r
 import { UserProfile, Gender } from '../types';
 import { CHINA_LOCATIONS } from '../services/constants';
 
-export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; archives: UserProfile[]; onChromeHiddenChange?: (hidden: boolean) => void; }> = ({ onGenerate, archives, onChromeHiddenChange }) => {
+export const HomeView: React.FC<{ 
+    onGenerate: (profile: UserProfile) => void; 
+    archives: UserProfile[]; 
+    onChromeHiddenChange?: (hidden: boolean) => void;
+    guestUsage?: { count: number; limit: number };
+}> = ({ onGenerate, archives, onChromeHiddenChange, guestUsage }) => {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender>('male');
   const [dateInput, setDateInput] = useState(''); 
@@ -15,14 +20,27 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const parseDateInput = (val: string) => {
-    if (val.length !== 8) return null;
+    if (!val) return { parsed: null as null, error: null as string | null };
+    if (val.length !== 8) return { parsed: null as null, error: null as string | null };
     const year = val.substring(0, 4), month = val.substring(4, 6), day = val.substring(6, 8);
-    const y = parseInt(year), m = parseInt(month), d = parseInt(day);
-    if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-    return { formattedDate: `${year}-${month}-${day}`, display: `${year}年${month}月${day}日` };
+    const y = parseInt(year, 10), m = parseInt(month, 10), d = parseInt(day, 10);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+      return { parsed: null, error: '请输入正确的数字日期' };
+    }
+    if (y < 1900 || y > 2100) {
+      return { parsed: null, error: '年份需在 1900-2100 之间' };
+    }
+    if (m < 1 || m > 12) {
+      return { parsed: null, error: '月份需在 1-12 之间' };
+    }
+    const maxDay = new Date(y, m, 0).getDate();
+    if (d < 1 || d > maxDay) {
+      return { parsed: null, error: `该月日期需在 1-${maxDay} 之间` };
+    }
+    return { parsed: { formattedDate: `${year}-${month}-${day}`, display: `${year}年${month}月${day}日` }, error: null };
   };
 
-  const parsed = parseDateInput(dateInput);
+  const { parsed, error: dateError } = parseDateInput(dateInput);
    
   const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => { 
     const provName = e.target.value; setProvince(provName); 
@@ -60,6 +78,8 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
     return pool[Math.floor(Math.random()*pool.length)];
   };
 
+  const isLimitReached = guestUsage && guestUsage.count >= guestUsage.limit;
+
   return (
     <div className="flex flex-col h-full bg-[#fafaf9] overflow-y-auto no-scrollbar">
        <div className="min-h-full flex flex-col justify-center p-6 pb-10 max-w-md mx-auto w-full">
@@ -90,9 +110,22 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                  <div className="col-span-3 space-y-1.5">
                      <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">生日 (YYYYMMDD)</label>
                      <div className="relative">
-                         <input type="text" inputMode="numeric" maxLength={8} value={dateInput} onChange={e => setDateInput(e.target.value.replace(/\D/g, ''))} className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none font-sans text-base tracking-widest focus:border-stone-400 shadow-sm" placeholder="19900101" />
+                         <input
+                           type="text"
+                           inputMode="numeric"
+                           maxLength={8}
+                           value={dateInput}
+                           onChange={e => setDateInput(e.target.value.replace(/\D/g, ''))}
+                           className={`w-full bg-white rounded-xl px-4 py-3 outline-none font-sans text-base tracking-widest shadow-sm border transition-all ${
+                             dateError ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-stone-200 focus:border-stone-400'
+                           }`}
+                           placeholder="19900101"
+                         />
                          <Calendar size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300" />
                      </div>
+                     {dateError && (
+                       <p className="mt-1 text-[11px] text-red-500">{dateError}</p>
+                     )}
                  </div>
                  <div className="col-span-2 space-y-1.5">
                      <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-1">时辰</label>
@@ -113,7 +146,16 @@ export const HomeView: React.FC<{ onGenerate: (profile: UserProfile) => void; ar
                 {isSolarTime && (<div className="px-4 pb-5 pt-1 grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300"><div className="space-y-1.5"><label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-1">省份</label><div className="relative"><select value={province} onChange={handleProvinceChange} className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 outline-none font-sans text-sm focus:border-amber-400 appearance-none">{CHINA_LOCATIONS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}</select><MapPin size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" /></div></div><div className="space-y-1.5"><label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-1">城市</label><div className="relative"><select value={city} onChange={handleCityChange} className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 outline-none font-sans text-sm focus:border-amber-400 appearance-none">{citiesForProvince.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select><Map size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" /></div></div></div>)}
               </div>
               <div className="space-y-3 pt-4">
-                <button type="submit" className="w-full h-14 bg-stone-950 text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 group hover:bg-stone-800 transition-all active:scale-[0.98]"><Compass size={20} className="group-hover:rotate-180 transition-transform duration-700 text-amber-400" /><span className="text-base tracking-widest font-serif">开启命运推演</span></button>
+                <button
+                  type="submit"
+                  disabled={!parsed}
+                  className={`w-full h-14 bg-stone-950 text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 group transition-all ${
+                    (!parsed) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-stone-800 active:scale-[0.98]'
+                  }`}
+                >
+                  <Compass size={20} className={`transition-transform duration-700 ${(!parsed) ? '' : 'group-hover:rotate-180 text-amber-400'}`} />
+                  <span className="text-base tracking-widest font-serif">{isLimitReached ? '今日额度不足 请明日再来' : '开启命运推演'}</span>
+                </button>
                 <button type="button" onClick={() => setShowHistoryModal(true)} className="w-full h-14 bg-white border-2 border-stone-200 text-stone-700 font-black rounded-2xl flex items-center justify-center gap-2 text-sm hover:border-stone-400 transition-all shadow-sm"><History size={18} className="text-indigo-600" /><span>历史命盘</span></button>
               </div>
            </form>

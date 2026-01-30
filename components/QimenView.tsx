@@ -526,8 +526,9 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
                               {relevantSymbols.map(sym => {
                                  const analysis = analyzeQimenState(ju, p, sym, divinationState.industry === '通用' ? undefined : divinationState.industry);
                                  const resolvedName = resolveSymbol(sym, ju);
-                                 const label = QM_NAMES_MAP[sym] || sym;
-                                 const displayLabel = label === QM_NAMES_MAP[resolvedName] ? label : `${label} (${QM_NAMES_MAP[resolvedName] || resolvedName})`;
+                                 const baseLabel = sym === 'RiGan' ? '日干' : (sym === 'ShiGan' ? '时干' : (QM_NAMES_MAP[sym] || sym));
+                                 const resolvedLabel = QM_NAMES_MAP[resolvedName] || resolvedName;
+                                 const displayLabel = baseLabel === resolvedLabel ? baseLabel : `${baseLabel} (${resolvedLabel})`;
                                  
                                  return (
                                    <div key={sym} className="border-b border-gray-50 last:border-0 pb-2 last:pb-0">
@@ -657,13 +658,6 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
             奇门日历
           </button>
         </div>
-        
-        <button 
-             onClick={() => setShowKnowledge(true)}
-             className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-stone-400 hover:text-indigo-600 transition-colors"
-        >
-             <HelpCircle size={18} />
-        </button>
       </div>
 
       {activeTab === 'zeji' ? (

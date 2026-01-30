@@ -12,11 +12,12 @@ interface ZiweiViewProps {
   profile: UserProfile;
   onSaveReport: (report: string) => void;
   isVip: boolean;
+  onVipClick: () => void;
 }
 
 const PALACE_NAMES = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄', '迁移', '交友', '官禄', '田宅', '福德', '父母'];
 
-const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) => {
+const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip, onVipClick }) => {
   const [timeMode, setTimeMode] = useState<'natal' | 'year' | 'month' | 'day'>('natal');
   const [showKnowledge, setShowKnowledge] = useState(false);
   const now = new Date();
@@ -157,14 +158,14 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
   const [activePalaceName, setActivePalaceName] = useState('命宫');
   const [deepSeekContent, setDeepSeekContent] = useState<string>('');
   const [isDeepSeekLoading, setIsDeepSeekLoading] = useState(false);
-  const [apiKey] = useState(() => sessionStorage.getItem('ai_api_key') || ''); 
   const [analysisTab, setAnalysisTab] = useState<'rule' | 'ai'>('rule');
 
+  // 3. 图表数据
   const chartData = displayChart || persistedChart || baseChart;
 
   const handleAiAnalyze = async () => {
-    if (!apiKey && !isVip) { 
-        alert("请先在首页设置 API Key，或升级 VIP 解锁免 Key 特权"); 
+    if (!isVip) { 
+        onVipClick();
         return; 
     }
 
@@ -175,7 +176,7 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
         const birthYear = parseInt(profile.birthDate.split('-')[0]);
         const age = new Date().getFullYear() - birthYear + 1;
         
-        const text = await callDeepSeekAPI(apiKey, chartData, age, profile.gender === 'male' ? 'male' : 'female', new Date().getFullYear());
+        const text = await callDeepSeekAPI(chartData, age, profile.gender === 'male' ? 'male' : 'female', new Date().getFullYear());
         setDeepSeekContent(text);
         onSaveReport(text);
     } catch (e: any) { 
@@ -255,7 +256,7 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
               <div className="flex border-b border-stone-100 divide-x divide-stone-100">
                   <button onClick={()=>setAnalysisTab('rule')} className={`flex-1 py-3.5 text-xs font-bold transition-colors ${analysisTab==='rule'?'bg-indigo-600 text-white':'text-stone-400 bg-stone-50/50'}`}>宫位详推</button>
                   <button onClick={()=>setAnalysisTab('ai')} className={`flex-1 py-3.5 text-xs font-bold transition-colors flex items-center justify-center gap-1 ${analysisTab==='ai'?'bg-indigo-600 text-white':'text-stone-400 bg-stone-50/50'}`}>
-                      {isVip && <Crown size={12} className="text-amber-400" />} AI 财富策略
+                      {isVip && <Crown size={12} className="text-amber-400" />} 紫微深度报告
                   </button>
               </div>
               
@@ -282,10 +283,17 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip }) =
                                   <Sparkles className="mx-auto text-amber-400 mb-4 animate-pulse" size={42}/>
                                   <h3 className="font-bold text-stone-800 text-base mb-2">天机 AI 深度解盘</h3>
                                   <p className="text-xs text-stone-400 mb-8 max-w-[200px] mx-auto leading-relaxed">基于钦天四化与三合流派结合现代金融模型精准分析</p>
-                                  <button onClick={handleAiAnalyze} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-xl text-xs active:transform active:scale-95 transition-all flex items-center gap-2 mx-auto">
-                                      {isVip ? <Crown size={14} className="text-amber-300"/> : null}
-                                      立即开启推演
-                                  </button>
+                                  {isVip ? (
+                                      <button onClick={handleAiAnalyze} className="bg-stone-900 text-amber-400 px-8 py-3 rounded-xl font-bold shadow-xl text-xs active:transform active:scale-95 transition-all flex items-center gap-2 mx-auto">
+                                          <Crown size={14} className="text-amber-300"/>
+                                          立即开启推演
+                                      </button>
+                                  ) : (
+                                      <button onClick={onVipClick} className="bg-stone-900 text-amber-400 px-8 py-3 rounded-xl font-bold shadow-xl text-xs active:transform active:scale-95 transition-all flex items-center gap-2 mx-auto">
+                                          <Crown size={14} className="text-amber-300"/>
+                                          解锁深度报告 (VIP)
+                                      </button>
+                                  )}
                               </div>
                           ) : isDeepSeekLoading ? (
                               <div className="text-center py-20 animate-pulse">

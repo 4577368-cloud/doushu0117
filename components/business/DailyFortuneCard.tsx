@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, RefreshCcw, Sparkles, TrendingUp, Heart, Briefcase, Smile, Lock, Wand2 } from 'lucide-react';
+import { Calendar, RefreshCcw, Sparkles, TrendingUp, Heart, Briefcase, Smile, Lock as LockIcon, Wand2, Crown } from 'lucide-react';
 import { BaziChart } from '../../types';
 import { calculateDailyFortuneBasic } from '../../services/dailyFortune'; // 引入上一轮写的本地算法
 import { getFullDateGanZhi } from '../../services/ganzhi';
@@ -255,10 +255,18 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
               onClick={onGenerate}
               className="group flex items-center gap-2 px-8 py-3 bg-stone-900 text-amber-50 rounded-2xl text-xs font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all hover:bg-stone-800 hover:-translate-y-0.5"
             >
-              <Wand2 size={14} className="group-hover:rotate-12 transition-transform"/>
-              立即生成 (消耗 1 Key)
+              {isVip ? (
+                  <>
+                    <Wand2 size={14} className="group-hover:rotate-12 transition-transform"/>
+                    立即生成深度运势
+                  </>
+              ) : (
+                  <>
+                    <LockIcon size={14} className="text-amber-400"/>
+                    解锁深度运势 (VIP)
+                  </>
+              )}
             </button>
-            {!isVip && <p className="text-[9px] text-stone-300">VIP 用户可无限次免费生成</p>}
           </div>
         );
       }
@@ -287,7 +295,7 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
           onClick={() => setMode('ai')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold rounded-lg transition-all z-10 ${mode === 'ai' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' : 'text-stone-400 hover:text-stone-600'}`}
         >
-            {isVip ? <Sparkles size={14} /> : <Lock size={12} />}
+            {isVip ? <Sparkles size={14} /> : <LockIcon size={12} />}
             今日运势 · 深度版
         </button>
       </div>

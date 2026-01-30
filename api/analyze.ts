@@ -6,11 +6,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { messages, model, response_format, apiKey: userApiKey } = req.body;
-    const finalApiKey = userApiKey || process.env.DEEPSEEK_API_KEY;
+    const { messages, model, response_format } = req.body;
+    const finalApiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!finalApiKey) {
-      return res.status(401).json({ error: '未配置 API Key' });
+      return res.status(500).json({ error: '服务配置错误：未配置 API Key' });
     }
 
     // 🔥 关键修改：强制开启 stream: true，防止 Vercel 504 超时

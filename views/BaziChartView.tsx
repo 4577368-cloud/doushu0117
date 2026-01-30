@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle, ChevronDown, ChevronUp, Lock as LockIcon } from 'lucide-react';
 import { UserProfile, BaziChart, ChartSubTab, BaziReport as AiBaziReport } from '../types';
 import { getArchives, saveAiReportToArchive } from '../services/storageService';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
@@ -18,10 +18,8 @@ import { getFullDateGanZhi } from '../services/ganzhi';
 import { BRANCH_CLASHES, BRANCH_XING, BRANCH_HAI, EARTHLY_BRANCHES, BRANCH_COMBINES } from '../services/constants';
 import { getGanZhiForMonth } from '../services/baziService';
 
-export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onManualSave, isSaving, archives }) => {
+export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onVipClick: () => void; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onVipClick, onManualSave, isSaving, archives }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
-  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('ai_api_key') || '');
-  const [showApiKey, setShowApiKey] = useState(false);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState<any | null>(null);
   const [copiedCombo, setCopiedCombo] = useState(false);
   const [dailyFortune, setDailyFortune] = useState<DailyFortuneData | null>(null);
@@ -50,23 +48,23 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   ];
 
   const handleAiAnalysisWrapper = () => { 
-      if (!isVip && !apiKey) { 
-          alert("请先填写 API Key，或开通 VIP 解锁免 Key 特权"); 
+      if (!isVip) { 
+          onVipClick();
           return; 
       } 
       onAiAnalysis(); 
   };
 
   const handleGenerateFortune = async () => {
-    if (!isVip && !apiKey) {
-        alert("请先在下方大师解读板块填写 API Key，或开通 VIP 解锁");
+    if (!isVip) {
+        onVipClick();
         return;
     }
     
     setLoadingFortune(true);
     setFortuneError(false);
     try {
-        const result = await generateDailyFortuneAi(profile, chart, apiKey);
+        const result = await generateDailyFortuneAi(profile, chart);
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
         const fullData = {
@@ -102,7 +100,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
         }
 
         // 检查是否具备生成条件
-        if (!isVip && !apiKey) return;
+        if (!isVip) return;
 
         // 检查是否今天已经自动尝试过 (避免重复扣费或死循环)
         const lastAttemptKey = `daily_fortune_auto_attempt_${profile.id}_${dateStr}`;
@@ -114,7 +112,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
             handleGenerateFortune();
         }
     }
-  }, [activeSubTab, dailyFortune, isVip, apiKey, profile.id, autoGenAttempted]);
+  }, [activeSubTab, dailyFortune, isVip, profile.id, autoGenAttempted]);
 
   useEffect(() => {
     const loadSavedFortune = () => {
@@ -348,22 +346,32 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
 
          {activeSubTab === ChartSubTab.ANALYSIS && (
             <div className="space-y-6 animate-fade-in">
-                <div className="bg-white border border-stone-300 p-5 rounded-2xl shadow-sm">
+                <div className="bg-white border border-stone-300 p-5 rounded-2xl shadow-sm relative overflow-hidden">
                     {isVip ? (
-                        <div className="mb-4 bg-gradient-to-r from-stone-900 to-stone-700 text-amber-400 p-4 rounded-xl flex items-center justify-between shadow-lg">
-                            <div className="flex items-center gap-2"><Crown size={20} fill="currentColor" /><span className="text-xs font-black tracking-wider">VIP 尊享通道已激活</span></div>
-                            <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white">免 Key 无限畅享</span>
-                        </div>
+                        <>
+                            <div className="mb-4 bg-gradient-to-r from-stone-900 to-stone-700 text-amber-400 p-4 rounded-xl flex items-center justify-between shadow-lg">
+                                <div className="flex items-center gap-2"><Crown size={20} fill="currentColor" /><span className="text-xs font-black tracking-wider">VIP 尊享通道已激活</span></div>
+                                <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white">无限畅享</span>
+                            </div>
+
+                            <button onClick={handleAiAnalysisWrapper} disabled={loadingAi} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${loadingAi ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-amber-400 active:scale-95 shadow-lg'}`}>
+                              {loadingAi ? <Activity className="animate-spin" size={20}/> : <BrainCircuit size={20}/>} {loadingAi ? '正在深度推演...' : '生成大师解盘报告'}
+                            </button>
+                        </>
                     ) : (
-                        <div className="relative mb-4">
-                            {!apiKey && <div className="mb-2 text-[10px] text-stone-400 flex items-center gap-1"><ShieldCheck size={12}/> 未检测到 Key，将尝试使用公共代理</div>}
-                            <input type={showApiKey?"text":"password"} value={apiKey} onChange={e => {setApiKey(e.target.value); sessionStorage.setItem('ai_api_key', e.target.value);}} placeholder="填入 API Key (VIP用户无需填写)" className="w-full bg-stone-50 border border-stone-300 p-3 rounded-xl text-sm font-sans focus:border-stone-950 outline-none shadow-inner font-black text-stone-950"/>
-                            <button onClick={()=>setShowApiKey(!showApiKey)} className="absolute right-3 top-9 text-stone-400">{showApiKey?<EyeOff size={18}/>:<Eye size={18}/>}</button>
-                        </div>
+                        <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 bg-stone-50 rounded-2xl border border-stone-100">
+                             <div className="w-12 h-12 bg-stone-900 rounded-full flex items-center justify-center shadow-xl mb-1">
+                                <Crown className="text-amber-400" size={24} />
+                             </div>
+                             <div className="space-y-1">
+                                <h3 className="font-bold text-stone-800">VIP 尊享大师解读</h3>
+                                <p className="text-xs text-stone-500 max-w-[200px] mx-auto leading-relaxed">升级 VIP 解锁无限次 AI 深度八字分析，洞察人生真谛</p>
+                             </div>
+                             <button onClick={onVipClick} className="bg-stone-900 text-amber-400 px-8 py-3 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                                <LockIcon size={14} /> 立即解锁
+                             </button>
+                         </div>
                     )}
-                    <button onClick={handleAiAnalysisWrapper} disabled={loadingAi} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${loadingAi ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-white active:scale-95 shadow-lg'}`}>
-                      {loadingAi ? <Activity className="animate-spin" size={20}/> : <BrainCircuit size={20}/>} {loadingAi ? '正在深度推演...' : '生成大师解盘报告'}
-                    </button>
                  </div>
                  {aiReport && (
                      <div className="bg-white border border-stone-300 p-6 rounded-3xl space-y-4 shadow-sm animate-slide-up">

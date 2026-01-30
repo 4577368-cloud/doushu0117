@@ -20,18 +20,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // 2. 解析请求体
-    // 注意：这里解构 apiKey (前端传来的用户Key) 和 messages (完整的对话历史)
-    const { messages, apiKey: userProvidedKey } = req.body;
+    // 注意：这里解构 messages (完整的对话历史)
+    const { messages } = req.body;
 
     // 3. 确定最终使用的 API Key (核心修复点)
-    // 逻辑：如果前端传了 Key (普通用户)，就用前端的；
-    // 如果前端没传 (VIP用户)，就用 Vercel 环境变量里的 Key。
-    const finalApiKey = userProvidedKey || process.env.DEEPSEEK_API_KEY;
+    // 逻辑：统一使用 Vercel 环境变量里的 Key
+    const finalApiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!finalApiKey) {
-      console.error("服务端错误: 既无用户 Key 也无环境变量 Key");
-      return res.status(401).json({ 
-        error: '未配置 API Key。请在设置中输入 Key，或联系管理员升级 VIP。' 
+      console.error("服务端错误: 未配置环境变量 Key");
+      return res.status(500).json({ 
+        error: '服务配置错误：未配置 API Key' 
       });
     }
 

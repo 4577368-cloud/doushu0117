@@ -43,7 +43,7 @@ const MarkdownParser: React.FC<{ content: string }> = ({ content }) => {
   return (
     <div className="space-y-2 text-sm text-stone-600 leading-relaxed">
       {lines.map((line, idx) => {
-        const isHeader = line.match(/^(\p{Emoji}|🎯|⚡|🌊|🌟)/u);
+        const isHeader = line.match(/^(\p{Emoji}|🎯|⚡|🌊|🌟|【|\*\*)/u);
         const parts = line.split(/(\*\*.*?\*\*)/g);
         return (
           <div key={idx} className={`${isHeader ? 'mt-3 font-bold text-stone-800 bg-stone-50 p-2 rounded-lg' : 'pl-1'}`}>

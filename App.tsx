@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, MessageCircle, Crown, Activity, Sparkles, Compass, CheckCircle, Lock, KeyRound, LayoutGrid } from 'lucide-react';
+import { RotateCcw, MessageCircle, Crown, Activity, Sparkles, Compass, CheckCircle, Lock as LockIcon, KeyRound, LayoutGrid } from 'lucide-react';
 import { supabase, safeSignOut, supabaseReady, safeAuth } from './services/supabase';
 import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
@@ -22,6 +22,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { VipActivationModal } from './components/modals/VipActivationModal';
 import { PayResultModal } from './components/modals/PayResultModal';
 import { DetailModal } from './components/modals/DetailModal';
+import { QuotaLimitModal } from './components/modals/QuotaLimitModal';
 
 import { HomeView } from './views/HomeView';
 import { ArchiveView } from './views/ArchiveView';
@@ -60,7 +61,7 @@ const PasswordResetModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <p className="text-xs text-stone-500">请输入您的新密码以完成重置</p>
                 </div>
                 <div className="relative">
-                    <Lock className="absolute left-4 top-3.5 text-stone-400" size={18} />
+                    <LockIcon className="absolute left-4 top-3.5 text-stone-400" size={18} />
                     <input 
                         type="password" 
                         value={password} 
@@ -122,10 +123,48 @@ const App: React.FC = () => {
   const [showPayResultModal, setShowPayResultModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
-  const [isGlobalSaving, setIsGlobalSaving] = useState(false); 
+  const [isGlobalSaving, setIsGlobalSaving] = useState(false);
+  const [showLimitHint, setShowLimitHint] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [guestUsageCount, setGuestUsageCount] = useState(0);
+
+  const updateGuestUsage = () => {
+      try {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const todayStr = `${year}-${month}-${day}`;
+          const key = `guest_limit_${todayStr}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+              const u = JSON.parse(stored);
+              setGuestUsageCount(u.count || 0);
+          } else {
+              setGuestUsageCount(0);
+          }
+      } catch { setGuestUsageCount(0); }
+  };
 
   // --- 初始化数据加载与同步 ---
   useEffect(() => {
+    updateGuestUsage();
+    // 清理过期的访客排盘记录 (保留7天)
+    try {
+        const today = new Date();
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('guest_limit_')) {
+                const dateStr = key.replace('guest_limit_', '');
+                const date = new Date(dateStr);
+                const diffTime = today.getTime() - date.getTime();
+                const diffDays = diffTime / (1000 * 3600 * 24);
+                if (diffDays > 7) {
+                    localStorage.removeItem(key);
+                }
+            }
+        });
+    } catch (e) {}
+
     // A. 无论如何，先加载本地缓存，保证用户立马能看到东西
     getArchives().then(data => setArchives(data));
 
@@ -206,6 +245,51 @@ const App: React.FC = () => {
 
   // 排盘并自动保存
   const handleGenerate = (profile: UserProfile) => {
+    // --- 1. 访客排盘限制检查 ---
+    if (!isVip) {
+        try {
+            // 使用当地时间日期作为 Key，避免时区问题导致日期偏差
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            
+            const key = `guest_limit_${todayStr}`;
+            const stored = localStorage.getItem(key);
+            let usage = stored ? JSON.parse(stored) : { count: 0, hashes: [] };
+            
+            // 生成排盘参数哈希 (用于识别是否重复查看)
+            // 只取核心参数，忽略 ID 或 备注
+            const profileHash = JSON.stringify({
+                n: profile.name,
+                g: profile.gender,
+                d: profile.birthDate,
+                t: profile.birthTime,
+                c: profile.city || ''
+            });
+
+            // 如果 hashes 数组不存在 (旧数据兼容)，初始化它
+            if (!Array.isArray(usage.hashes)) usage.hashes = [];
+
+            if (!usage.hashes.includes(profileHash)) {
+                // 如果不是重复查看，检查次数
+                if (usage.count >= 3) {
+                    setShowLimitHint(true);
+                    setTimeout(() => {
+                        setShowVipModal(true);
+                    }, 800); // 0.8秒后弹出VIP
+                    return;
+                }
+                // 没超限，增加计数并保存哈希
+                usage.count += 1;
+                usage.hashes.push(profileHash);
+                localStorage.setItem(key, JSON.stringify(usage));
+                updateGuestUsage();
+            }
+        } catch (e) { console.error("Limit check failed", e); }
+    }
+
     try {
         let safeDate = profile.birthDate; 
         if (safeDate.length === 8 && !safeDate.includes('-')) {
@@ -286,7 +370,7 @@ const App: React.FC = () => {
   const renderContent = () => {
       switch (currentTab) {
           case AppTab.HOME:
-              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
+              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} guestUsage={isVip ? undefined : { count: guestUsageCount, limit: 3 }} />;
           
           case AppTab.CHART:
               if (!baziChart || !currentProfile) {
@@ -305,20 +389,21 @@ const App: React.FC = () => {
                   <ErrorBoundary>
                       <BaziChartView 
                           profile={currentProfile} 
-                          chart={baziChart} 
-                          onShowModal={setModalData} 
-                          onSaveReport={async (r:string, t:'bazi'|'ziwei')=> { 
-                              const updated = await saveAiReportToArchive(currentProfile.id, r, t); 
-                              setArchives(updated); 
-                          }} 
-                          onAiAnalysis={handleAiAnalysis} 
-                          loadingAi={loadingAi} 
-                          aiReport={aiReport} 
-                          isVip={isVip} 
-                          onManualSave={handleManualSave} 
-                          isSaving={isGlobalSaving} 
-                          archives={archives}
-                      />
+                        chart={baziChart} 
+                        onShowModal={setModalData} 
+                        onSaveReport={async (r:string, t:'bazi'|'ziwei')=> { 
+                            const updated = await saveAiReportToArchive(currentProfile.id, r, t); 
+                            setArchives(updated); 
+                        }} 
+                        onAiAnalysis={handleAiAnalysis} 
+                        loadingAi={loadingAi} 
+                        aiReport={aiReport} 
+                        isVip={isVip} 
+                        onVipClick={() => setShowVipModal(true)}
+                        onManualSave={handleManualSave} 
+                        isSaving={isGlobalSaving} 
+                        archives={archives}
+                    />
                   </ErrorBoundary>
               );
           
@@ -344,7 +429,7 @@ const App: React.FC = () => {
               // 传递 isVip 给 AiChatView
               return (
                   <ErrorBoundary>
-                      <AiChatView chart={baziChart} profile={currentProfile} isVip={isVip} />
+                      <AiChatView chart={baziChart} profile={currentProfile} isVip={isVip} onVipClick={() => setShowVipModal(true)} />
                   </ErrorBoundary>
               );
           
@@ -361,13 +446,14 @@ const App: React.FC = () => {
               );
               return (
                   <ZiweiView 
-                      profile={currentProfile} 
-                      onSaveReport={async (r) => { 
-                          const updated = await saveAiReportToArchive(currentProfile.id, r, 'ziwei'); 
-                          setArchives(updated); 
-                      }} 
-                      isVip={isVip} 
-                  />
+                        profile={currentProfile} 
+                        onSaveReport={async (r) => { 
+                            const updated = await saveAiReportToArchive(currentProfile.id, r, 'ziwei'); 
+                            setArchives(updated); 
+                        }} 
+                        isVip={isVip} 
+                        onVipClick={() => setShowVipModal(true)}
+                    />
               );
 
           case AppTab.QIMEN:
@@ -393,8 +479,19 @@ const App: React.FC = () => {
               );
           
           case AppTab.ARCHIVE:
-              if (!session) return <div className="flex flex-col items-center justify-center h-full p-6 bg-[#f5f5f4]"><Auth onLoginSuccess={()=>{setCurrentTab(AppTab.HOME)}} /></div>;
-              return <ArchiveView archives={archives} setArchives={setArchives} onSelect={handleGenerate} isVip={isVip} onVipClick={() => setShowVipModal(true)} session={session} onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); } }} onNewChart={() => setCurrentTab(AppTab.HOME)}/>; 
+              return (
+                <ArchiveView 
+                    archives={archives} 
+                    setArchives={setArchives} 
+                    onSelect={handleGenerate} 
+                    isVip={isVip} 
+                    onVipClick={() => setShowVipModal(true)} 
+                    session={session} 
+                    onLogout={async () => { try { await safeSignOut(); } finally { try { localStorage.removeItem('bazi_archives:guest'); localStorage.removeItem('is_vip_user'); } catch {} setArchives([]); setIsVip(false); setBaziChart(null); setCurrentProfile(null); setCurrentTab(AppTab.ARCHIVE); } }} 
+                    onLogin={() => setShowAuthModal(true)}
+                    onNewChart={() => setCurrentTab(AppTab.HOME)}
+                />
+              );
           
           default:
               return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
@@ -404,7 +501,12 @@ const App: React.FC = () => {
   return (
     <div className={`flex flex-col h-[100dvh] overflow-hidden text-stone-950 font-sans transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
       {!hideChrome && (
-        <AppHeader title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} isVip={isVip} />
+        <AppHeader 
+            title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} 
+            rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} 
+            isVip={isVip} 
+            guestUsage={{ count: guestUsageCount, limit: 3 }}
+        />
       )}
       <div className="flex-1 overflow-hidden relative">{renderContent()}</div>
       {!hideChrome && <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />}
@@ -413,6 +515,19 @@ const App: React.FC = () => {
       {showPayResultModal && <PayResultModal onClose={() => { setShowPayResultModal(false); try { window.history.replaceState(null, '', window.location.pathname); } catch {} }} />}
       {showWelcomeModal && <WelcomeModal onClose={() => setShowWelcomeModal(false)} />}
       {showPasswordResetModal && <PasswordResetModal onClose={() => setShowPasswordResetModal(false)} />}
+      {showLimitHint && <QuotaLimitModal onClose={() => setShowLimitHint(false)} />}
+      
+      {showAuthModal && (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-md" onClick={() => setShowAuthModal(false)} />
+              <div className="relative z-10 animate-in zoom-in-95 duration-200">
+                  <Auth onLoginSuccess={() => { setShowAuthModal(false); }} />
+                  <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-600">
+                      {/* Close button handled by Auth internal UI or backdrop */}
+                  </button>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

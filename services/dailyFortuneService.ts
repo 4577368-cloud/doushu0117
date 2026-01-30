@@ -56,8 +56,7 @@ const readStreamResponse = async (response: Response): Promise<string> => {
 
 export const generateDailyFortuneAi = async (
   profile: UserProfile, 
-  chart: BaziChart, 
-  apiKey?: string
+  chart: BaziChart
 ): Promise<DailyFortuneResult> => {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
