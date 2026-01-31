@@ -20,18 +20,23 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     const lastY = useRef(0);
     const lastZ = useRef(0);
     const lastTime = useRef(0);
+    const shakeLock = useRef(false); // Immediate lock to prevent double triggers
 
     useEffect(() => {
+        // Reset lock on step change
+        shakeLock.current = false;
+        
         const SHAKE_THRESHOLD = 15;
-        const STEADY_THRESHOLD = 5;
-        const STEADY_DURATION = 500; // ms
+        // Easier steady requirements: higher threshold (allow more jitter), shorter duration
+        const STEADY_THRESHOLD = 10; 
+        const STEADY_DURATION = 100; // ms (Just a brief pause is enough)
 
         let isFirst = true;
         let isReady = false;
         let steadyStart = 0;
 
         const handleMotion = (event: DeviceMotionEvent) => {
-            if (isProcessing || isShaking || isTossing || showCoins) return;
+            if (isProcessing || isShaking || isTossing || showCoins || shakeLock.current) return;
             
             const current = event.accelerationIncludingGravity;
             if (!current) return;
@@ -46,13 +51,14 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                     lastY.current = current.y!;
                     lastZ.current = current.z!;
                     isFirst = false;
-                    steadyStart = now; // Start tracking steady state
+                    steadyStart = now; // Start tracking steady state immediately
                     return;
                 }
 
                 const speed = Math.abs(current.x! + current.y! + current.z! - lastX.current - lastY.current - lastZ.current) / diffTime * 10000;
 
                 if (!isReady) {
+                    // Check if device is steady enough to arm the trigger
                     if (speed < STEADY_THRESHOLD) {
                         if (steadyStart === 0) steadyStart = now;
                         else if (now - steadyStart > STEADY_DURATION) {
@@ -63,6 +69,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                         steadyStart = 0; // Reset steady timer if moving too much
                     }
                 } else {
+                    // Once ready, listen for shake
                     if (speed > SHAKE_THRESHOLD) {
                         triggerShake();
                     }
@@ -79,7 +86,9 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     }, [isProcessing, isShaking, isTossing, showCoins, step]);
 
     const triggerShake = () => {
-        if (isShaking || isProcessing || isTossing || showCoins) return;
+        if (isShaking || isProcessing || isTossing || showCoins || shakeLock.current) return;
+        
+        shakeLock.current = true; // Immediate lock
         
         // 1. Start Shaking
         setIsShaking(true);
