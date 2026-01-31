@@ -182,20 +182,31 @@ const App: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         setSession(session);
-        if (event === 'SIGNED_IN' && session?.user) {
-            // 登录成功瞬间，先尝试合并访客数据，再拉取云端
-            try {
-                await mergeGuestArchives(session.user.id);
-            } catch (e) {
-                console.error('Merge guest archives failed:', e);
-            }
-            
-            syncArchivesFromCloud(session.user.id).then(data => {
-                if (data.length > 0) setArchives(data); 
-            });
-            if (window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
-                 setShowWelcomeModal(true);
-                 window.history.replaceState(null, '', window.location.pathname);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (session?.user) {
+                // 1. 在登录时强制刷新 Session，确保获取最新的 VIP 状态 (User Metadata)
+                if (event === 'SIGNED_IN') {
+                    supabase.auth.refreshSession().then(({ data }) => {
+                        if (data.session) setSession(data.session);
+                    });
+                }
+
+                // 2. 合并访客数据
+                try {
+                    await mergeGuestArchives(session.user.id);
+                } catch (e) {
+                    console.error('Merge guest archives failed:', e);
+                }
+                
+                // 3. 同步档案 (无论是否有数据，都更新状态，确保 UI 反映云端真实状态)
+                syncArchivesFromCloud(session.user.id).then(data => {
+                    setArchives(data); 
+                });
+
+                if (event === 'SIGNED_IN' && window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
+                     setShowWelcomeModal(true);
+                     window.history.replaceState(null, '', window.location.pathname);
+                }
             }
         }
         if (event === 'PASSWORD_RECOVERY') {

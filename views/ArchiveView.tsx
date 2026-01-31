@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers, Loader2, ClipboardCopy, ShieldCheck } from 'lucide-react';
 import { UserProfile, HistoryItem } from '../types';
 import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive } from '../services/storageService';
-import { uploadAvatar } from '../services/supabase';
+import { uploadAvatar, supabase } from '../services/supabase';
 import { PolicyModal } from '../components/modals/PolicyModals';
 
 interface ArchiveViewProps {
@@ -149,6 +149,10 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         if (!session?.user) return alert("请先登录");
         setSyncStatus('loading');
         try {
+            // 1. 尝试刷新会话以更新 VIP 状态
+            await supabase.auth.refreshSession();
+            
+            // 2. 拉取云端档案
             const newList = await syncArchivesFromCloud(session.user.id);
             setArchives(newList);
             setSyncStatus('success');
