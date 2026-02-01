@@ -78,6 +78,12 @@ export const QM_NAMES_MAP: Record<string, string> = {
   KongWang: '空亡', RuMu: '入墓'
 };
 
+// Reverse map for Chinese -> Key
+export const QM_CHINESE_TO_KEY: Record<string, string> = Object.entries(QM_NAMES_MAP).reduce((acc, [key, val]) => {
+  acc[val] = key;
+  return acc;
+}, {} as Record<string, string>);
+
 export const QM_STATE_MAP: Record<string, { label: string; score: number; color: string; desc: string }> = {
   Wang: { label: '旺', score: 100, color: '#963C3C', desc: '能量极盛，当前正值' },
   Xiang: { label: '相', score: 80, color: '#B8860B', desc: '相生有情，势头平稳' },

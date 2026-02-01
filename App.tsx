@@ -184,23 +184,26 @@ const App: React.FC = () => {
         setSession(session);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
-                // 1. 在登录时强制刷新 Session，确保获取最新的 VIP 状态 (User Metadata)
+                // 1. 在登录时强制刷新 Session，确保获取最新的 VIP 状态
+                let currentSession = session;
                 if (event === 'SIGNED_IN') {
-                    supabase.auth.refreshSession().then(({ data }) => {
-                        if (data.session) setSession(data.session);
-                    });
+                    const { data } = await supabase.auth.refreshSession();
+                    if (data.session) {
+                        currentSession = data.session;
+                        setSession(data.session);
+                    }
                 }
 
                 // 2. 合并访客数据
                 try {
-                    await mergeGuestArchives(session.user.id);
+                    await mergeGuestArchives(currentSession.user.id);
                 } catch (e) {
                     console.error('Merge guest archives failed:', e);
                 }
                 
-                // 3. 同步档案 (无论是否有数据，都更新状态，确保 UI 反映云端真实状态)
-                syncArchivesFromCloud(session.user.id).then(data => {
-                    setArchives(data); 
+                // 3. 同步档案 (使用最新的 session 上下文)
+                syncArchivesFromCloud(currentSession.user.id).then(data => {
+                    if (data) setArchives(data); 
                 });
 
                 if (event === 'SIGNED_IN' && window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
@@ -246,7 +249,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
         if (session) {
-            const vip = await getVipStatus();
+            // Pass session explicitly to avoid async race condition
+            const vip = await getVipStatus(session);
+            console.log('Set VIP status to:', vip);
             setIsVip(vip);
         }
     };

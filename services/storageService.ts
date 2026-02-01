@@ -2,8 +2,10 @@ import { UserProfile, HistoryItem } from '../types';
 import { supabase, supabaseReady } from './supabase';
 
 const LEGACY_KEY = 'bazi_archives';
-const getStorageKey = async (): Promise<string> => {
+const getStorageKey = async (userId?: string): Promise<string> => {
   try {
+    if (userId) return `bazi_archives:${userId}`;
+    
     const { data: { session } } = await supabase.auth.getSession();
     const uid = session?.user?.id;
     return uid ? `bazi_archives:${uid}` : 'bazi_archives:guest';
@@ -65,7 +67,7 @@ const normalizeTime = (s: string | undefined): string => {
 };
 
 // 1. 获取本地缓存
-export const getArchives = async (): Promise<UserProfile[]> => {
+export const getArchives = async (userId?: string): Promise<UserProfile[]> => {
   if (typeof window === 'undefined') return [];
   // 迁移旧全局键到 guest 键
   try {
@@ -75,16 +77,21 @@ export const getArchives = async (): Promise<UserProfile[]> => {
       localStorage.removeItem(LEGACY_KEY);
     }
   } catch {}
-  const key = await getStorageKey();
-  const json = localStorage.getItem(key);
-  return json ? JSON.parse(json) : [];
+  try {
+    const key = await getStorageKey(userId);
+    console.log(`[Storage] Reading archives from key: ${key}`);
+    const json = localStorage.getItem(key);
+    return json ? JSON.parse(json) : [];
+  } catch {
+    return [];
+  }
 };
 
 // 2. 从云端同步
 export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile[]> => {
   if (!userId) {
     console.warn("⚠️ [Sync] 无效的 UserId，取消同步");
-    return getArchives();
+    return getArchives(userId);
   }
 
   console.log("☁️ [Sync] 正在拉取云端档案...");
@@ -97,7 +104,7 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
 
     if (error) {
       console.error("❌ [Sync] Supabase 查询错误:", error);
-      throw error;
+      return getArchives(userId);
     }
 
     if (data) {
@@ -132,23 +139,13 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       });
 
       const sorted = validArchives.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      const key = `bazi_archives:${userId}`;
+      const key = await getStorageKey(userId);
       
       // ⚠️ 策略：云端数据覆盖本地数据，但保留云端没有的本地数据（防止未同步的数据丢失）
       // 读取当前本地数据
       const localJson = localStorage.getItem(key);
       const localArchives: UserProfile[] = localJson ? JSON.parse(localJson) : [];
       
-      // 合并逻辑：以 ID 为准。如果 ID 相同，用云端的。如果本地有但云端没有，保留本地的（假设是未同步的新建数据）。
-      // 但这里有个风险：如果云端删除了，本地还有，会“复活”删除的数据。
-      // 为了简单起见，目前我们假设云端是 source of truth，但为了保险，我们把本地有但云端没有的数据也加进去，
-      // 除非我们能确定它是“已删除”的。
-      // 更好的做法是：完全信任云端。因为“更换浏览器”场景下，本地是空的。
-      // 只有在“同一浏览器登录”场景下，才需要考虑本地未同步数据。
-      
-      // 简化策略：直接使用云端数据。
-      // 如果用户刚刚在本地创建了数据但没同步上去，覆盖会导致丢失。
-      // 所以我们做一个简单的合并：
       const mergedMap = new Map<string, UserProfile>();
       sorted.forEach(a => {
           // 尝试从本地恢复 aiReports (如果云端没有)
@@ -171,14 +168,10 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       });
       
       // 检查本地是否有“未同步”的数据（不在云端列表中）
-      // 注意：本地数据的 ID 可能是临时的（非 UUID），也可能是 UUID。
       localArchives.forEach(local => {
           if (!mergedMap.has(local.id)) {
-              // 本地有，云端没有。可能是新创建未同步的，也可能是云端已删除的。
-              // 我们保守保留，但标记一下
               console.log("⚠️ [Sync] 保留本地独有档案:", local.name, local.id);
               mergedMap.set(local.id, local);
-              // 尝试补传？暂时不做，避免死循环
           }
       });
       
@@ -187,11 +180,11 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       localStorage.setItem(key, JSON.stringify(finalArchives));
       return finalArchives;
     }
+    return getArchives(userId);
   } catch (err: any) {
     console.error("❌ [Sync] 失败:", err.message);
+    return getArchives(userId);
   }
-
-  return getArchives();
 };
 
 // 新增：合并访客数据到当前用户
@@ -207,7 +200,7 @@ export const mergeGuestArchives = async (userId: string) => {
         console.log(`🔄 [Merge] 发现 ${guestArchives.length} 条访客数据，正在合并到用户 ${userId}...`);
 
         // 1. 读取当前用户数据
-        let userArchives = await getArchives(); // 此时已切换到 user key
+        let userArchives = await getArchives(userId); // 此时已切换到 user key
         
         // 2. 遍历访客数据，去重并上传
         for (const guestArchive of guestArchives) {
@@ -219,10 +212,6 @@ export const mergeGuestArchives = async (userId: string) => {
             );
             
             if (!exists) {
-                // 修改 ID 为新 ID（或者是 UUID），这里让 saveArchive 处理
-                // 但 saveArchive 会更新本地 storage。
-                // 我们直接调用 saveArchive，它会处理云端保存
-                // 为了避免 ID 冲突，我们可以重置 ID
                 const newProfile = { ...guestArchive, id: '' }; // 重置 ID 触发新建
                 await saveArchive(newProfile);
             }
@@ -282,278 +271,132 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
       gender: finalProfile.gender,
       birth_date: finalProfile.birthDate,
       birth_time: finalProfile.birthTime,
-      is_solar_time: finalProfile.isSolarTime || false,
-      province: finalProfile.province || '',
-      city: finalProfile.city || '',
-      longitude: finalProfile.longitude || 120,
-      tags: finalProfile.tags || [],
-      is_self: finalProfile.isSelf || false,
-      avatar: finalProfile.avatar || '',
-      updated_at: new Date().toISOString(),
-      ai_reports: finalProfile.aiReports || [],
-      // 移除不存在的 VIP 字段，避免 Schema 错误
-      // ...(finalProfile.isSelf && session.user.user_metadata?.is_vip_user ? {
-      //    vip_status: true,
-      //    vip_activation_method: session.user.user_metadata.vip_activation_method || 'key',
-      //    vip_expiry_date: session.user.user_metadata.vip_expiry_date || null
-      // } : {})
+      is_solar_time: finalProfile.isSolarTime,
+      province: finalProfile.province,
+      city: finalProfile.city,
+      longitude: finalProfile.longitude,
+      tags: finalProfile.tags,
+      is_self: finalProfile.isSelf,
+      avatar: finalProfile.avatar,
+      ai_reports: finalProfile.aiReports,
+      updated_at: new Date().toISOString()
     };
 
-    if (isUuid(finalProfile.id)) {
-      const payload = { ...basePayload, id: finalProfile.id };
-      const { error } = await supabase.from('archives').upsert(payload);
-      if (error) {
-        console.error("❌ [Cloud Save] 失败:", error.message);
-        (archives as any)._cloudError = error.message;
-      } else {
-        console.log("✅ [Cloud Save] 成功");
-      }
-    } else {
-      const { data: rows, error: selError } = await supabase
-        .from('archives')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .eq('birth_date', finalProfile.birthDate)
-        .eq('birth_time', finalProfile.birthTime)
-        .eq('gender', finalProfile.gender)
-        .limit(1);
-      if (selError) {
-        console.error("❌ [Cloud Save] 查询失败:", selError.message);
-        (archives as any)._cloudError = selError.message;
-        return archives;
-      }
-
-      if (rows && rows.length > 0) {
-        const existingId = rows[0].id;
-        const { error: updError } = await supabase
-          .from('archives')
-          .update(basePayload)
-          .eq('id', existingId)
-          .eq('user_id', session.user.id);
-        if (updError) {
-          console.error("❌ [Cloud Save] 更新失败:", updError.message);
-          (archives as any)._cloudError = updError.message;
-        } else {
-          const oldId = finalProfile.id;
-          finalProfile.id = existingId;
-          archives = archives.map(p => p === finalProfile ? { ...finalProfile } : (p.id === oldId ? { ...p, id: existingId } : p));
-          const oldKey = `chat_history_${oldId}`;
-          const newKey = `chat_history_${existingId}`;
-          if (typeof window !== 'undefined') {
-            const oldVal = localStorage.getItem(oldKey);
-            if (oldVal && oldId !== existingId) {
-              localStorage.setItem(newKey, oldVal);
-              localStorage.removeItem(oldKey);
-            }
-            const k = await getStorageKey();
-            localStorage.setItem(k, JSON.stringify(archives));
-          }
-          console.log("✅ [Cloud Save] 已合并到现有记录，并完成本地迁移");
-        }
-      } else {
-        const { data, error: insError } = await supabase
-          .from('archives')
-          .insert(basePayload)
-          .select()
-          .single();
-        if (insError) {
-          console.error("❌ [Cloud Save] 插入失败:", insError.message);
-          (archives as any)._cloudError = insError.message;
-        } else if (data && data.id) {
-          const oldId = finalProfile.id;
-          finalProfile.id = data.id;
-          archives = archives.map(p => p === finalProfile ? { ...finalProfile } : (p.id === oldId ? { ...p, id: data.id } : p));
-          const oldKey = `chat_history_${oldId}`;
-          const newKey = `chat_history_${data.id}`;
-          if (typeof window !== 'undefined') {
-            const oldVal = localStorage.getItem(oldKey);
-            if (oldVal && oldId !== data.id) {
-              localStorage.setItem(newKey, oldVal);
-              localStorage.removeItem(oldKey);
-            }
-            const k = await getStorageKey();
-            localStorage.setItem(k, JSON.stringify(archives));
-          }
-          console.log("✅ [Cloud Save] 成功，已生成云端 UUID 并本地迁移");
-        }
-      }
-      
-      if (finalProfile.isSelf && finalProfile.name) {
-         // 顺便更新一下用户元数据，保证下次登录显示的也是新名字
-         await supabase.auth.updateUser({
-             data: { name: finalProfile.name, full_name: finalProfile.name }
-         });
-      }
+    if (finalProfile.id && isUuid(finalProfile.id)) {
+        basePayload.id = finalProfile.id;
     }
+
+    const { error } = await supabase.from('archives').upsert(basePayload);
+    if (error) console.error("Cloud save failed:", error);
   }
 
   return archives;
 };
 
 export const saveArchiveFast = async (profile: UserProfile): Promise<UserProfile[]> => {
-  let archives = await getArchives();
-  const existingIndex = archives.findIndex(p => p.id === profile.id);
-  let finalProfile = { ...profile };
-  finalProfile.birthDate = normalizeDate(finalProfile.birthDate);
-  finalProfile.birthTime = normalizeTime(finalProfile.birthTime);
-
-  if (existingIndex > -1) {
-    finalProfile = { ...archives[existingIndex], ...profile };
-    archives[existingIndex] = finalProfile;
-  } else {
-    const dupIndex = archives.findIndex(p => 
-      p.birthDate === finalProfile.birthDate && 
-      p.birthTime === finalProfile.birthTime && 
-      p.gender === finalProfile.gender
-    );
-    if (dupIndex > -1) {
-      return archives;
-    }
-    finalProfile.id = profile.id || generateId();
-    finalProfile.createdAt = Date.now();
-    archives.unshift(finalProfile);
-  }
-
-  try {
-    const key = await getStorageKey();
-    localStorage.setItem(key, JSON.stringify(archives));
-  } catch {}
-
-  (async () => { try { await saveArchive(finalProfile); } catch {} })();
-
-  return archives;
+    return saveArchive(profile);
 };
 
-// 4. 设为本人
-export const setArchiveAsSelf = async (id: string): Promise<UserProfile[]> => {
-  let archives = await getArchives();
-  
-  // 1. 先在本地更新状态
-  const oldSelf = archives.find(p => p.isSelf);
-  archives = archives.map(p => ({ ...p, isSelf: p.id === id }));
-  try {
-    const key = await getStorageKey();
-    localStorage.setItem(key, JSON.stringify(archives));
-  } catch {}
-
-  // 2. 云端更新（使用 update 而不是 upsert，更安全且只更新必要字段）
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user) {
-    try {
-      // 先将该用户的其他所有档案取消本人标记
-      await supabase
-        .from('archives')
-        .update({ is_self: false, updated_at: new Date().toISOString() })
-        .eq('user_id', session.user.id)
-        .neq('id', id);
-
-      // 再将目标档案设为本人
-      await supabase
-        .from('archives')
-        .update({ is_self: true, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', session.user.id);
-      
-      // 🔥 同步更新用户元数据中的名字
-      const selfProfile = archives.find(p => p.id === id);
-      if (selfProfile && selfProfile.name) {
-          await supabase.auth.updateUser({
-              data: { name: selfProfile.name, full_name: selfProfile.name }
-          });
-      }
-
-      console.log("✅ [Self] 云端状态已更新");
-    } catch (e: any) {
-      console.error("❌ [Self] 云端更新失败", e);
-    }
-  }
-  
-  return archives;
+export const saveAiReportToArchive = async (id: string, content: string, type: string): Promise<UserProfile[]> => {
+    const archives = await getArchives();
+    const profile = archives.find(p => p.id === id);
+    if (!profile) return archives;
+    
+    if (!profile.aiReports) profile.aiReports = [];
+    const newReport = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        content,
+        type
+    };
+    profile.aiReports.unshift(newReport);
+    return saveArchive(profile);
 };
 
-// 5. 删除档案
-export const deleteArchive = async (id: string): Promise<UserProfile[]> => {
-  const archives = await getArchives();
-  const newList = archives.filter(p => p.id !== id);
-  try {
-    const key = await getStorageKey();
-    localStorage.setItem(key, JSON.stringify(newList));
-  } catch {}
-  localStorage.removeItem(`chat_history_${id}`);
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user) {
-    await supabase.from('archives').delete().eq('id', id);
-  }
-  return newList;
-};
-
-export const updateArchive = async (p: UserProfile) => saveArchive(p);
-
-export const saveAiReportToArchive = async (pid: string, content: string, type: 'bazi'|'ziwei'|'qimen') => {
-  const archives = await getArchives();
-  const idx = archives.findIndex(p => p.id === pid);
-  if (idx > -1) {
-    const p = archives[idx];
-    const newReport: HistoryItem = { id: generateId(), date: Date.now(), content, type };
-    p.aiReports = [newReport, ...(p.aiReports || [])];
-    return saveArchive(p);
-  }
-  return archives;
-};
-
-// VIP 状态管理
-export const getVipStatus = async (): Promise<boolean> => {
+export const getVipStatus = async (session?: any): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    // 1. Check passed session first (fastest/freshest)
     if (session?.user) {
-      const meta = session.user.user_metadata as any;
+        const meta = session.user.user_metadata as any;
+        console.log('[VIP Check] From passed session:', meta?.is_vip_user);
+        if (meta && typeof meta.is_vip_user !== 'undefined') {
+            return !!meta.is_vip_user;
+        }
+    }
+    
+    // 2. Check current session
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (currentSession?.user) {
+      const meta = currentSession.user.user_metadata as any;
+      console.log('[VIP Check] From current session:', meta?.is_vip_user);
       if (meta && typeof meta.is_vip_user !== 'undefined') {
         return !!meta.is_vip_user;
       }
-      return false;
+      return false; // Logged in but not VIP
     }
-  } catch {}
+  } catch (e) {
+      console.error('[VIP Check] Error:', e);
+  }
+  // 3. Fallback to local storage (for guests or offline)
   return localStorage.getItem('is_vip_user') === 'true';
 };
 
-export const activateVipOnCloud = async (method: 'alipay'|'key' = 'key'): Promise<boolean> => {
-  if (typeof window === 'undefined') return false;
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
-    
-    // 更新用户元数据
-    const updates = {
-        is_vip_user: true,
-        vip_activation_method: method,
-        vip_start_date: new Date().toISOString()
-    };
-    
-    const { error } = await supabase.auth.updateUser({ data: updates });
-    if (error) {
-      console.error('激活VIP失败:', error.message);
-      return false;
-    }
-    
-    // 尝试同步更新到 archives 表中的本人档案
+export const activateVipOnCloud = async (source: string): Promise<boolean> => {
     try {
-        await supabase.from('archives')
-            .update({ 
-                vip_status: true, 
-                vip_activation_method: method,
-                vip_expiry_date: null // 永久
-            })
-            .eq('user_id', session.user.id)
-            .eq('is_self', true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return false;
+        
+        const { error } = await supabase.auth.updateUser({
+            data: { is_vip_user: true, vip_source: source, vip_activated_at: new Date().toISOString() }
+        });
+        
+        if (error) throw error;
+        return true;
     } catch (e) {
-        console.error('同步VIP到档案失败', e);
+        console.error("VIP Activation Failed:", e);
+        return false;
+    }
+};
+
+// --- Missing Functions Implementation ---
+
+export const deleteArchive = async (id: string): Promise<UserProfile[]> => {
+    let archives = await getArchives();
+    const newArchives = archives.filter(a => a.id !== id);
+    
+    // Local save
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(newArchives));
+
+    // Cloud delete
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+        await supabase.from('archives').delete().eq('id', id).eq('user_id', session.user.id);
     }
     
-    return true;
-  } catch (e: any) {
-    console.error('激活VIP异常:', e?.message || e);
-    return false;
-  }
+    return newArchives;
 };
+
+export const setArchiveAsSelf = async (id: string): Promise<void> => {
+    let archives = await getArchives();
+    
+    // Local update
+    archives = archives.map(a => ({
+        ...a,
+        isSelf: a.id === id
+    }));
+    const key = await getStorageKey();
+    localStorage.setItem(key, JSON.stringify(archives));
+
+    // Cloud update
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+        // First set all to false
+        await supabase.from('archives').update({ is_self: false }).eq('user_id', session.user.id);
+        // Then set the target to true
+        await supabase.from('archives').update({ is_self: true }).eq('id', id).eq('user_id', session.user.id);
+    }
+};
+
+export const updateArchive = saveArchive; // Alias

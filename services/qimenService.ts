@@ -1,5 +1,5 @@
 import { QM_Ju, QM_Pillar, QM_Palace, QM_ElementType, UserProfile } from '../types';
-import { QM_ZHI_DATA, QM_PALACE_INFO, QM_GAN_ELEMENTS, QM_NAMES_MAP, QM_JIEQI_DATA } from './qimenConstants';
+import { QM_ZHI_DATA, QM_PALACE_INFO, QM_GAN_ELEMENTS, QM_NAMES_MAP, QM_JIEQI_DATA, QM_CHINESE_TO_KEY } from './qimenConstants';
 import { Solar, Lunar } from 'lunar-javascript';
 
 const GANS = ['Jia', 'Yi', 'Bing', 'Ding', 'Wu', 'Ji', 'Geng', 'Xin', 'Ren', 'Gui'];
@@ -78,23 +78,32 @@ export const getYearZhi = (year: number): string => {
 };
 
 export const generateQM_Pillars = (date: Date): QM_Pillar[] => {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const h = date.getHours();
+  const solar = Solar.fromDate(date);
+  const lunar = solar.getLunar();
+  const eightChar = lunar.getEightChar();
   
-  const createPillar = (l: any, g: string, z: string): QM_Pillar => ({
-    label: l, gan: g, zhi: z,
-    ganElement: QM_GAN_ELEMENTS[g],
-    zhiElement: QM_ZHI_DATA[z].element,
-    cangGan: QM_ZHI_DATA[z].cang
-  });
+  // Set boundary to 23:00 for late night Zi hour (standard Bazi/Qimen practice)
+  eightChar.setSect(1);
+
+  const createPillar = (l: string, gChinese: string, zChinese: string): QM_Pillar => {
+    const g = QM_CHINESE_TO_KEY[gChinese] || gChinese;
+    const z = QM_CHINESE_TO_KEY[zChinese] || zChinese;
+    
+    return {
+      label: l, 
+      gan: g, 
+      zhi: z,
+      ganElement: QM_GAN_ELEMENTS[g] || '',
+      zhiElement: QM_ZHI_DATA[z]?.element || '',
+      cangGan: QM_ZHI_DATA[z]?.cang || []
+    };
+  };
 
   return [
-    createPillar('年', getYearGan(y), getYearZhi(y)),
-    createPillar('月', GANS[(m + 2) % 10], ZHIS[(m + 1) % 12]),
-    createPillar('日', GANS[(d + y) % 10], ZHIS[(d + m) % 12]),
-    createPillar('时', GANS[(Math.floor(h/2) + d) % 10], ZHIS[Math.floor((h+1)/2) % 12]),
+    createPillar('年', eightChar.getYearGan(), eightChar.getYearZhi()),
+    createPillar('月', eightChar.getMonthGan(), eightChar.getMonthZhi()),
+    createPillar('日', eightChar.getDayGan(), eightChar.getDayZhi()),
+    createPillar('时', eightChar.getTimeGan(), eightChar.getTimeZhi()),
   ];
 };
 

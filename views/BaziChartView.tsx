@@ -64,7 +64,8 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
     setLoadingFortune(true);
     setFortuneError(false);
     try {
-        const result = await generateDailyFortuneAi(profile, chart);
+        const apiKey = sessionStorage.getItem('ai_api_key') || undefined;
+        const result = await generateDailyFortuneAi(profile, chart, apiKey);
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
         const fullData = {

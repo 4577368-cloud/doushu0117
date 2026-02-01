@@ -56,7 +56,8 @@ const readStreamResponse = async (response: Response): Promise<string> => {
 
 export const generateDailyFortuneAi = async (
   profile: UserProfile, 
-  chart: BaziChart
+  chart: BaziChart,
+  apiKey?: string
 ): Promise<DailyFortuneResult> => {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
@@ -108,16 +109,10 @@ JSON 结构：
 `;
 
   try {
-    const finalKey = apiKey || sessionStorage.getItem('ai_api_key') || '';
-    // 注意：这里复用 /api/analyze 接口，但我们需要确保后端或者 geminiService 能处理非流式的简单 JSON 请求
-    // 或者我们直接用 geminiService 的逻辑，这里简单模拟 fetch 调用
+    const finalKey = apiKey || sessionStorage.getItem('ai_api_key');
     
-    // 由于 geminiService 中是 analyzeBaziStructured 且处理流式，我们这里可以直接调用 fetch
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiKey: finalKey,
+    // 构建请求体
+    const requestBody: any = {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -125,12 +120,24 @@ JSON 结构：
         model: 'deepseek-chat',
         temperature: 0.8,
         response_format: { type: 'json_object' },
-        stream: true // 使用流式以兼容后端
-      })
+        stream: true 
+    };
+
+    // 只有当有 key 时才放入 body (避免覆盖后端 VIP 逻辑)
+    if (finalKey) {
+        requestBody.apiKey = finalKey;
+    }
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Daily Fortune API Error:", response.status, errorText);
+        throw new Error(`请求失败: ${response.status} - ${errorText}`);
     }
 
     // 使用流式读取 helper 获取完整内容

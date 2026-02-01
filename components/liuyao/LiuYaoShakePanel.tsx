@@ -21,22 +21,27 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     const lastZ = useRef(0);
     const lastTime = useRef(0);
     const shakeLock = useRef(false); // Immediate lock to prevent double triggers
+    const processingRef = useRef(false); // Persist lock across state changes until step updates
+
+    // Reset locks when step changes
+    useEffect(() => {
+        shakeLock.current = false;
+        processingRef.current = false;
+    }, [step]);
 
     useEffect(() => {
-        // Reset lock on step change
-        shakeLock.current = false;
-        
-        const SHAKE_THRESHOLD = 15;
-        // Easier steady requirements: higher threshold (allow more jitter), shorter duration
-        const STEADY_THRESHOLD = 10; 
-        const STEADY_DURATION = 100; // ms (Just a brief pause is enough)
+        const SHAKE_THRESHOLD = 5; // Super sensitive
+        // Easier steady requirements: high threshold (allow jitter), short duration
+        const STEADY_THRESHOLD = 30; 
+        const STEADY_DURATION = 100; // 100ms steady to reset trigger
 
         let isFirst = true;
         let isReady = false;
         let steadyStart = 0;
 
         const handleMotion = (event: DeviceMotionEvent) => {
-            if (isProcessing || isShaking || isTossing || showCoins || shakeLock.current) return;
+            // Check processingRef.current to ensure we don't re-trigger during animation/processing
+            if (isProcessing || processingRef.current || isShaking || isTossing || showCoins || shakeLock.current) return;
             
             const current = event.accelerationIncludingGravity;
             if (!current) return;
@@ -86,9 +91,10 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     }, [isProcessing, isShaking, isTossing, showCoins, step]);
 
     const triggerShake = () => {
-        if (isShaking || isProcessing || isTossing || showCoins || shakeLock.current) return;
+        if (isShaking || isProcessing || processingRef.current || isTossing || showCoins || shakeLock.current) return;
         
         shakeLock.current = true; // Immediate lock
+        processingRef.current = true; // Lock until step changes
         
         // 1. Start Shaking
         setIsShaking(true);
