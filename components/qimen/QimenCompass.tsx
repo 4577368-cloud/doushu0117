@@ -70,11 +70,30 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
   const [startRotation, setStartRotation] = useState(0);
   const compassRef = useRef<HTMLDivElement>(null);
 
+  const handleOrientation = React.useCallback((e: DeviceOrientationEvent) => {
+    if (e.alpha !== null) {
+      let heading = e.alpha;
+      
+      // iOS specific property for True North
+      if ((e as any).webkitCompassHeading) {
+        heading = (e as any).webkitCompassHeading;
+        setRotation(-heading);
+      } else {
+        // Android/Standard: alpha is CCW degrees from North
+        // We need CW rotation to compensate => rotation = alpha
+        setRotation(heading);
+      }
+    }
+  }, []);
+
   // Handle Compass Toggle
   const toggleCompass = async () => {
     if (isAutoMode) {
       setIsAutoMode(false);
       window.removeEventListener('deviceorientation', handleOrientation);
+      if ('ondeviceorientationabsolute' in window) {
+        window.removeEventListener('deviceorientationabsolute' as any, handleOrientation);
+      }
       return;
     }
 
@@ -97,20 +116,11 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
     } else {
       // Android / Old iOS
       setIsAutoMode(true);
-      window.addEventListener('deviceorientation', handleOrientation, true);
-    }
-  };
-
-  const handleOrientation = (e: DeviceOrientationEvent) => {
-    if (e.alpha !== null) {
-      let heading = e.alpha;
-      
-      // iOS specific property for True North
-      if ((e as any).webkitCompassHeading) {
-        heading = (e as any).webkitCompassHeading;
-        setRotation(-heading);
+      // Prefer absolute orientation on Android for accurate Compass
+      if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute' as any, handleOrientation, true);
       } else {
-        setRotation(-heading);
+        window.addEventListener('deviceorientation', handleOrientation, true);
       }
     }
   };
@@ -148,8 +158,11 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
   useEffect(() => {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
+      if ('ondeviceorientationabsolute' in window) {
+        window.removeEventListener('deviceorientationabsolute' as any, handleOrientation);
+      }
     };
-  }, []);
+  }, [handleOrientation]);
 
   // Center Palace (5)
   const centerPalace = ju.palaces.find(p => p.index === 5);
