@@ -21,31 +21,29 @@ const QimenPalaceItem: React.FC<Props> = ({ palace, patterns = [], onClick }) =>
         transition-all duration-300 shadow-sm group overflow-hidden ${onClick ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' : ''}`}
     >
       <div className="flex justify-between items-start">
+        {/* Left Top: God */}
         <div className="flex flex-col">
-          <div className="flex items-baseline gap-1">
-            <span className={`text-xl font-black font-serif-zh leading-none ${QM_ELEMENT_TEXT_MAP[element]}`}>
-              {name}
-            </span>
-            <span className="text-[9px] font-bold text-gray-200 uppercase">{index}</span>
-          </div>
-          <span className={`text-[8px] font-bold tracking-widest mt-0.5 opacity-60 ${QM_ELEMENT_TEXT_MAP[deity.element]}`}>
+          <span className={`text-[10px] font-bold font-serif-zh ${QM_ELEMENT_TEXT_MAP[deity.element]}`}>
             {QM_NAMES_MAP[deity.name]}
           </span>
+          {/* Heaven Stem (User Expectation: Gui at top left/center) - Moved to prominent left side under God or similar */}
         </div>
-        <div className="text-right">
-           <span className={`text-[9px] font-bold font-serif-zh ${QM_ELEMENT_TEXT_MAP[star.element]}`}>
+
+        {/* Right Top: Nine Star */}
+        <div className="flex flex-col items-end">
+           <span className={`text-[10px] font-bold font-serif-zh ${QM_ELEMENT_TEXT_MAP[star.element]}`}>
             {QM_NAMES_MAP[star.name]}
           </span>
-          <div className="flex items-center justify-end gap-1">
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: stateInfo.color }}></div>
-            <span className="text-[8px] font-bold text-gray-300">{stateInfo.label}</span>
-          </div>
         </div>
       </div>
 
+      {/* Center: Heaven Stem & Earth Stem */}
       <div className="flex flex-col items-center justify-center -my-1 relative z-10">
-        <div className={`text-2xl font-serif-zh font-black transition-transform group-hover:scale-110 ${QM_ELEMENT_TEXT_MAP[QM_GAN_ELEMENTS[heavenStem] || '土']}`}>
-          {QM_NAMES_MAP[heavenStem]}
+        <div className="flex items-center gap-2">
+           {/* Heaven Stem (Prominent) */}
+           <div className={`text-xl font-serif-zh font-black transition-transform group-hover:scale-110 ${QM_ELEMENT_TEXT_MAP[QM_GAN_ELEMENTS[heavenStem] || '土']}`}>
+            {QM_NAMES_MAP[heavenStem]}
+          </div>
         </div>
         
         {/* Patterns Display */}
@@ -69,26 +67,34 @@ const QimenPalaceItem: React.FC<Props> = ({ palace, patterns = [], onClick }) =>
           </div>
         )}
 
-        <div className="w-4 h-[1px] bg-gray-100 my-0.5"></div>
-        <div className="text-[10px] font-serif-zh font-bold text-gray-300">
+        {/* Earth Stem */}
+        <div className={`text-sm font-serif-zh font-bold mt-1 ${QM_ELEMENT_TEXT_MAP[QM_GAN_ELEMENTS[earthStem] || '土']}`}>
           {QM_NAMES_MAP[earthStem]}
         </div>
       </div>
 
       <div className="flex justify-between items-end pt-1 border-t border-gray-50">
+        {/* Door */}
         <div className="flex items-center gap-1">
-          <div className={`w-1 h-1 rounded-full ${isJi ? 'bg-green-500' : 'bg-red-400'}`}></div>
           <span className={`text-[10px] font-black ${isJi ? 'text-[#3E5C3E]' : 'text-[#963C3C]'}`}>
             {QM_NAMES_MAP[door.name]}
           </span>
         </div>
-        <div className="text-[8px] font-bold text-gray-100 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-          NEXUS
+        
+        {/* Palace Name & Trigram (New Rich Display) */}
+        <div className="flex flex-col items-end opacity-40">
+           <div className="text-[14px] leading-none font-serif-zh font-bold text-gray-400">
+             {QM_GUA_TRIGRAMS[name] || ''}
+           </div>
+           <div className="text-[8px] font-bold text-gray-400">
+             {name}
+           </div>
         </div>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03] text-6xl font-black font-serif-zh select-none">
-        {name}
+      {/* Large Background Trigram */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.02] text-6xl select-none">
+        {QM_GUA_TRIGRAMS[name] || ''}
       </div>
     </div>
   );

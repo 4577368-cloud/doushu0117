@@ -29,6 +29,11 @@ export const QM_GUA_LABELS: Record<string, string> = {
   'Qian': '乾', 'Dui': '兑', 'Gen': '艮', 'Li': '离'
 };
 
+export const QM_GUA_TRIGRAMS: Record<string, string> = {
+  '坎': '☵', '坤': '☷', '震': '☳', '巽': '☴', '中': '',
+  '乾': '☰', '兑': '☱', '艮': '☶', '离': '☲'
+};
+
 export const QM_GAN_ELEMENTS: Record<string, QM_ElementType> = {
   Jia: '木', Yi: '木', Bing: '火', Ding: '火', 
   Wu: '土', Ji: '土', Geng: '金', Xin: '金', 
