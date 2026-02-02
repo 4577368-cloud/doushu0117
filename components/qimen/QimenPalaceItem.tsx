@@ -1,7 +1,7 @@
 import React from 'react';
 import { QM_Palace } from '../../types';
 import { QMPattern } from '../../services/qimenPatterns';
-import { QM_NAMES_MAP, QM_ELEMENT_TEXT_MAP, QM_STATE_MAP, QM_GAN_ELEMENTS } from '../../services/qimenConstants';
+import { QM_NAMES_MAP, QM_ELEMENT_TEXT_MAP, QM_STATE_MAP, QM_GAN_ELEMENTS, QM_GUA_TRIGRAMS } from '../../services/qimenConstants';
 
 interface Props {
   palace: QM_Palace;
