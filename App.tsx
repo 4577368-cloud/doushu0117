@@ -391,16 +391,7 @@ const App: React.FC = () => {
           
           case AppTab.CHART:
               if (!baziChart || !currentProfile) {
-                  return (
-                      <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
-                          <div className="bg-stone-200 p-4 rounded-full"><Activity size={48} className="text-stone-400" /></div>
-                          <h3 className="font-bold text-lg text-stone-700">尚未排盘</h3>
-                          <p className="text-sm text-stone-500">请先在【首页】输入生辰信息，<br/>开启您的八字命理分析。</p>
-                          <button onClick={() => setCurrentTab(AppTab.HOME)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
-                              <Compass size={18} /> 立即排盘
-                          </button>
-                      </div>
-                  );
+                  return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} guestUsage={isVip ? undefined : { count: guestUsageCount, limit: 3 }} />;
               }
               return (
                   <ErrorBoundary>
@@ -438,7 +429,7 @@ const App: React.FC = () => {
                       <div className="bg-stone-200 p-4 rounded-full"><MessageCircle size={48} className="text-stone-300" /></div>
                       <h3 className="font-bold text-lg text-stone-700">数据缺失</h3>
                       <p className="text-sm text-stone-500 font-medium">AI 需要命盘数据作为依据。<br/>请先进行排盘。</p>
-                      <button onClick={() => setCurrentTab(AppTab.HOME)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                      <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
                           <Compass size={18} /> 去排盘
                       </button>
                   </div>
@@ -456,7 +447,7 @@ const App: React.FC = () => {
                       <div className="bg-stone-200 p-4 rounded-full"><Sparkles size={48} className="text-stone-300" /></div>
                       <h3 className="font-bold text-lg text-stone-700">紫微斗数</h3>
                       <p className="text-sm text-stone-500 font-medium">请先在【首页】输入生辰信息，<br/>即可生成紫微斗数命盘。</p>
-                      <button onClick={() => setCurrentTab(AppTab.HOME)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                      <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
                           <Compass size={18} /> 立即排盘
                       </button>
                   </div>
@@ -479,7 +470,7 @@ const App: React.FC = () => {
                       <div className="bg-stone-200 p-4 rounded-full"><LayoutGrid size={48} className="text-stone-300" /></div>
                       <h3 className="font-bold text-lg text-stone-700">奇门遁甲</h3>
                       <p className="text-sm text-stone-500 font-medium">请先在【首页】输入生辰信息，<br/>即可生成奇门遁甲排盘。</p>
-                      <button onClick={() => setCurrentTab(AppTab.HOME)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                      <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
                           <Compass size={18} /> 立即排盘
                       </button>
                   </div>
@@ -527,7 +518,7 @@ const App: React.FC = () => {
                         try { await safeSignOut(); } catch (e) { console.error('SignOut warning:', e); }
                     }} 
                     onLogin={() => setShowAuthModal(true)}
-                    onNewChart={() => setCurrentTab(AppTab.HOME)}
+                    onNewChart={() => { setBaziChart(null); setCurrentTab(AppTab.CHART); }}
                     onLiuYao={() => setCurrentTab(AppTab.LIUYAO)}
                 />
               );
@@ -548,8 +539,8 @@ const App: React.FC = () => {
     <div className={`flex flex-col h-[100dvh] overflow-hidden text-stone-950 font-sans transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
       {!hideChrome && (
         <AppHeader 
-            title={currentTab === AppTab.HOME ? '玄枢命理' : currentProfile?.name || '排盘'} 
-            rightAction={currentTab !== AppTab.HOME && currentProfile && (<button onClick={()=>{setCurrentProfile(null);setCurrentTab(AppTab.HOME);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} 
+            title={(currentTab === AppTab.CHART && !baziChart) ? '玄枢命理' : currentProfile?.name || '排盘'} 
+            rightAction={(!((currentTab === AppTab.CHART && !baziChart)) && currentProfile) && (<button onClick={()=>{setCurrentProfile(null);setBaziChart(null);setCurrentTab(AppTab.CHART);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} 
             isVip={isVip} 
             guestUsage={{ count: guestUsageCount, limit: 3 }}
         />
