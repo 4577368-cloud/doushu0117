@@ -30,7 +30,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     }, [step]);
 
     useEffect(() => {
-        const SHAKE_THRESHOLD = 15; // Increased from 5 to avoid accidental triggers
+        const SHAKE_THRESHOLD = 8; // Adjusted to 8 for better responsiveness (was 15)
         // Easier steady requirements: high threshold (allow jitter), short duration
         const STEADY_THRESHOLD = 30; 
         const STEADY_DURATION = 100; // 100ms steady to reset trigger

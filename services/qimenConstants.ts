@@ -74,7 +74,7 @@ export const QM_NAMES_MAP: Record<string, string> = {
   JingMen_Li: '景门', SiMen: '死门', JingMen_Jing: '惊门', KaiMen: '开门',
   JingMen: '景门', JingMen2: '惊门',
   ZhiFu: '值符', TengShe: '腾蛇', TaiYin: '太阴', LiuHe: '六合',
-  BaiHu: '白虎', XuanWu: '玄武', JiuDi: '九地', JiuTian: '九天',
+  BaiHu: '白虎', XuanWu: '玄武', JiuDi: '九地', JiuTian: '九天', TianYi: '天乙',
   Jia: '甲', Yi: '乙', Bing: '丙', Ding: '丁', Wu: '戊',
   Ji: '己', Geng: '庚', Xin: '辛', Ren: '壬', Gui: '癸',
   Zi: '子', Chou: '丑', Yin: '寅', Mao: '卯', Chen: '辰', Si: '巳', 

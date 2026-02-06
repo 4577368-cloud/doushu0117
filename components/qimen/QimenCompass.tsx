@@ -70,6 +70,8 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
   const [startRotation, setStartRotation] = useState(0);
   const compassRef = useRef<HTMLDivElement>(null);
 
+  const [isAbsolute, setIsAbsolute] = useState(true);
+
   const handleOrientation = React.useCallback((e: DeviceOrientationEvent) => {
     if (e.alpha !== null) {
       let heading = e.alpha;
@@ -78,9 +80,15 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
       if ((e as any).webkitCompassHeading) {
         heading = (e as any).webkitCompassHeading;
         setRotation(-heading);
+        setIsAbsolute(true);
       } else {
-        // Android/Standard: alpha is CCW degrees from North
-        // We need CW rotation to compensate => rotation = alpha
+        // Android/Standard
+        if ('absolute' in e) {
+           setIsAbsolute((e as any).absolute);
+        }
+        // alpha is CCW degrees from North (0=N, 90=W, 180=S, 270=E)
+        // We apply it as CW rotation to the compass container
+        // If alpha=90 (West), container rotates 90deg CW -> Top moves to Right -> Correct
         setRotation(heading);
       }
     }
@@ -334,9 +342,13 @@ export const QimenCompass: React.FC<QimenCompassProps> = ({
 
          <button 
            onClick={toggleCompass}
-           className={`p-2 rounded-full shadow-sm border transition-colors ${isAutoMode ? 'bg-amber-50 border-amber-200 text-amber-600 animate-pulse' : 'bg-white border-stone-200 text-stone-600'}`}
+           title={isAutoMode && !isAbsolute ? "当前为相对方向 (非真北)" : "自动罗盘"}
+           className={`relative p-2 rounded-full shadow-sm border transition-colors ${isAutoMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-stone-200 text-stone-600'}`}
          >
            <Compass size={16} className={isAutoMode ? "animate-spin-slow" : ""} />
+           {isAutoMode && !isAbsolute && (
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+           )}
          </button>
          <button 
            onClick={() => {
