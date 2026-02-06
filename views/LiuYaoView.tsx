@@ -81,7 +81,7 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
                 >
                     <ArrowLeft size={20} />
                 </button>
-                <h1 className="text-lg font-serif font-bold text-amber-700">六爻卜卦</h1>
+                <h1 className="text-lg font-serif font-bold text-[#002FA7]">六爻卜卦</h1>
                 <button 
                     onClick={handleReset}
                     className="p-2 -mr-2 hover:bg-stone-100 rounded-full text-stone-600 transition-colors"
@@ -91,18 +91,18 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-4 relative z-10">
+            <div className="flex-1 overflow-y-auto p-4 relative z-10 flex flex-col">
                 {step === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full space-y-10 animate-fade-in">
+                    <div className="flex-1 flex flex-col items-center justify-center space-y-10 animate-fade-in pb-20">
                         <div className="relative group">
-                             <div className="absolute inset-0 bg-amber-200/50 blur-3xl rounded-full group-hover:bg-amber-300/50 transition-all duration-1000"></div>
+                             <div className="absolute inset-0 bg-[#002FA7]/20 blur-3xl rounded-full group-hover:bg-[#002FA7]/30 transition-all duration-1000"></div>
                              <div 
                                 onClick={handleStart}
-                                className="w-40 h-40 rounded-full bg-gradient-to-br from-white to-stone-100 border border-stone-200 flex items-center justify-center shadow-2xl relative overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                className="w-40 h-40 rounded-full bg-gradient-to-br from-white to-blue-50 border border-blue-100 flex items-center justify-center shadow-xl shadow-blue-900/5 relative overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                              >
                                 <div className="text-center">
-                                    <div className="text-4xl font-serif text-stone-800 mb-1">起</div>
-                                    <div className="text-sm text-stone-500">点击开始</div>
+                                    <div className="text-4xl font-serif text-[#002FA7] mb-1">起</div>
+                                    <div className="text-sm text-stone-400">点击开始</div>
                                 </div>
                              </div>
                         </div>
@@ -117,8 +117,8 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
                 )}
 
                 {step >= 1 && step <= 6 && (
-                    <div className="flex flex-col items-center h-full justify-between pb-8">
-                        <div className="flex-1 flex items-center w-full justify-center">
+                    <div className="flex-1 flex flex-col items-center justify-center pb-20 relative">
+                        <div className="flex-1 flex items-center justify-center w-full">
                             <LiuYaoShakePanel 
                                 step={step} 
                                 onShakeComplete={handleShakeComplete}
@@ -126,8 +126,8 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
                             />
                         </div>
                         
-                        {/* Live Hexagram Build-up */}
-                        <div className="w-full max-w-xs bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-stone-200 shadow-lg">
+                        {/* Live Hexagram Build-up - Absolute positioned to avoid layout shift */}
+                        <div className="absolute bottom-0 w-full max-w-xs bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-stone-200 shadow-lg animate-in slide-in-from-bottom-10 fade-in duration-500">
                             <div className="text-xs text-center text-stone-500 mb-2">卦象生成中...</div>
                             <LiuYaoHexagram 
                                 lines={lines} 

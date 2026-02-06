@@ -162,8 +162,8 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                 {/* Shake Animation Circle - Only show when idle or shaking */}
                 {!showCoins && !isTossing && (
                     <>
-                        <div className={`absolute inset-0 rounded-full border-4 border-amber-500/20 ${isShaking ? 'animate-ping' : ''}`}></div>
-                        <div className={`absolute inset-4 rounded-full border-4 border-amber-500/40 ${isShaking ? 'animate-pulse' : ''}`}></div>
+                        <div className={`absolute inset-0 rounded-full border-4 border-[#002FA7]/20 ${isShaking ? 'animate-ping' : ''}`}></div>
+                        <div className={`absolute inset-4 rounded-full border-4 border-[#002FA7]/40 ${isShaking ? 'animate-pulse' : ''}`}></div>
                     </>
                 )}
                 
@@ -173,11 +173,11 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                     className={`relative z-10 w-48 h-48 flex flex-col items-center justify-center transition-all duration-300 ${
                         (isTossing || showCoins) 
                             ? '' 
-                            : 'rounded-full bg-white/20 backdrop-blur-sm shadow-[0_0_40px_-10px_rgba(251,191,36,0.2)] border border-white/30'
+                            : 'rounded-full bg-white/20 backdrop-blur-sm shadow-[0_0_40px_-10px_rgba(0,47,167,0.2)] border border-white/30'
                     } ${
                         isProcessing 
                             ? 'opacity-50 scale-95' 
-                            : ((isTossing || showCoins) ? '' : 'hover:scale-105 active:scale-95 hover:shadow-amber-200/30')
+                            : ((isTossing || showCoins) ? '' : 'hover:scale-105 active:scale-95 hover:shadow-[#002FA7]/30')
                     }`}
                 >
                     {isTossing ? (
@@ -211,10 +211,10 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                         // Idle / Shaking State
                         <button 
                             disabled={isProcessing}
-                            className={`w-32 h-32 bg-stone-800 rounded-full flex flex-col items-center justify-center shadow-lg border-4 border-amber-500/50 ${isShaking ? 'animate-shake' : ''}`}
+                            className={`w-32 h-32 bg-white/40 backdrop-blur-md rounded-full flex flex-col items-center justify-center shadow-lg border-4 border-[#002FA7]/20 hover:border-[#002FA7]/40 transition-all ${isShaking ? 'animate-shake' : ''}`}
                         >
-                            <Smartphone size={32} className={`text-amber-400 mb-2 ${isShaking ? 'animate-wiggle' : ''}`} />
-                            <span className="text-xs text-amber-200 font-medium">
+                            <Smartphone size={32} className={`text-[#002FA7] mb-2 opacity-80 ${isShaking ? 'animate-wiggle' : ''}`} />
+                            <span className="text-xs text-[#002FA7] font-medium opacity-80">
                                 {isShaking ? '摇卦中...' : '摇一摇 / 点击'}
                             </span>
                         </button>
@@ -224,7 +224,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
             
             <div className="text-center">
                 <p className="text-stone-400 text-sm mb-1">
-                    第 <span className="text-amber-400 font-bold text-lg">{step}</span> / 6 爻
+                    第 <span className="text-[#002FA7] font-bold text-lg">{step}</span> / 6 爻
                 </p>
                 <p className="text-stone-500 text-xs opacity-70">
                     请诚心默念所测之事，摇动手机或点击铜钱
