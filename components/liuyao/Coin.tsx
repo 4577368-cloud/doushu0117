@@ -7,15 +7,29 @@ interface CoinProps {
 
 export const Coin: React.FC<CoinProps> = ({ side, className = '' }) => {
     return (
-        <div className={`relative w-16 h-16 rounded-full shadow-lg ${className}`}>
-            {/* Coin Body - Bronze Gradient */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-600 via-yellow-400 to-yellow-700 shadow-inner border-2 border-yellow-800/30"></div>
-            
-            {/* Inner Ring */}
-            <div className="absolute inset-1 rounded-full border-2 border-yellow-800/20"></div>
-
-            {/* Square Hole */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-stone-900 border border-yellow-800/50"></div>
+        <div className={`relative w-16 h-16 ${className}`}>
+            {/* Coin Body - SVG with Hole */}
+            <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full drop-shadow-lg">
+                <defs>
+                    <linearGradient id="bronzeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#CA8A04" /> {/* yellow-600 */}
+                        <stop offset="50%" stopColor="#FACC15" /> {/* yellow-400 */}
+                        <stop offset="100%" stopColor="#A16207" /> {/* yellow-700 */}
+                    </linearGradient>
+                </defs>
+                {/* Circle with Square Hole (using fill-rule="evenodd") */}
+                <path 
+                    d="M 50 0 A 50 50 0 1 0 50 100 A 50 50 0 1 0 50 0 Z M 36 36 L 64 36 L 64 64 L 36 64 Z" 
+                    fill="url(#bronzeGradient)" 
+                    fillRule="evenodd"
+                    stroke="rgba(113, 63, 18, 0.3)" 
+                    strokeWidth="1"
+                />
+                {/* Inner Ring Circle */}
+                <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(113, 63, 18, 0.2)" strokeWidth="2" />
+                {/* Square Hole Border */}
+                <rect x="36" y="36" width="28" height="28" fill="none" stroke="rgba(113, 63, 18, 0.5)" strokeWidth="1" />
+            </svg>
 
             {/* Content */}
             {side === 'yang' ? (
@@ -29,7 +43,7 @@ export const Coin: React.FC<CoinProps> = ({ side, className = '' }) => {
             ) : (
                 // Yin Side - Manchu Characters (Simulated)
                 <>
-                     <svg className="absolute inset-0 w-full h-full p-3 opacity-60" viewBox="0 0 100 100">
+                     <svg className="absolute inset-0 w-full h-full p-3 opacity-60 pointer-events-none" viewBox="0 0 100 100">
                         {/* Left Manchu */}
                         <path d="M20 50 Q 25 30 30 50 T 20 70" fill="none" stroke="#713f12" strokeWidth="3" />
                         {/* Right Manchu */}

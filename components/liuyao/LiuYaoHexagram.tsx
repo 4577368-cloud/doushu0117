@@ -12,7 +12,7 @@ export const LiuYaoHexagram: React.FC<LiuYaoHexagramProps> = ({ lines, animating
     const displayLines = [...lines].reverse();
 
     return (
-        <div className="flex flex-col gap-3 w-32 sm:w-40 mx-auto p-4 bg-stone-800/50 rounded-xl border border-stone-700 shadow-inner">
+        <div className="flex flex-col gap-3 w-32 sm:w-40 mx-auto p-4 bg-white/50 rounded-xl border border-stone-200 shadow-sm">
             {/* Placeholders if lines are missing (during animation) */}
             {Array.from({ length: 6 }).map((_, i) => {
                 const realIndex = 5 - i;
@@ -22,7 +22,7 @@ export const LiuYaoHexagram: React.FC<LiuYaoHexagramProps> = ({ lines, animating
 
                 if (!hasValue && !isAnimating) {
                     return (
-                        <div key={realIndex} className="h-3 w-full bg-stone-700/20 rounded opacity-20" />
+                        <div key={realIndex} className="h-3 w-full bg-stone-200 rounded opacity-50" />
                     );
                 }
 

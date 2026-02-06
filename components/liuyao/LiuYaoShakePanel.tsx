@@ -170,7 +170,15 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                 {/* Interaction Area */}
                 <div 
                     onClick={requestPermissionAndShake}
-                    className={`relative z-10 w-48 h-48 flex flex-col items-center justify-center transition-all ${isProcessing ? 'opacity-50' : 'active:scale-95'}`}
+                    className={`relative z-10 w-48 h-48 flex flex-col items-center justify-center transition-all duration-300 ${
+                        (isTossing || showCoins) 
+                            ? '' 
+                            : 'rounded-full bg-white/20 backdrop-blur-sm shadow-[0_0_40px_-10px_rgba(251,191,36,0.2)] border border-white/30'
+                    } ${
+                        isProcessing 
+                            ? 'opacity-50 scale-95' 
+                            : ((isTossing || showCoins) ? '' : 'hover:scale-105 active:scale-95 hover:shadow-amber-200/30')
+                    }`}
                 >
                     {isTossing ? (
                         // Tossing Animation

@@ -59,21 +59,21 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
     };
 
     return (
-        <div className="bg-stone-900 text-stone-200 p-4 rounded-xl space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="bg-white/90 text-stone-800 p-4 rounded-xl space-y-6 max-h-[80vh] overflow-y-auto shadow-xl border border-stone-100">
             {/* Header: Hexagrams */}
             <div className="flex justify-center items-start gap-4 sm:gap-8">
                 <div className="flex flex-col items-center">
                     <span className="text-xs text-stone-500 mb-2">本卦</span>
                     <LiuYaoHexagram lines={result.lines} showMoving={true} />
                     <div className="mt-2 text-center">
-                        <div className="text-xl font-bold text-amber-400">{base.info?.name}</div>
-                        <div className="text-4xl text-stone-600 mt-1">{base.info?.symbol}</div>
+                        <div className="text-xl font-bold text-amber-700">{base.info?.name}</div>
+                        <div className="text-4xl text-stone-400 mt-1">{base.info?.symbol}</div>
                     </div>
                 </div>
 
                 {changed && (
                     <>
-                        <div className="pt-12 text-stone-600">
+                        <div className="pt-12 text-stone-400">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
@@ -86,8 +86,8 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                             */}
                             <LiuYaoHexagram lines={changed!.binary.map(b => b === 1 ? 7 : 8)} showMoving={false} />
                             <div className="mt-2 text-center">
-                                <div className="text-xl font-bold text-amber-400">{changed.info?.name}</div>
-                                <div className="text-4xl text-stone-600 mt-1">{changed.info?.symbol}</div>
+                                <div className="text-xl font-bold text-amber-700">{changed.info?.name}</div>
+                                <div className="text-4xl text-stone-400 mt-1">{changed.info?.symbol}</div>
                             </div>
                         </div>
                     </>
@@ -96,7 +96,7 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
 
             {/* AI Deep Analysis Button */}
             {!aiReport && (
-                <div className="bg-gradient-to-r from-indigo-900/30 to-purple-900/30 p-1 rounded-xl border border-indigo-500/30">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-1 rounded-xl border border-indigo-200">
                     <button
                         onClick={handleAiAnalyze}
                         disabled={loadingAi}
