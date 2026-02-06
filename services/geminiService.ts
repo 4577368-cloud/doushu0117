@@ -233,3 +233,98 @@ export const analyzeLiuYaoStructured = async (
     throw e;
   }
 };
+
+/**
+ * 奇门遁甲 AI 临机断事
+ */
+export interface QimenAiReport {
+  overall: {
+    result: "吉" | "凶" | "平"; 
+    score: number; // 0-100
+    summary: string;
+  };
+  analysis: {
+    focus: string; // 用神/落宫分析
+    pattern: string; // 吉凶格分析
+    time: string; // 时令/旺衰分析
+  };
+  suggestion: string; // 决策建议
+}
+
+export const analyzeQimenStructured = async (
+  chartData: any, // 简化的奇门局数据
+  question: { category: string; affair: string; industry?: string },
+  isVip: boolean = false
+): Promise<QimenAiReport> => {
+  const systemPrompt = `你是一位精通《奇门遁甲》的时空决策顾问。
+请基于用户提供的奇门局（时家奇门拆补法）和具体问事事项，进行临机断事。
+
+核心逻辑：
+1. **取用神**：根据问事类别（${question.category} - ${question.affair}）锁定核心用神（如求财看生门/甲子戊，求职看开门/年干等）。
+2. **辨旺衰**：结合时令（节气/月令）分析用神落宫的旺相休囚死。
+3. **看格局**：分析星门神仪的吉凶组合（如青龙返首、天遁等）。
+4. **定应期**：如果涉及时间，简要推断应期。
+
+输出必须严格遵循以下 JSON 格式：
+{
+  "overall": {
+    "result": "吉/凶/平",
+    "score": 85,
+    "summary": "一句话核心断语..."
+  },
+  "analysis": {
+    "focus": "用神落宫及状态分析...",
+    "pattern": "关键吉凶格局分析...",
+    "time": "时空能量与旺衰分析..."
+  },
+  "suggestion": "针对性的行动建议..."
+}
+
+要求：
+1. 必须结合“${question.industry || '通用'}”行业背景（如果有）。
+2. 语言简练犀利，直指核心。
+`;
+
+  const userPrompt = `【问事】：${question.category} - ${question.affair}
+【行业】：${question.industry || '无'}
+【盘面数据】：
+${JSON.stringify(chartData, null, 2)}`;
+
+  try {
+    if (!isVip) throw new Error("VIP 权限未激活");
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        model: 'deepseek-chat',
+        temperature: 1.0,
+        response_format: { type: 'json_object' },
+        stream: true
+      })
+    });
+
+    if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    const rawContent = await readStreamResponse(response);
+    
+    // 解析 JSON
+    let jsonContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonStart = jsonContent.indexOf('{');
+    const jsonEnd = jsonContent.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    const parsed = JSON.parse(jsonContent);
+    return parsed as QimenAiReport;
+
+  } catch (e: any) {
+    console.error("Qimen AI Request Failed:", e);
+    throw e;
+  }
+};

@@ -477,13 +477,14 @@ const App: React.FC = () => {
               );
               return (
                   <QimenView 
-                      profile={currentProfile} 
-                      onSaveReport={async (r) => { 
-                          const updated = await saveAiReportToArchive(currentProfile.id, r, 'qimen'); 
-                          setArchives(updated); 
-                      }} 
-                      isVip={isVip} 
-                  />
+                    profile={currentProfile} 
+                    onSaveReport={async (r) => { 
+                        const updated = await saveAiReportToArchive(currentProfile.id, r, 'qimen'); 
+                        setArchives(updated); 
+                    }} 
+                    isVip={isVip} 
+                    onVipClick={() => setShowVipModal(true)}
+                />
               );
           
           case AppTab.ARCHIVE:

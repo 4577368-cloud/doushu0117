@@ -30,7 +30,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
     }, [step]);
 
     useEffect(() => {
-        const SHAKE_THRESHOLD = 5; // Super sensitive
+        const SHAKE_THRESHOLD = 15; // Increased from 5 to avoid accidental triggers
         // Easier steady requirements: high threshold (allow jitter), short duration
         const STEADY_THRESHOLD = 30; 
         const STEADY_DURATION = 100; // 100ms steady to reset trigger
@@ -174,7 +174,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                 >
                     {isTossing ? (
                         // Tossing Animation
-                        <div className="relative w-full h-full">
+                        <div className="relative w-full h-full [perspective:1000px]">
                             <div className="absolute top-0 left-10 animate-toss-1">
                                 <Coin side="yang" className="w-12 h-12" />
                             </div>
@@ -207,7 +207,7 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                         >
                             <Smartphone size={32} className={`text-amber-400 mb-2 ${isShaking ? 'animate-wiggle' : ''}`} />
                             <span className="text-xs text-amber-200 font-medium">
-                                {isShaking ? '摇卦中...' : '点击或摇一摇'}
+                                {isShaking ? '摇卦中...' : '摇一摇 / 点击'}
                             </span>
                         </button>
                     )}
@@ -218,8 +218,8 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                 <p className="text-stone-400 text-sm mb-1">
                     第 <span className="text-amber-400 font-bold text-lg">{step}</span> / 6 爻
                 </p>
-                <p className="text-stone-500 text-xs">
-                    请诚心默念所测之事
+                <p className="text-stone-500 text-xs opacity-70">
+                    请诚心默念所测之事，摇动手机或点击铜钱
                 </p>
             </div>
 
@@ -235,19 +235,19 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
                     75% { transform: rotate(20deg); }
                 }
                 @keyframes toss-1 {
-                    0% { transform: translateY(0) rotate(0); }
-                    50% { transform: translateY(-40px) rotate(180deg); }
-                    100% { transform: translateY(0) rotate(360deg); }
+                    0% { transform: translateY(0) rotateX(0); }
+                    50% { transform: translateY(-100px) rotateX(720deg); }
+                    100% { transform: translateY(0) rotateX(1080deg); }
                 }
                 @keyframes toss-2 {
-                    0% { transform: translateY(0) rotate(0); }
-                    50% { transform: translateY(-30px) rotate(-180deg); }
-                    100% { transform: translateY(0) rotate(-360deg); }
+                    0% { transform: translateY(0) rotateX(0); }
+                    50% { transform: translateY(-80px) rotateX(-720deg); }
+                    100% { transform: translateY(0) rotateX(-1080deg); }
                 }
                 @keyframes toss-3 {
-                    0% { transform: translateY(0) rotate(0); }
-                    50% { transform: translateY(-50px) rotate(90deg); }
-                    100% { transform: translateY(0) rotate(0); }
+                    0% { transform: translateY(0) rotateX(0); }
+                    50% { transform: translateY(-120px) rotateX(900deg); }
+                    100% { transform: translateY(0) rotateX(1440deg); }
                 }
                 @keyframes land {
                     0% { transform: scale(1.1); opacity: 0; }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, QM_Ju, QM_Palace } from '../types';
 import { initializeQM_Ju, getYearGan } from '../services/qimenService';
+import { analyzeQimenStructured, QimenAiReport } from '../services/geminiService';
 import { QM_STACK_ORDER, QM_NAMES_MAP, QM_ELEMENT_TEXT_MAP, QM_STATE_MAP } from '../services/qimenConstants';
 import { QM_AFFAIR_SYMBOLS, QM_AFFAIR_CATEGORIES, QM_SymbolKey, QM_AffairCategory, QM_INDUSTRIES, QM_IndustryKey, QM_INDUSTRY_DEFAULTS } from '../services/qimenAffairs';
 import { analyzePalacePatterns } from '../services/qimenPatterns';
@@ -28,16 +29,19 @@ import {
   TrendingUp,
   AlertTriangle,
   HelpCircle,
-  X
+  X,
+  Loader2,
+  Lock
 } from 'lucide-react';
 
 interface QimenViewProps {
   profile: UserProfile;
   onSaveReport?: (content: string) => Promise<void>;
   isVip?: boolean;
+  onVipClick?: () => void;
 }
 
-const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) => {
+const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onVipClick }) => {
   const [activeTab, setActiveTab] = useState<'paipan' | 'zeji' | 'calendar'>('paipan');
   const [showKnowledge, setShowKnowledge] = useState(false);
   const [view, setView] = useState<'平面' | '立体' | '罗盘'>('平面');
@@ -58,6 +62,62 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
   // Smart Command State
   const [commandInput, setCommandInput] = useState('');
   const [commandFeedback, setCommandFeedback] = useState<string | null>(null);
+
+  // AI Analysis State
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [aiReport, setAiReport] = useState<QimenAiReport | null>(null);
+
+  // Clear AI report when affair changes
+  useEffect(() => {
+    setAiReport(null);
+  }, [divinationState.affairKey, divinationState.category]);
+
+  const handleAiAnalyze = async () => {
+    if (!ju || !divinationState.category || !divinationState.affairKey) return;
+    
+    if (!isVip) {
+      onVipClick?.();
+      return;
+    }
+
+    setLoadingAi(true);
+    try {
+      // Serialize Chart Data for AI
+      const chartData = {
+         time: {
+           year: ju.pillars[0].gan + ju.pillars[0].zhi,
+           month: ju.pillars[1].gan + ju.pillars[1].zhi,
+           day: ju.pillars[2].gan + ju.pillars[2].zhi,
+           hour: ju.pillars[3].gan + ju.pillars[3].zhi,
+           jieqi: ju.jieQi,
+           ju: ju.juName + ju.yinYang + ju.juNumber + '局'
+         },
+         palaces: ju.palaces.map(p => ({
+           name: p.name,
+           star: p.star.name,
+           door: p.door.name,
+           god: p.deity.name,
+           heaven: p.heavenStem,
+           earth: p.earthStem,
+           empty: p.isKongWang,
+           horse: p.isMaXing
+         }))
+      };
+      
+      const question = {
+        category: QM_AFFAIR_CATEGORIES[divinationState.category],
+        affair: activeAffairConfig?.label || divinationState.affairKey,
+        industry: divinationState.industry
+      };
+
+      const report = await analyzeQimenStructured(chartData, question, isVip);
+      setAiReport(report);
+    } catch (e: any) {
+      alert(e.message || "分析失败");
+    } finally {
+      setLoadingAi(false);
+    }
+  };
 
   const handleSmartCommand = () => {
     if (!commandInput.trim()) return;
@@ -339,6 +399,71 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip }) =
                 </div>
              </div>
              <p className="text-[11px] leading-relaxed opacity-80">{activeAffairConfig?.note}</p>
+          </div>
+
+         {/* AI Deep Analysis Section */}
+         <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100 shadow-sm">
+             <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-black text-violet-900 flex items-center gap-2">
+                  <BrainCircuit size={16} className="text-violet-600" />
+                  AI 临机断事
+                </h4>
+                {!isVip && <Lock size={14} className="text-violet-400" />}
+             </div>
+             
+             {aiReport ? (
+               <div className="space-y-3 animate-fade-in">
+                  {/* Overall Result */}
+                  <div className="flex items-center gap-3 bg-white/60 p-2 rounded-lg border border-violet-100">
+                    <div className={`px-3 py-1 rounded-md font-bold text-sm ${
+                      aiReport.overall.result === '吉' ? 'bg-red-100 text-red-700' :
+                      aiReport.overall.result === '凶' ? 'bg-stone-200 text-stone-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {aiReport.overall.result}
+                    </div>
+                    <p className="text-xs font-bold text-violet-900 flex-1">{aiReport.overall.summary}</p>
+                    <div className="text-[10px] font-bold text-violet-400">评分 {aiReport.overall.score}</div>
+                  </div>
+
+                  {/* Detailed Analysis */}
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
+                      <p className="text-[10px] font-bold text-violet-500 mb-1">用神分析</p>
+                      <p className="text-xs text-stone-700 leading-relaxed">{aiReport.analysis.focus}</p>
+                    </div>
+                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
+                      <p className="text-[10px] font-bold text-violet-500 mb-1">格局与时空</p>
+                      <p className="text-xs text-stone-700 leading-relaxed">{aiReport.analysis.pattern}</p>
+                      <p className="text-xs text-stone-700 leading-relaxed mt-1 border-t border-violet-100/50 pt-1">{aiReport.analysis.time}</p>
+                    </div>
+                  </div>
+
+                  {/* Suggestion */}
+                  <div className="bg-violet-600 p-3 rounded-lg text-white shadow-md">
+                     <p className="text-[10px] font-bold opacity-70 mb-1 flex items-center gap-1">
+                       <Sparkles size={10} /> 决策建议
+                     </p>
+                     <p className="text-xs font-bold leading-relaxed">{aiReport.suggestion}</p>
+                  </div>
+               </div>
+             ) : (
+               <div>
+                 <p className="text-xs text-violet-700/80 mb-3 leading-relaxed">
+                   基于当前局象、用神落宫及行业背景，进行深度多维推演。
+                   <br/>
+                   <span className="text-[10px] opacity-70">需消耗 VIP 权益</span>
+                 </p>
+                 <button 
+                   onClick={handleAiAnalyze}
+                   disabled={loadingAi}
+                   className="w-full py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                 >
+                   {loadingAi ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                   {loadingAi ? 'AI 大师推演中...' : '开始深度推演'}
+                 </button>
+               </div>
+             )}
           </div>
 
          {/* Selected Palace Detail or Prompt */}

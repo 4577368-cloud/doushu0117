@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LiuYaoResult as ResultType, getYaoText, analyzeHexagram } from '../../services/liuyaoService';
 import { analyzeLiuYaoStructured, LiuYaoAiReport } from '../../services/geminiService';
 import { LiuYaoHexagram } from './LiuYaoHexagram';
-import { Brain, Loader2, Lock, Sparkles, TrendingUp, Briefcase, Heart, Activity, AlertCircle } from 'lucide-react';
+import { Brain, Loader2, Lock, Sparkles, TrendingUp, Briefcase, Heart, Activity, AlertCircle, ScrollText } from 'lucide-react';
 
 interface LiuYaoResultProps {
     result: ResultType;
@@ -192,7 +192,8 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
             {/* Interpretation */}
             <div className="bg-stone-800/50 rounded-lg p-4 border border-stone-700">
                 <h3 className="text-amber-500 font-bold mb-3 flex items-center gap-2">
-                    <span>📜</span> 卦辞详解
+                    <ScrollText size={18} />
+                    <span>卦辞详解</span>
                 </h3>
                 
                 <div className="space-y-4">
