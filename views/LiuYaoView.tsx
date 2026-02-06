@@ -49,23 +49,25 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
         <div className="flex flex-col h-full bg-[#FDFBF7] text-stone-800 relative overflow-hidden">
             {/* Background Animation - Eastern Cultural Vibe */}
             <div className="absolute inset-0 overflow-hidden flex items-center justify-center pointer-events-none select-none z-0">
-                {/* Layer 1: Outer - Solid, Slow CW (Was CCW) */}
-                <div className="absolute w-[140vw] h-[140vw] sm:w-[800px] sm:h-[800px] rounded-full border border-amber-800/10 opacity-40 animate-[spin_60s_linear_infinite]"></div>
+                {/* Layer 1: Outer - Solid, CCW, Blue #002FA7, Opacity 0.2 */}
+                <div className="absolute w-[140vw] h-[140vw] sm:w-[800px] sm:h-[800px] rounded-full border-2 border-[#002FA7] opacity-20 animate-[spin_10s_linear_infinite_reverse]"></div>
                 
-                {/* Layer 2: Middle - Dashed, Slow CW */}
-                <div className="absolute w-[100vw] h-[100vw] sm:w-[600px] sm:h-[600px] rounded-full border border-stone-400 border-dashed opacity-30 animate-[spin_45s_linear_infinite]"></div>
+                {/* Layer 2: Middle - Dashed, CW, Blue #002FA7, Opacity 0.4 */}
+                <div className="absolute w-[100vw] h-[100vw] sm:w-[600px] sm:h-[600px] rounded-full border border-dashed border-[#002FA7] opacity-40 animate-[spin_15s_linear_infinite]"></div>
                 
-                {/* Layer 3: Core - Taiji, Medium CW */}
-                <div className="absolute w-64 h-64 sm:w-96 sm:h-96 opacity-10 animate-[spin_20s_linear_infinite]">
-                     <div className="w-full h-full rounded-full relative shadow-sm border border-blue-200"
-                          style={{ background: 'linear-gradient(90deg, #fff 50%, #3b82f6 50%)' }}>
-                         {/* Top Circle (White with Blue dot) */}
-                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1/2 bg-white rounded-full flex items-center justify-center">
-                              <div className="w-1/4 h-1/4 bg-blue-500 rounded-full"></div>
+                {/* Layer 3: Core - Taiji, CW, Blue #002FA7 */}
+                <div className="absolute w-64 h-64 sm:w-96 sm:h-96 animate-[spin_4s_linear_infinite]">
+                     <div className="w-full h-full rounded-full relative shadow-sm border-2 border-[#002FA7] overflow-hidden"
+                          style={{ background: 'linear-gradient(90deg, #002FA7 50%, white 50%)' }}>
+                         
+                         {/* Top Circle (Blue Background, White Solid Dot) */}
+                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1/2 rounded-full bg-[#002FA7] flex items-center justify-center">
+                              <div className="w-[25%] h-[25%] bg-white rounded-full"></div>
                          </div>
-                         {/* Bottom Circle (Blue with White dot) */}
-                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1/2 bg-blue-500 rounded-full flex items-center justify-center">
-                              <div className="w-1/4 h-1/4 bg-white rounded-full"></div>
+
+                         {/* Bottom Circle (White Background, Blue Solid Dot) */}
+                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1/2 rounded-full bg-white flex items-center justify-center">
+                              <div className="w-[25%] h-[25%] bg-[#002FA7] rounded-full"></div>
                          </div>
                      </div>
                 </div>
