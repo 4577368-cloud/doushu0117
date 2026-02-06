@@ -7,9 +7,11 @@ import { YaoValue, LiuYaoResult as ResultData } from '../services/liuyaoService'
 
 interface LiuYaoViewProps {
     onBack: () => void;
+    isVip: boolean;
+    onVipClick: () => void;
 }
 
-export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack }) => {
+export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClick }) => {
     const [step, setStep] = useState(0); // 0: Intro, 1-6: Shaking, 7: Result
     const [lines, setLines] = useState<YaoValue[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -111,11 +113,13 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack }) => {
                         <LiuYaoResult 
                             result={{
                                 lines: lines,
-                                baseHexagram: { binary: [], data: null }, // Handled by component
+                                baseHexagram: { binary: [], data: null, key: '' }, // Handled by component
                                 changedHexagram: null,
                                 timestamp: new Date()
                             }} 
                             onReset={handleReset} 
+                            isVip={isVip}
+                            onVipClick={onVipClick}
                         />
                     </div>
                 )}

@@ -155,3 +155,81 @@ JSON 结构规范：
     throw new Error(`${msg}: ${e.message || e}`);
   }
 };
+
+/**
+ * 六爻占卜 AI 深度解读
+ */
+export interface LiuYaoAiReport {
+  summary: string; // 总体结论
+  aspects: {
+    wealth: string; // 求财
+    career: string; // 事业/办事
+    health: string; // 健康
+    love: string;   // 感情
+    suggestion: string; // 建议
+  };
+}
+
+export const analyzeLiuYaoStructured = async (
+  hexagramData: any,
+  isVip: boolean = false
+): Promise<LiuYaoAiReport> => {
+  const systemPrompt = `你是一位精通六爻纳甲与《增删卜易》的占卜大师。
+请基于用户提供的卦象（本卦、变卦、动爻），进行多维度的深度解读。
+输出必须严格遵循以下 JSON 格式：
+{
+  "summary": "一句话核心结论（现代大白话，直击吉凶）",
+  "aspects": {
+    "wealth": "求财维度的详细解读...",
+    "career": "事业/办事维度的详细解读...",
+    "health": "健康/疾病维度的详细解读...",
+    "love": "感情/婚姻维度的详细解读...",
+    "suggestion": "综合趋吉避凶的建议..."
+  }
+}
+要求：
+1. 结论要明确（吉/凶/平）。
+2. 语言通俗易懂，富有现代感，但要有易理支撑。
+3. 篇幅适中，每个维度 50-100 字左右。
+`;
+
+  const userPrompt = `请解读以下卦象：\n${JSON.stringify(hexagramData, null, 2)}`;
+
+  try {
+    if (!isVip) throw new Error("VIP 权限未激活");
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        model: 'deepseek-chat',
+        temperature: 1.0,
+        response_format: { type: 'json_object' },
+        stream: true
+      })
+    });
+
+    if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    const rawContent = await readStreamResponse(response);
+    
+    // 解析 JSON
+    let jsonContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonStart = jsonContent.indexOf('{');
+    const jsonEnd = jsonContent.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      jsonContent = jsonContent.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    const parsed = JSON.parse(jsonContent);
+    return parsed as LiuYaoAiReport;
+
+  } catch (e: any) {
+    console.error("LiuYao AI Request Failed:", e);
+    throw e;
+  }
+};

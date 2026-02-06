@@ -527,6 +527,8 @@ const App: React.FC = () => {
               return (
                   <LiuYaoView 
                       onBack={() => setCurrentTab(AppTab.ARCHIVE)}
+                      isVip={isVip}
+                      onVipClick={() => setShowVipModal(true)}
                   />
               );
           
