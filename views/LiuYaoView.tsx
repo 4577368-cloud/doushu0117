@@ -95,22 +95,24 @@ export const LiuYaoView: React.FC<LiuYaoViewProps> = ({ onBack, isVip, onVipClic
                 {step === 0 && (
                     <div className="flex-1 flex flex-col items-center justify-center space-y-10 animate-fade-in pb-20">
                         <div className="relative group">
-                             <div className="absolute inset-0 bg-[#002FA7]/20 blur-3xl rounded-full group-hover:bg-[#002FA7]/30 transition-all duration-1000"></div>
+                             {/* Removed the blur background to reduce obstruction */}
                              <div 
                                 onClick={handleStart}
-                                className="w-40 h-40 rounded-full bg-gradient-to-br from-white to-blue-50 border border-blue-100 flex items-center justify-center shadow-xl shadow-blue-900/5 relative overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                className="w-36 h-36 rounded-full bg-white/10 backdrop-blur-[2px] border border-white/30 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] relative overflow-hidden cursor-pointer hover:scale-105 hover:bg-white/20 hover:border-white/50 transition-all duration-500 group-hover:shadow-[0_0_25px_rgba(255,255,255,0.5)]"
                              >
                                 <div className="text-center">
-                                    <div className="text-4xl font-serif text-[#002FA7] mb-1">起</div>
-                                    <div className="text-sm text-stone-400">点击开始</div>
+                                    <div className="text-4xl font-serif text-[#002FA7] mb-1 drop-shadow-md">起</div>
+                                    <div className="text-xs text-[#002FA7]/80 font-medium tracking-widest">点击开始</div>
                                 </div>
+                                
+                                {/* Shine effect */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                              </div>
                         </div>
                         <div className="text-center space-y-2">
-                            <h2 className="text-2xl font-bold text-stone-800 font-serif">诚心求占</h2>
-                            <p className="text-stone-500 text-sm max-w-xs mx-auto">
-                                "无事不占，不动不占"<br/>
-                                请集中精神默念心中所惑
+                            <h2 className="text-xl font-bold text-[#002FA7] font-serif tracking-widest opacity-90">诚心求占</h2>
+                            <p className="text-[#002FA7]/60 text-xs max-w-xs mx-auto font-medium">
+                                "无事不占，不动不占"
                             </p>
                         </div>
                     </div>
