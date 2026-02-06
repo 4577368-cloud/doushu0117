@@ -24,14 +24,16 @@ import {
   Search,
   Info,
   Briefcase,
-  Sparkles,
+  Star,
   Activity,
   TrendingUp,
   AlertTriangle,
   HelpCircle,
   X,
   Loader2,
-  Lock
+  Lock,
+  Lightbulb,
+  ScrollText
 } from 'lucide-react';
 
 interface QimenViewProps {
@@ -401,20 +403,20 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
              <p className="text-[11px] leading-relaxed opacity-80">{activeAffairConfig?.note}</p>
           </div>
 
-         {/* AI Deep Analysis Section */}
-         <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100 shadow-sm">
+         {/* Deep Analysis Section */}
+         <div className="bg-gradient-to-br from-amber-50 to-stone-50 rounded-xl p-4 border border-amber-100 shadow-sm">
              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-sm font-black text-violet-900 flex items-center gap-2">
-                  <BrainCircuit size={16} className="text-violet-600" />
-                  AI 临机断事
+                <h4 className="text-sm font-black text-stone-800 flex items-center gap-2">
+                  <Compass size={16} className="text-amber-600" />
+                  临机断事深度推演
                 </h4>
-                {!isVip && <Lock size={14} className="text-violet-400" />}
+                {!isVip && <Lock size={14} className="text-stone-400" />}
              </div>
              
              {aiReport ? (
                <div className="space-y-3 animate-fade-in">
                   {/* Overall Result */}
-                  <div className="flex items-center gap-3 bg-white/60 p-2 rounded-lg border border-violet-100">
+                  <div className="flex items-center gap-3 bg-white/60 p-2 rounded-lg border border-stone-200">
                     <div className={`px-3 py-1 rounded-md font-bold text-sm ${
                       aiReport.overall.result === '吉' ? 'bg-red-100 text-red-700' :
                       aiReport.overall.result === '凶' ? 'bg-stone-200 text-stone-700' :
@@ -422,34 +424,34 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
                     }`}>
                       {aiReport.overall.result}
                     </div>
-                    <p className="text-xs font-bold text-violet-900 flex-1">{aiReport.overall.summary}</p>
-                    <div className="text-[10px] font-bold text-violet-400">评分 {aiReport.overall.score}</div>
+                    <p className="text-xs font-bold text-stone-800 flex-1">{aiReport.overall.summary}</p>
+                    <div className="text-[10px] font-bold text-amber-500">评分 {aiReport.overall.score}</div>
                   </div>
 
                   {/* Detailed Analysis */}
                   <div className="grid grid-cols-1 gap-2">
-                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
-                      <p className="text-[10px] font-bold text-violet-500 mb-1">用神分析</p>
+                    <div className="bg-white/60 p-3 rounded-lg border border-stone-200">
+                      <p className="text-[10px] font-bold text-amber-600 mb-1">用神分析</p>
                       <p className="text-xs text-stone-700 leading-relaxed">{aiReport.analysis.focus}</p>
                     </div>
-                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
-                      <p className="text-[10px] font-bold text-violet-500 mb-1">格局与时空</p>
+                    <div className="bg-white/60 p-3 rounded-lg border border-stone-200">
+                      <p className="text-[10px] font-bold text-amber-600 mb-1">格局与时空</p>
                       <p className="text-xs text-stone-700 leading-relaxed">{aiReport.analysis.pattern}</p>
-                      <p className="text-xs text-stone-700 leading-relaxed mt-1 border-t border-violet-100/50 pt-1">{aiReport.analysis.time}</p>
+                      <p className="text-xs text-stone-700 leading-relaxed mt-1 border-t border-stone-100 pt-1">{aiReport.analysis.time}</p>
                     </div>
                   </div>
 
                   {/* Suggestion */}
-                  <div className="bg-violet-600 p-3 rounded-lg text-white shadow-md">
+                  <div className="bg-stone-800 p-3 rounded-lg text-white shadow-md">
                      <p className="text-[10px] font-bold opacity-70 mb-1 flex items-center gap-1">
-                       <Sparkles size={10} /> 决策建议
+                       <Lightbulb size={10} /> 决策建议
                      </p>
                      <p className="text-xs font-bold leading-relaxed">{aiReport.suggestion}</p>
                   </div>
                </div>
              ) : (
                <div>
-                 <p className="text-xs text-violet-700/80 mb-3 leading-relaxed">
+                 <p className="text-xs text-stone-600 mb-3 leading-relaxed">
                    基于当前局象、用神落宫及行业背景，进行深度多维推演。
                    <br/>
                    <span className="text-[10px] opacity-70">需消耗 VIP 权益</span>
@@ -457,10 +459,10 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
                  <button 
                    onClick={handleAiAnalyze}
                    disabled={loadingAi}
-                   className="w-full py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                   className="w-full py-2 bg-stone-800 hover:bg-stone-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
                  >
-                   {loadingAi ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                   {loadingAi ? 'AI 大师推演中...' : '开始深度推演'}
+                   {loadingAi ? <Loader2 size={14} className="animate-spin" /> : <ScrollText size={14} />}
+                   {loadingAi ? '大师推演中...' : '开始深度推演'}
                  </button>
                </div>
              )}
@@ -549,7 +551,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
                                    advice.tone === 'negative' ? 'text-stone-700' :
                                    'text-amber-800'
                                  }`}>
-                                    <Sparkles size={14} className={advice.tone === 'positive' ? 'text-red-500' : 'text-amber-500'} />
+                                    <Star size={14} className={advice.tone === 'positive' ? 'text-red-500' : 'text-amber-500'} />
                                     {advice.title}
                                  </h5>
                                  <div className="flex gap-1">
@@ -864,18 +866,18 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
                onChange={(e) => setCommandInput(e.target.value)}
                onKeyDown={(e) => e.key === 'Enter' && handleSmartCommand()}
                placeholder=""
-               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-9 pr-12 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-gray-300 select-text"
+               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-9 pr-12 text-xs focus:outline-none focus:ring-2 focus:ring-stone-500/20 transition-all placeholder:text-gray-300 select-text"
             />
             <button 
               onClick={handleSmartCommand}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 text-white p-1 rounded-lg hover:bg-indigo-700 transition-colors select-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-stone-800 text-white p-1 rounded-lg hover:bg-stone-700 transition-colors select-none"
             >
-              <Sparkles size={12} />
+              <Star size={12} />
             </button>
           </div>
           {commandFeedback && (
-            <div className="mt-1 text-[10px] text-indigo-600 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
-              <Sparkles size={10} />
+            <div className="mt-1 text-[10px] text-amber-600 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+              <Star size={10} />
               {commandFeedback}
             </div>
           )}

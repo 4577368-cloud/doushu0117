@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LiuYaoResult as ResultType, getYaoText, analyzeHexagram } from '../../services/liuyaoService';
 import { analyzeLiuYaoStructured, LiuYaoAiReport } from '../../services/geminiService';
 import { LiuYaoHexagram } from './LiuYaoHexagram';
-import { Brain, Loader2, Lock, Sparkles, TrendingUp, Briefcase, Heart, Activity, AlertCircle, ScrollText } from 'lucide-react';
+import { BookOpen, Loader2, Lock, Lightbulb, TrendingUp, Briefcase, Heart, Activity, AlertCircle, ScrollText } from 'lucide-react';
 
 interface LiuYaoResultProps {
     result: ResultType;
@@ -94,16 +94,16 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                 )}
             </div>
 
-            {/* AI Deep Analysis Button */}
+            {/* Deep Analysis Button */}
             {!aiReport && (
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-1 rounded-xl border border-indigo-200">
+                <div className="bg-gradient-to-r from-amber-50 to-stone-50 p-1 rounded-xl border border-amber-200/50">
                     <button
                         onClick={handleAiAnalyze}
                         disabled={loadingAi}
                         className={`w-full relative overflow-hidden group py-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-all ${
                             isVip 
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-900/50' 
-                            : 'bg-stone-800 text-stone-400 hover:bg-stone-700'
+                            ? 'bg-gradient-to-r from-stone-800 to-stone-700 hover:from-stone-700 hover:to-stone-600 text-amber-50 shadow-lg shadow-stone-900/20' 
+                            : 'bg-stone-200 text-stone-400 hover:bg-stone-300'
                         }`}
                     >
                         {loadingAi ? (
@@ -113,32 +113,32 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                             </>
                         ) : (
                             <>
-                                {isVip ? <Sparkles size={20} className="text-amber-300" /> : <Lock size={20} />}
-                                <span>AI 深度多维解读</span>
+                                {isVip ? <Lightbulb size={20} className="text-amber-300" /> : <Lock size={20} />}
+                                <span>深度多维解读</span>
                             </>
                         )}
                         {!isVip && (
                             <span className="absolute right-4 text-xs bg-amber-600 text-white px-2 py-0.5 rounded-full">VIP</span>
                         )}
                     </button>
-                    <p className="text-xs text-center text-indigo-300/70 mt-2 mb-1">
+                    <p className="text-xs text-center text-stone-400 mt-2 mb-1">
                         包含：求财 · 事业 · 健康 · 感情 · 趋吉避凶建议
                     </p>
                 </div>
             )}
 
-            {/* AI Report Display */}
+            {/* Report Display */}
             {aiReport && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-4 shadow-lg shadow-indigo-900/20">
-                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-indigo-500/20">
-                            <Brain className="text-indigo-400" size={20} />
-                            <h3 className="font-bold text-indigo-100">大师深度解读</h3>
+                    <div className="bg-white/60 border border-stone-200 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-stone-100">
+                            <BookOpen className="text-stone-600" size={20} />
+                            <h3 className="font-bold text-stone-800">大师深度解读</h3>
                         </div>
                         
-                        <div className="mb-4 bg-indigo-900/30 p-3 rounded-lg border border-indigo-500/10">
-                            <div className="text-xs text-indigo-300 mb-1 font-bold">核心断语</div>
-                            <div className="text-md text-indigo-50 leading-relaxed font-medium">
+                        <div className="mb-4 bg-stone-50 p-3 rounded-lg border border-stone-100">
+                            <div className="text-xs text-stone-500 mb-1 font-bold">核心断语</div>
+                            <div className="text-md text-stone-800 leading-relaxed font-medium">
                                 {aiReport.summary}
                             </div>
                         </div>
@@ -148,41 +148,41 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                                 icon={<TrendingUp size={16} />} 
                                 title="求财运势" 
                                 content={aiReport.aspects.wealth} 
-                                color="text-emerald-400"
-                                bg="bg-emerald-900/20"
-                                border="border-emerald-500/20"
+                                color="text-emerald-700"
+                                bg="bg-emerald-50"
+                                border="border-emerald-100"
                             />
                             <ReportItem 
                                 icon={<Briefcase size={16} />} 
                                 title="事业/办事" 
                                 content={aiReport.aspects.career} 
-                                color="text-blue-400"
-                                bg="bg-blue-900/20"
-                                border="border-blue-500/20"
+                                color="text-blue-700"
+                                bg="bg-blue-50"
+                                border="border-blue-100"
                             />
                             <ReportItem 
                                 icon={<Heart size={16} />} 
                                 title="感情姻缘" 
                                 content={aiReport.aspects.love} 
-                                color="text-rose-400"
-                                bg="bg-rose-900/20"
-                                border="border-rose-500/20"
+                                color="text-rose-700"
+                                bg="bg-rose-50"
+                                border="border-rose-100"
                             />
                             <ReportItem 
                                 icon={<Activity size={16} />} 
                                 title="健康平安" 
                                 content={aiReport.aspects.health} 
-                                color="text-amber-400"
-                                bg="bg-amber-900/20"
-                                border="border-amber-500/20"
+                                color="text-amber-700"
+                                bg="bg-amber-50"
+                                border="border-amber-100"
                             />
                              <ReportItem 
                                 icon={<AlertCircle size={16} />} 
                                 title="趋吉避凶" 
                                 content={aiReport.aspects.suggestion} 
-                                color="text-purple-400"
-                                bg="bg-purple-900/20"
-                                border="border-purple-500/20"
+                                color="text-orange-700"
+                                bg="bg-orange-50"
+                                border="border-orange-100"
                             />
                         </div>
                     </div>
@@ -295,7 +295,7 @@ const ReportItem: React.FC<{
             {icon}
             <span>{title}</span>
         </div>
-        <div className="text-sm text-stone-300 leading-relaxed">
+        <div className="text-sm text-stone-700 leading-relaxed">
             {content}
         </div>
     </div>
