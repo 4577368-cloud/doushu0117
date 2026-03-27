@@ -2,6 +2,43 @@ import { UserProfile, HistoryItem } from '../types';
 import { supabase, supabaseReady } from './supabase';
 
 const LEGACY_KEY = 'bazi_archives';
+const SYNC_META_KEY = 'bazi_sync_meta';
+
+type SyncMeta = {
+  lastSyncAt: number | null;
+  lastError: string | null;
+};
+
+const readSyncMeta = (): SyncMeta => {
+  try {
+    const raw = localStorage.getItem(SYNC_META_KEY);
+    if (!raw) return { lastSyncAt: null, lastError: null };
+    const parsed = JSON.parse(raw);
+    return {
+      lastSyncAt: typeof parsed?.lastSyncAt === 'number' ? parsed.lastSyncAt : null,
+      lastError: typeof parsed?.lastError === 'string' ? parsed.lastError : null
+    };
+  } catch {
+    return { lastSyncAt: null, lastError: null };
+  }
+};
+
+const writeSyncMeta = (patch: Partial<SyncMeta>) => {
+  try {
+    const current = readSyncMeta();
+    const next: SyncMeta = {
+      lastSyncAt: patch.lastSyncAt === undefined ? current.lastSyncAt : patch.lastSyncAt,
+      lastError: patch.lastError === undefined ? current.lastError : patch.lastError
+    };
+    localStorage.setItem(SYNC_META_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('archives-sync-meta-updated', { detail: next }));
+  } catch {}
+};
+
+export const getSyncMeta = (): SyncMeta => {
+  if (typeof window === 'undefined') return { lastSyncAt: null, lastError: null };
+  return readSyncMeta();
+};
 const getStorageKey = async (userId?: string): Promise<string> => {
   try {
     if (userId) return `bazi_archives:${userId}`;
@@ -91,6 +128,7 @@ export const getArchives = async (userId?: string): Promise<UserProfile[]> => {
 export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile[]> => {
   if (!userId) {
     console.warn("⚠️ [Sync] 无效的 UserId，取消同步");
+    writeSyncMeta({ lastError: '无效用户，已取消同步' });
     return getArchives(userId);
   }
 
@@ -104,6 +142,7 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
 
     if (error) {
       console.error("❌ [Sync] Supabase 查询错误:", error);
+      writeSyncMeta({ lastError: error.message || '云端查询失败' });
       return getArchives(userId);
     }
 
@@ -178,11 +217,14 @@ export const syncArchivesFromCloud = async (userId: string): Promise<UserProfile
       const finalArchives = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       localStorage.setItem(key, JSON.stringify(finalArchives));
+      writeSyncMeta({ lastSyncAt: Date.now(), lastError: null });
       return finalArchives;
     }
+    writeSyncMeta({ lastError: '云端返回空数据' });
     return getArchives(userId);
   } catch (err: any) {
     console.error("❌ [Sync] 失败:", err.message);
+    writeSyncMeta({ lastError: err?.message || '同步异常' });
     return getArchives(userId);
   }
 };
@@ -287,7 +329,12 @@ export const saveArchive = async (profile: UserProfile): Promise<UserProfile[]> 
     }
 
     const { error } = await supabase.from('archives').upsert(basePayload);
-    if (error) console.error("Cloud save failed:", error);
+    if (error) {
+      console.error("Cloud save failed:", error);
+      writeSyncMeta({ lastError: error.message || '云端保存失败' });
+    } else {
+      writeSyncMeta({ lastSyncAt: Date.now(), lastError: null });
+    }
   }
 
   return archives;

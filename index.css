@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-stone-100 text-stone-900;
+  }
+}
+
+/* Custom styles migrated from index.html */
+.serif {
+  font-family: 'Noto Serif SC', serif;
+}
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

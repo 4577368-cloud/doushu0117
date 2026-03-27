@@ -169,16 +169,39 @@ const App: React.FC = () => {
     // A. 无论如何，先加载本地缓存，保证用户立马能看到东西
     getArchives().then(data => setArchives(data));
 
-    // B. 处理登录同步
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        if (session?.user) {
-            // 登录了，再去拉取云端最新数据
-            syncArchivesFromCloud(session.user.id).then(data => {
-                if (data.length > 0) setArchives(data); 
-            });
+    // B. 处理登录同步（启动时做一次更稳妥的恢复）
+    const hydrateAuthAndSync = async () => {
+        try {
+            const { data: { session: initialSession } } = await supabase.auth.getSession();
+            setSession(initialSession);
+            if (!initialSession?.user) return;
+
+            // 启动时刷新一次会话，尽量避免“看起来已登录但状态过期”导致拉取失败
+            let currentSession = initialSession;
+            try {
+                const { data } = await supabase.auth.refreshSession();
+                if (data.session) {
+                    currentSession = data.session;
+                    setSession(data.session);
+                }
+            } catch (e) {
+                console.warn('refreshSession on startup failed:', e);
+            }
+
+            // 启动时也尝试一次访客数据合并（有去重，不会重复写）
+            try {
+                await mergeGuestArchives(currentSession.user.id);
+            } catch (e) {
+                console.error('Merge guest archives on startup failed:', e);
+            }
+
+            const data = await syncArchivesFromCloud(currentSession.user.id);
+            if (data) setArchives(data);
+        } catch (e) {
+            console.error('Startup auth/sync failed:', e);
         }
-    });
+    };
+    hydrateAuthAndSync();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         setSession(session);
@@ -194,11 +217,13 @@ const App: React.FC = () => {
                     }
                 }
 
-                // 2. 合并访客数据
-                try {
-                    await mergeGuestArchives(currentSession.user.id);
-                } catch (e) {
-                    console.error('Merge guest archives failed:', e);
+                // 2. 登录事件时合并访客数据（TOKEN_REFRESHED 不重复做）
+                if (event === 'SIGNED_IN') {
+                    try {
+                        await mergeGuestArchives(currentSession.user.id);
+                    } catch (e) {
+                        console.error('Merge guest archives failed:', e);
+                    }
                 }
                 
                 // 3. 同步档案 (使用最新的 session 上下文)

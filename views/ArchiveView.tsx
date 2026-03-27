@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Trash2, Search, User, Clock, ChevronRight, Calendar, Cloud, RefreshCw, LogOut, Crown, Edit3, X, Save, Fingerprint, Plus, Tag, Layers, Loader2, ClipboardCopy, ShieldCheck } from 'lucide-react';
 import { UserProfile, HistoryItem } from '../types';
-import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive } from '../services/storageService';
+import { deleteArchive, syncArchivesFromCloud, setArchiveAsSelf, updateArchive, getSyncMeta } from '../services/storageService';
 import { uploadAvatar, supabase } from '../services/supabase';
 import { PolicyModal } from '../components/modals/PolicyModals';
 
@@ -249,6 +249,23 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     const [reportToView, setReportToView] = useState<HistoryItem | null>(null);
 
     const [showPolicyModal, setShowPolicyModal] = useState<'user'|'privacy'|null>(null);
+    const [syncMeta, setSyncMeta] = useState(getSyncMeta());
+
+    useEffect(() => {
+        const refreshMeta = () => setSyncMeta(getSyncMeta());
+        refreshMeta();
+        window.addEventListener('archives-sync-meta-updated', refreshMeta as EventListener);
+        return () => window.removeEventListener('archives-sync-meta-updated', refreshMeta as EventListener);
+    }, []);
+
+    const formatSyncTime = (ts: number | null) => {
+        if (!ts) return '未同步';
+        try {
+            return new Date(ts).toLocaleString();
+        } catch {
+            return '未同步';
+        }
+    };
 
     return (
         <div className="h-full flex flex-col bg-[#f5f5f4] relative">
@@ -305,6 +322,13 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                     </div>
                 ) : (
                     <button onClick={onLogin} className="shrink-0 text-[10px] sm:text-xs bg-amber-500 text-[#1c1917] px-3 sm:px-4 py-1.5 rounded-full font-bold shadow-md hover:bg-amber-400 active:scale-95 transition-all whitespace-nowrap">登录 / 注册</button>
+                )}
+            </div>
+            <div className="mt-2 px-1 text-[10px] sm:text-[11px] text-stone-500">
+                {syncMeta.lastError ? (
+                    <span className="text-rose-400">同步异常：{syncMeta.lastError}</span>
+                ) : (
+                    <span>上次同步：{formatSyncTime(syncMeta.lastSyncAt)}</span>
                 )}
             </div>
             
