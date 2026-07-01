@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, MessageCircle, Crown, Activity, Sparkles, Compass, CheckCircle, Lock as LockIcon, KeyRound, LayoutGrid } from 'lucide-react';
-import { supabase, safeSignOut, supabaseReady, safeAuth } from './services/supabase';
+import { RotateCcw, Crown, Activity, Sparkles, Compass, CheckCircle, Lock as LockIcon, KeyRound, LayoutGrid, MessageCircle } from 'lucide-react';
+import { supabase, safeSignOut, safeAuth } from './services/supabase';
 import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
 import { calculateBazi } from './services/baziService';
@@ -13,7 +13,7 @@ import {
   getVipStatus, 
   activateVipOnCloud, 
   syncArchivesFromCloud,
-  mergeGuestArchives // Add this
+  mergeGuestArchives
 } from './services/storageService';
 
 import { BottomNav } from './components/Layout';
@@ -26,9 +26,11 @@ import { QuotaLimitModal } from './components/modals/QuotaLimitModal';
 
 import { HomeView } from './views/HomeView';
 import { ArchiveView } from './views/ArchiveView';
+import { BaziInputView } from './views/BaziInputView';
 import { BaziChartView } from './views/BaziChartView';
 import { AiChatView } from './views/AiChatView';
 import { LiuYaoView } from './views/LiuYaoView';
+import { ProfileView } from './views/ProfileView';
 import ZiweiView from './components/ZiweiView'; 
 import QimenView from './components/QimenView';
 
@@ -106,11 +108,68 @@ const WelcomeModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     </div>
 );
 
+export type AnalysisType = 'bazi' | 'ziwei' | 'qimen';
+
+const AnalysisSwitcher: React.FC<{
+  current: AnalysisType;
+  onChange: (type: AnalysisType) => void;
+  isVip?: boolean;
+}> = ({ current, onChange }) => {
+  const items: { id: AnalysisType; label: string }[] = [
+    { id: 'bazi', label: '八字' },
+    { id: 'ziwei', label: '紫微' },
+    { id: 'qimen', label: '奇门' },
+  ];
+  return (
+    <div className="bg-white border-b border-stone-200 px-4 py-2 shrink-0">
+      <div className="max-w-md mx-auto flex gap-2">
+        {items.map(item => (
+          <button
+            key={item.id}
+            onClick={() => onChange(item.id)}
+            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+              current === item.id
+                ? 'bg-stone-900 text-amber-400 shadow-md'
+                : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const HASH_TO_TAB: Record<string, AppTab> = {
+  '#home': AppTab.HOME,
+  '#chart': AppTab.CHART,
+  '#chat': AppTab.CHAT,
+  '#archive': AppTab.ARCHIVE,
+  '#profile': AppTab.PROFILE,
+  '#liuyao': AppTab.LIUYAO,
+};
+
+const TAB_TO_HASH: Record<AppTab, string> = {
+  [AppTab.HOME]: '#home',
+  [AppTab.CHART]: '#chart',
+  [AppTab.CHAT]: '#chat',
+  [AppTab.ARCHIVE]: '#archive',
+  [AppTab.PROFILE]: '#profile',
+  [AppTab.ZIWEI]: '#chart',
+  [AppTab.QIMEN]: '#chart',
+  [AppTab.LIUYAO]: '#liuyao',
+};
+
 const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.ARCHIVE);
+  const [currentTab, setCurrentTab] = useState<AppTab>(() => {
+    const hash = window.location.hash || '#home';
+    return HASH_TO_TAB[hash] || AppTab.HOME;
+  });
   const [currentProfile, setCurrentProfile] = useState<UserProfile | null>(null);
   const [baziChart, setBaziChart] = useState<BaziChart | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
+  const [targetAnalysis, setTargetAnalysis] = useState<AnalysisType | null>(null);
   
   const [archives, setArchives] = useState<UserProfile[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
@@ -118,7 +177,6 @@ const App: React.FC = () => {
   
   const [session, setSession] = useState<any>(null);
   const [isVip, setIsVip] = useState(false);
-  const [hideChrome, setHideChrome] = useState(false);
   
   const [showVipModal, setShowVipModal] = useState(false);
   const [showPayResultModal, setShowPayResultModal] = useState(false);
@@ -147,10 +205,26 @@ const App: React.FC = () => {
       } catch { setGuestUsageCount(0); }
   };
 
+  // --- hash 路由同步 ---
+  useEffect(() => {
+    const hash = TAB_TO_HASH[currentTab] || '#home';
+    if (window.location.hash !== hash) {
+      window.history.replaceState(null, '', hash);
+    }
+  }, [currentTab]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const tab = HASH_TO_TAB[window.location.hash] || AppTab.HOME;
+      setCurrentTab(tab);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
   // --- 初始化数据加载与同步 ---
   useEffect(() => {
     updateGuestUsage();
-    // 清理过期的访客排盘记录 (保留7天)
     try {
         const today = new Date();
         Object.keys(localStorage).forEach(key => {
@@ -159,24 +233,19 @@ const App: React.FC = () => {
                 const date = new Date(dateStr);
                 const diffTime = today.getTime() - date.getTime();
                 const diffDays = diffTime / (1000 * 3600 * 24);
-                if (diffDays > 7) {
-                    localStorage.removeItem(key);
-                }
+                if (diffDays > 7) localStorage.removeItem(key);
             }
         });
     } catch (e) {}
 
-    // A. 无论如何，先加载本地缓存，保证用户立马能看到东西
     getArchives().then(data => setArchives(data));
 
-    // B. 处理登录同步（启动时做一次更稳妥的恢复）
     const hydrateAuthAndSync = async () => {
         try {
             const { data: { session: initialSession } } = await supabase.auth.getSession();
             setSession(initialSession);
             if (!initialSession?.user) return;
 
-            // 启动时刷新一次会话，尽量避免“看起来已登录但状态过期”导致拉取失败
             let currentSession = initialSession;
             try {
                 const { data } = await supabase.auth.refreshSession();
@@ -184,22 +253,13 @@ const App: React.FC = () => {
                     currentSession = data.session;
                     setSession(data.session);
                 }
-            } catch (e) {
-                console.warn('refreshSession on startup failed:', e);
-            }
+            } catch (e) { console.warn('refreshSession on startup failed:', e); }
 
-            // 启动时也尝试一次访客数据合并（有去重，不会重复写）
-            try {
-                await mergeGuestArchives(currentSession.user.id);
-            } catch (e) {
-                console.error('Merge guest archives on startup failed:', e);
-            }
+            try { await mergeGuestArchives(currentSession.user.id); } catch (e) { console.error('Merge guest archives on startup failed:', e); }
 
             const data = await syncArchivesFromCloud(currentSession.user.id);
             if (data) setArchives(data);
-        } catch (e) {
-            console.error('Startup auth/sync failed:', e);
-        }
+        } catch (e) { console.error('Startup auth/sync failed:', e); }
     };
     hydrateAuthAndSync();
 
@@ -207,7 +267,6 @@ const App: React.FC = () => {
         setSession(session);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
-                // 1. 在登录时强制刷新 Session，确保获取最新的 VIP 状态
                 let currentSession = session;
                 if (event === 'SIGNED_IN') {
                     const { data } = await supabase.auth.refreshSession();
@@ -216,20 +275,10 @@ const App: React.FC = () => {
                         setSession(data.session);
                     }
                 }
-
-                // 2. 登录事件时合并访客数据（TOKEN_REFRESHED 不重复做）
                 if (event === 'SIGNED_IN') {
-                    try {
-                        await mergeGuestArchives(currentSession.user.id);
-                    } catch (e) {
-                        console.error('Merge guest archives failed:', e);
-                    }
+                    try { await mergeGuestArchives(currentSession.user.id); } catch (e) { console.error('Merge guest archives failed:', e); }
                 }
-                
-                // 3. 同步档案 (使用最新的 session 上下文)
-                syncArchivesFromCloud(currentSession.user.id).then(data => {
-                    if (data) setArchives(data); 
-                });
+                syncArchivesFromCloud(currentSession.user.id).then(data => { if (data) setArchives(data); });
 
                 if (event === 'SIGNED_IN' && window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
                      setShowWelcomeModal(true);
@@ -237,32 +286,24 @@ const App: React.FC = () => {
                 }
             }
         }
-        if (event === 'PASSWORD_RECOVERY') {
-            setShowPasswordResetModal(true);
-        }
+        if (event === 'PASSWORD_RECOVERY') setShowPasswordResetModal(true);
         if (event === 'SIGNED_OUT') {
             setArchives([]); 
             setIsVip(false); 
             setBaziChart(null); 
             setCurrentProfile(null);
-            setCurrentTab(AppTab.ARCHIVE);
+            setCurrentTab(AppTab.HOME);
             try { localStorage.removeItem('is_vip_user'); localStorage.removeItem('bazi_archives:guest'); } catch {}
         }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // 显示支付结果页：当 URL 携带 out_trade_no/trade_no 时
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const outTradeNo = sp.get('out_trade_no');
     const tradeNo = sp.get('trade_no');
-    
-    if (outTradeNo || tradeNo) {
-      setShowPayResultModal(true);
-    }
-    
-    // 乐观激活：如果两者都有，说明支付成功返回，直接给予 VIP 权限
+    if (outTradeNo || tradeNo) setShowPayResultModal(true);
     if (outTradeNo && tradeNo) {
         setIsVip(true);
         try { localStorage.setItem('is_vip_user', 'true'); } catch {}
@@ -270,11 +311,9 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // VIP 状态加载
   useEffect(() => {
     const loadData = async () => {
         if (session) {
-            // Pass session explicitly to avoid async race condition
             const vip = await getVipStatus(session);
             console.log('Set VIP status to:', vip);
             setIsVip(vip);
@@ -284,46 +323,28 @@ const App: React.FC = () => {
   }, [session]);
 
   // --- 核心业务逻辑 ---
-
-  // 排盘并自动保存
   const handleGenerate = (profile: UserProfile) => {
-    // --- 1. 访客排盘限制检查 ---
     if (!isVip) {
         try {
-            // 使用当地时间日期作为 Key，避免时区问题导致日期偏差
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
-            
             const key = `guest_limit_${todayStr}`;
             const stored = localStorage.getItem(key);
             let usage = stored ? JSON.parse(stored) : { count: 0, hashes: [] };
-            
-            // 生成排盘参数哈希 (用于识别是否重复查看)
-            // 只取核心参数，忽略 ID 或 备注
             const profileHash = JSON.stringify({
-                n: profile.name,
-                g: profile.gender,
-                d: profile.birthDate,
-                t: profile.birthTime,
-                c: profile.city || ''
+                n: profile.name, g: profile.gender, d: profile.birthDate,
+                t: profile.birthTime, c: profile.city || ''
             });
-
-            // 如果 hashes 数组不存在 (旧数据兼容)，初始化它
             if (!Array.isArray(usage.hashes)) usage.hashes = [];
-
             if (!usage.hashes.includes(profileHash)) {
-                // 如果不是重复查看，检查次数
                 if (usage.count >= 3) {
                     setShowLimitHint(true);
-                    setTimeout(() => {
-                        setShowVipModal(true);
-                    }, 800); // 0.8秒后弹出VIP
+                    setTimeout(() => setShowVipModal(true), 800);
                     return;
                 }
-                // 没超限，增加计数并保存哈希
                 usage.count += 1;
                 usage.hashes.push(profileHash);
                 localStorage.setItem(key, JSON.stringify(usage));
@@ -340,33 +361,28 @@ const App: React.FC = () => {
         const newBazi = calculateBazi({ ...profile, birthDate: safeDate });
         setCurrentProfile(profile); 
         setBaziChart(newBazi); 
-        setCurrentTab(AppTab.CHART); 
         setAiReport(null); 
         
-        // 🔥🔥🔥 核心修改：无条件保存！
-        // 无论是否登录，都调用 saveArchive。
-        // service层会自动处理：访客->存本地；登录->存本地+存云端
+        // 输入完成后按目标流派分流，未指定则默认八字
+        const nextTab = targetAnalysis === 'ziwei' ? AppTab.ZIWEI 
+                      : targetAnalysis === 'qimen' ? AppTab.QIMEN 
+                      : AppTab.CHART;
+        setCurrentTab(nextTab);
+        
         setIsGlobalSaving(true);
         saveArchive(profile).then(updatedList => {
               setArchives(updatedList);
-              // 更新当前 profile 的 ID (如果是新生成的)
               const saved = updatedList.find(p => p.birthDate === profile.birthDate && p.birthTime === profile.birthTime && p.gender === profile.gender);
               if (saved) setCurrentProfile(saved);
         }).catch(err => console.error(err)).finally(() => setIsGlobalSaving(false));
-        
     } catch (e) { 
         alert("排盘失败，请检查出生日期格式"); 
     }
   };
 
-  // 手动保存 (通常用于更新备注或标签)
   const handleManualSave = async () => {
       if (isGlobalSaving) return;
       if (!currentProfile) return alert('无数据');
-      // 如果未登录，依然允许保存到本地，但可以提示一下
-      if (!session) {
-          // 这里不做拦截，允许访客保存到本地
-      }
       setIsGlobalSaving(true);
       try {
           const updatedList = await saveArchiveFast(currentProfile);
@@ -387,7 +403,7 @@ const App: React.FC = () => {
       if (success) { 
           setIsVip(true); 
           setShowVipModal(false);
-          alert("🎉 VIP 激活成功！"); 
+          alert("VIP 激活成功！"); 
       }
   };
 
@@ -409,34 +425,74 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    setArchives([]); 
+    setIsVip(false); 
+    setBaziChart(null); 
+    setCurrentProfile(null); 
+    setCurrentTab(AppTab.HOME); 
+    setSession(null); 
+    try { 
+        localStorage.removeItem('bazi_archives:guest'); 
+        localStorage.removeItem('is_vip_user'); 
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) localStorage.removeItem(key);
+        });
+    } catch {} 
+    try { await safeSignOut(); } catch (e) { console.error('SignOut warning:', e); }
+  };
+
   const renderContent = () => {
       switch (currentTab) {
           case AppTab.HOME:
-              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} guestUsage={isVip ? undefined : { count: guestUsageCount, limit: 3 }} />;
+              return (
+                  <HomeView
+                      onSelectCapability={(type) => {
+                          if (type === 'bazi' || type === 'ziwei' || type === 'qimen') {
+                              setTargetAnalysis(type);
+                              setCurrentTab(AppTab.CHART);
+                          }
+                      }}
+                      onTabChange={setCurrentTab}
+                      archives={archives}
+                      isVip={isVip}
+                      onVipClick={() => setShowVipModal(true)}
+                      session={session}
+                      onShowLogin={() => setShowAuthModal(true)}
+                  />
+              );
           
           case AppTab.CHART:
               if (!baziChart || !currentProfile) {
-                  return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} guestUsage={isVip ? undefined : { count: guestUsageCount, limit: 3 }} />;
+                  return (
+                      <BaziInputView 
+                          onGenerate={handleGenerate} 
+                          archives={archives} 
+                          guestUsage={isVip ? undefined : { count: guestUsageCount, limit: 3 }}
+                          onOpenArchive={() => setCurrentTab(AppTab.ARCHIVE)}
+                          targetAnalysis={targetAnalysis}
+                      />
+                  );
               }
               return (
                   <ErrorBoundary>
                       <BaziChartView 
                           profile={currentProfile} 
-                        chart={baziChart} 
-                        onShowModal={setModalData} 
-                        onSaveReport={async (r:string, t:'bazi'|'ziwei')=> { 
-                            const updated = await saveAiReportToArchive(currentProfile.id, r, t); 
-                            setArchives(updated); 
-                        }} 
-                        onAiAnalysis={handleAiAnalysis} 
-                        loadingAi={loadingAi} 
-                        aiReport={aiReport} 
-                        isVip={isVip} 
-                        onVipClick={() => setShowVipModal(true)}
-                        onManualSave={handleManualSave} 
-                        isSaving={isGlobalSaving} 
-                        archives={archives}
-                    />
+                          chart={baziChart} 
+                          onShowModal={setModalData} 
+                          onSaveReport={async (r:string, t:'bazi'|'ziwei')=> { 
+                              const updated = await saveAiReportToArchive(currentProfile.id, r, t); 
+                              setArchives(updated); 
+                          }} 
+                          onAiAnalysis={handleAiAnalysis} 
+                          loadingAi={loadingAi} 
+                          aiReport={aiReport} 
+                          isVip={isVip} 
+                          onVipClick={() => setShowVipModal(true)}
+                          onManualSave={handleManualSave} 
+                          isSaving={isGlobalSaving} 
+                          archives={archives}
+                      />
                   </ErrorBoundary>
               );
           
@@ -459,7 +515,6 @@ const App: React.FC = () => {
                       </button>
                   </div>
               );
-              // 传递 isVip 给 AiChatView
               return (
                   <ErrorBoundary>
                       <AiChatView chart={baziChart} profile={currentProfile} isVip={isVip} onVipClick={() => setShowVipModal(true)} />
@@ -471,7 +526,7 @@ const App: React.FC = () => {
                   <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
                       <div className="bg-stone-200 p-4 rounded-full"><Sparkles size={48} className="text-stone-300" /></div>
                       <h3 className="font-bold text-lg text-stone-700">紫微斗数</h3>
-                      <p className="text-sm text-stone-500 font-medium">请先在【首页】输入生辰信息，<br/>即可生成紫微斗数命盘。</p>
+                      <p className="text-sm text-stone-500 font-medium">请先在【排盘】输入生辰信息，<br/>即可生成紫微斗数命盘。</p>
                       <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
                           <Compass size={18} /> 立即排盘
                       </button>
@@ -494,7 +549,7 @@ const App: React.FC = () => {
                   <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
                       <div className="bg-stone-200 p-4 rounded-full"><LayoutGrid size={48} className="text-stone-300" /></div>
                       <h3 className="font-bold text-lg text-stone-700">奇门遁甲</h3>
-                      <p className="text-sm text-stone-500 font-medium">请先在【首页】输入生辰信息，<br/>即可生成奇门遁甲排盘。</p>
+                      <p className="text-sm text-stone-500 font-medium">请先在【排盘】输入生辰信息，<br/>即可生成奇门遁甲排盘。</p>
                       <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
                           <Compass size={18} /> 立即排盘
                       </button>
@@ -518,63 +573,98 @@ const App: React.FC = () => {
                     archives={archives} 
                     setArchives={setArchives} 
                     onSelect={handleGenerate} 
-                    isVip={isVip} 
-                    onVipClick={() => setShowVipModal(true)} 
-                    session={session} 
-                    onLogout={async () => { 
-                        // 1. 立即清理本地状态，给用户即时反馈
-                        setArchives([]); 
-                        setIsVip(false); 
-                        setBaziChart(null); 
-                        setCurrentProfile(null); 
-                        setCurrentTab(AppTab.ARCHIVE); 
-                        setSession(null); 
-                        try { 
-                            localStorage.removeItem('bazi_archives:guest'); 
-                            localStorage.removeItem('is_vip_user'); 
-                            // 清理 Supabase 认证 token
-                            Object.keys(localStorage).forEach(key => {
-                                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                                    localStorage.removeItem(key);
-                                }
-                            });
-                        } catch {} 
-
-                        // 2. 后台尝试退出 Supabase (不阻塞 UI)
-                        try { await safeSignOut(); } catch (e) { console.error('SignOut warning:', e); }
-                    }} 
-                    onLogin={() => setShowAuthModal(true)}
                     onNewChart={() => { setBaziChart(null); setCurrentTab(AppTab.CHART); }}
-                    onLiuYao={() => setCurrentTab(AppTab.LIUYAO)}
                 />
+              );
+
+          case AppTab.PROFILE:
+              return (
+                  <ProfileView
+                      session={session}
+                      isVip={isVip}
+                      archivesCount={archives.length}
+                      onVipClick={() => setShowVipModal(true)}
+                      onLogin={() => setShowAuthModal(true)}
+                      onLogout={handleLogout}
+                  />
               );
 
           case AppTab.LIUYAO:
               return (
                   <LiuYaoView 
-                      onBack={() => setCurrentTab(AppTab.ARCHIVE)}
+                      onBack={() => setCurrentTab(AppTab.HOME)}
                       isVip={isVip}
                       onVipClick={() => setShowVipModal(true)}
                   />
               );
           
           default:
-              return <HomeView onGenerate={handleGenerate} archives={archives} onChromeHiddenChange={setHideChrome} />;
+              return (
+                  <HomeView
+                      onSelectCapability={(type) => {
+                          if (type === 'bazi' || type === 'ziwei' || type === 'qimen') {
+                              setTargetAnalysis(type);
+                              setCurrentTab(AppTab.CHART);
+                          }
+                      }}
+                      onTabChange={setCurrentTab}
+                      archives={archives}
+                      isVip={isVip}
+                      onVipClick={() => setShowVipModal(true)}
+                      session={session}
+                      onShowLogin={() => setShowAuthModal(true)}
+                  />
+              );
       }
   };
 
+  const getHeaderTitle = () => {
+      switch (currentTab) {
+          case AppTab.HOME: return '玄枢命理';
+          case AppTab.CHART: return baziChart && currentProfile ? currentProfile.name : '八字排盘';
+          case AppTab.ARCHIVE: return '历史档案';
+          case AppTab.PROFILE: return '我的';
+          case AppTab.ZIWEI: return '紫微斗数';
+          case AppTab.QIMEN: return '奇门遁甲';
+          case AppTab.CHAT: return 'AI 命理对话';
+          case AppTab.LIUYAO: return '六爻卜卦';
+          default: return '玄枢命理';
+      }
+  };
+
+  const currentAnalysisType: AnalysisType = currentTab === AppTab.ZIWEI ? 'ziwei' : currentTab === AppTab.QIMEN ? 'qimen' : 'bazi';
+  const showAnalysisSwitcher = currentProfile && (currentTab === AppTab.CHART || currentTab === AppTab.ZIWEI || currentTab === AppTab.QIMEN);
+
   return (
     <div className={`flex flex-col h-[100dvh] overflow-hidden text-stone-950 font-sans transition-colors duration-700 ${isVip ? 'bg-[#181816]' : 'bg-[#f5f5f4]'}`}>
-      {!hideChrome && (
-        <AppHeader 
-            title={(currentTab === AppTab.CHART && !baziChart) ? '玄枢命理' : currentProfile?.name || '排盘'} 
-            rightAction={(!((currentTab === AppTab.CHART && !baziChart)) && currentProfile) && (<button onClick={()=>{setCurrentProfile(null);setBaziChart(null);setCurrentTab(AppTab.CHART);setAiReport(null);}} className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} title="重新排盘"><RotateCcw size={18} /></button>)} 
-            isVip={isVip} 
-            guestUsage={{ count: guestUsageCount, limit: 3 }}
-        />
+      {currentTab !== AppTab.HOME && (
+          <AppHeader 
+              title={getHeaderTitle()} 
+              rightAction={(currentTab === AppTab.CHART && baziChart && currentProfile) ? (
+                  <button 
+                      onClick={()=>{setCurrentProfile(null); setBaziChart(null); setAiReport(null);}} 
+                      className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} 
+                      title="重新排盘"
+                  >
+                      <RotateCcw size={18} />
+                  </button>
+              ) : undefined} 
+              isVip={isVip} 
+              guestUsage={{ count: guestUsageCount, limit: 3 }}
+          />
+      )}
+      {showAnalysisSwitcher && (
+          <AnalysisSwitcher
+              current={currentAnalysisType}
+              onChange={(type) => {
+                  setTargetAnalysis(type);
+                  setCurrentTab(type === 'ziwei' ? AppTab.ZIWEI : type === 'qimen' ? AppTab.QIMEN : AppTab.CHART);
+              }}
+              isVip={isVip}
+          />
       )}
       <div className="flex-1 overflow-hidden relative">{renderContent()}</div>
-      {!hideChrome && <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />}
+      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
       {modalData && <DetailModal data={modalData} chart={baziChart} onClose={() => setModalData(null)} />}
       {showVipModal && <VipActivationModal onClose={() => setShowVipModal(false)} onActivate={handleActivateVip} />}
       {showPayResultModal && <PayResultModal onClose={() => { setShowPayResultModal(false); try { window.history.replaceState(null, '', window.location.pathname); } catch {} }} />}
@@ -587,9 +677,6 @@ const App: React.FC = () => {
               <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-md" onClick={() => setShowAuthModal(false)} />
               <div className="relative z-10 animate-in zoom-in-95 duration-200">
                   <Auth onLoginSuccess={() => { setShowAuthModal(false); }} />
-                  <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-600">
-                      {/* Close button handled by Auth internal UI or backdrop */}
-                  </button>
               </div>
           </div>
       )}

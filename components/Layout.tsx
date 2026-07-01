@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, MessageCircle, User, ScrollText, MoonStar, Grid3x3 } from 'lucide-react';
+import { Home, ScrollText, User, Settings, MessageCircle } from 'lucide-react';
 import { AppTab } from '../types';
 
 interface BottomNavProps {
@@ -8,25 +8,21 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange }) => {
-  // 🔥 新的 5 项导航结构
   const navItems = [
-    { id: AppTab.CHART, label: '八字', icon: ScrollText },
-    { id: AppTab.ZIWEI, label: '紫微', icon: MoonStar },
-    { id: AppTab.CHAT, label: '对话', icon: MessageCircle }, // C位
-    { id: AppTab.QIMEN, label: '奇门', icon: Grid3x3 },
-    { id: AppTab.ARCHIVE, label: '我的', icon: User },
+    { id: AppTab.HOME, label: '首页', icon: Home },
+    { id: AppTab.CHART, label: '排盘', icon: ScrollText },
+    { id: AppTab.CHAT, label: 'AI对话', icon: MessageCircle },
+    { id: AppTab.ARCHIVE, label: '档案', icon: User },
+    { id: AppTab.PROFILE, label: '我的', icon: Settings },
   ];
 
   return (
     <div className="bg-white border-t border-stone-200 flex items-start justify-around px-2 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] relative z-50 select-none">
-      {navItems.map((item, idx) => {
+      {navItems.map((item) => {
         const isActive = currentTab === item.id;
-        // 如果是中间的“对话”按钮，可以给它特殊的样式（可选，这里保持统一风格但加重颜色）
-        const isCenter = item.id === AppTab.CHAT;
-        
         return (
           <button
-            key={`${item.id}-${idx}`}
+            key={item.id}
             onClick={() => onTabChange(item.id)}
             className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 ${
               isActive 
@@ -34,14 +30,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
                 : 'text-stone-400 hover:text-stone-600'
             }`}
           >
-            <div className={`p-1.5 rounded-2xl transition-all ${
-                isActive ? 'bg-stone-100' : 'bg-transparent'
-            } ${isCenter && isActive ? 'bg-indigo-50 text-indigo-600' : ''}`}>
-                <item.icon 
-                    size={isActive ? 24 : 22} 
-                    strokeWidth={isActive ? 2.5 : 2}
-                    className={isCenter && isActive ? 'text-indigo-600' : ''}
-                />
+            <div className={`p-1.5 rounded-2xl transition-all ${isActive ? 'bg-stone-100' : 'bg-transparent'}`}>
+              <item.icon 
+                size={isActive ? 24 : 22} 
+                strokeWidth={isActive ? 2.5 : 2}
+              />
             </div>
             <span className={`text-[10px] font-bold ${isActive ? 'opacity-100' : 'opacity-80'}`}>
               {item.label}

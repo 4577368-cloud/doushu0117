@@ -107,13 +107,14 @@ export interface ModalData {
 }
 
 export enum AppTab {
-  HOME = 'home',
-  ARCHIVE = 'archive', // 对应 "我的"
-  CHART = 'chart',     // 对应 "八字"
-  ZIWEI = 'ziwei',     // 对应 "紫微"
-  CHAT = 'chat',       // 对应 "AI"
-  QIMEN = 'qimen',     // 对应 "奇门"
-  LIUYAO = 'liuyao'    // 对应 "六爻"
+  HOME = 'home',       // 首页门户
+  ARCHIVE = 'archive', // 历史档案
+  PROFILE = 'profile', // 我的 / 账号
+  CHART = 'chart',     // 八字排盘
+  ZIWEI = 'ziwei',     // 紫微
+  CHAT = 'chat',       // AI 对话
+  QIMEN = 'qimen',     // 奇门
+  LIUYAO = 'liuyao'    // 六爻
 }
 
 export enum ChartSubTab {
