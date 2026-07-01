@@ -2,7 +2,7 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { loadEnv } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { callLLMWithFallback, pipeStreamResponse } from '../api/lib/llmChain';
+import { callLLMWithFallback, pipeStreamResponse } from '../lib/llmChain';
 
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const buffers: Buffer[] = [];

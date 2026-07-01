@@ -49,7 +49,6 @@ export function loadLLMConfigs(env: Record<string, string | undefined> = process
     }
   }
 
-  // 兼容旧版单一 DeepSeek 配置
   if (configs.length === 0 && env.DEEPSEEK_API_KEY) {
     configs.push({
       priority: 1,
@@ -70,15 +69,45 @@ export function resolveChatEndpoint(baseUrl: string): string {
   return `${normalized}/chat/completions`;
 }
 
-function getTimeoutMs(env: Record<string, string | undefined>, override?: number): number {
+/** Vercel 免费版函数上限 10s，需为多次降级留出时间 */
+function getPerModelTimeoutMs(
+  env: Record<string, string | undefined>,
+  override: number | undefined,
+  modelCount: number
+): number {
   if (override !== undefined) return override;
-  const parsed = parseInt(env.LLM_TIMEOUT_MS || '45000', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 45000;
+
+  const configured = parseInt(env.LLM_TIMEOUT_MS || '45000', 10);
+  const safeConfigured = Number.isFinite(configured) && configured > 0 ? configured : 45000;
+
+  if (env.VERCEL) {
+    const maxSec = parseInt(env.VERCEL_FUNCTION_MAX_DURATION || '10', 10);
+    const totalBudget = Math.max(maxSec * 1000 - 2000, 6000);
+    const perModel = Math.floor(totalBudget / Math.max(modelCount, 1));
+    return Math.min(safeConfigured, Math.max(perModel, 2500));
+  }
+
+  return safeConfigured;
+}
+
+function isUnreachableOnVercel(baseUrl: string): boolean {
+  if (!process.env.VERCEL) return false;
+  try {
+    const { hostname, protocol } = new URL(baseUrl);
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    if (hostname.startsWith('10.') || hostname.startsWith('192.168.')) return true;
+    const m = hostname.match(/^172\.(\d+)\./);
+    if (m && +m[1] >= 16 && +m[1] <= 31) return true;
+    // Vercel 无法访问内网 HTTP 服务
+    if (protocol === 'http:' && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname)) return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * 按优先级调用 LLM，超时或 HTTP 错误时自动降级到下一个模型
- * @returns 成功的 fetch Response（通常为流式）及实际使用的模型信息
  */
 export async function callLLMWithFallback(
   options: LLMRequestOptions,
@@ -88,14 +117,21 @@ export async function callLLMWithFallback(
 
   if (configs.length === 0) {
     throw new Error(
-      '未配置 LLM 模型。请在 .env.local 中设置 LLM_1_MODEL_ID / LLM_1_API_KEY / LLM_1_BASE_URL（至少一组）'
+      '未配置 LLM 模型。请在环境变量中设置 LLM_MODEL1_MODEL_ID / LLM_MODEL1_API_KEY / LLM_MODEL1_BASE_URL（至少一组）'
     );
   }
 
-  const timeoutMs = getTimeoutMs(env, options.timeoutMs);
+  const timeoutMs = getPerModelTimeoutMs(env, options.timeoutMs, configs.length);
   const errors: string[] = [];
 
   for (const config of configs) {
+    if (isUnreachableOnVercel(config.baseUrl)) {
+      const msg = `[${config.name}/${config.modelId}] 内网地址，Vercel 无法访问，已跳过`;
+      errors.push(msg);
+      console.warn(`[LLM Chain] 跳过 — ${msg}`);
+      continue;
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -143,7 +179,7 @@ export async function callLLMWithFallback(
     }
   }
 
-  throw new Error(`所有 LLM 模型均失败:\n${errors.join('\n')}`);
+  throw new Error(`所有 LLM 模型均失败: ${errors.join(' | ')}`);
 }
 
 /** 将上游流式响应转发到 Node ServerResponse / VercelResponse */
@@ -156,9 +192,15 @@ export async function pipeStreamResponse(
     end();
     return;
   }
-  // @ts-ignore — Node ReadableStream 兼容
-  for await (const chunk of upstream.body) {
-    write(chunk);
+  const reader = upstream.body.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) write(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
   end();
 }
