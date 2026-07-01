@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { callLLMWithFallback, pipeStreamResponse } from './lib/llmChain';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -6,55 +7,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { messages, model, response_format } = req.body;
-    const finalApiKey = process.env.DEEPSEEK_API_KEY;
+    const { messages, response_format } = req.body;
 
-    if (!finalApiKey) {
-      return res.status(500).json({ error: '服务配置错误：未配置 API Key' });
-    }
-
-    // 🔥 关键修改：强制开启 stream: true，防止 Vercel 504 超时
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${finalApiKey.trim()}`
-      },
-      body: JSON.stringify({
-        model: model || 'deepseek-chat',
-        messages: messages,
-        temperature: 0.7,
-        stream: true, // 强制流式
-        response_format: response_format
-      })
+    const { response, model } = await callLLMWithFallback({
+      messages,
+      temperature: 0.7,
+      stream: true,
+      response_format,
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`DeepSeek API Error: ${response.status} - ${errorText}`);
-    }
-
-    // 设置流式响应头
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-LLM-Model', model.modelId);
+    res.setHeader('X-LLM-Name', encodeURIComponent(model.name));
 
-    // 直接转发流
-    if (response.body) {
-        // @ts-ignore
-        for await (const chunk of response.body) {
-            res.write(chunk);
-        }
-    }
-    res.end();
-
-  } catch (error: any) {
+    await pipeStreamResponse(
+      response,
+      (chunk) => res.write(chunk),
+      () => res.end()
+    );
+  } catch (error: unknown) {
     console.error('Analyze Error:', error);
-    // 如果已经开始发流了，就不能再发 JSON 错误了，只能结束
     if (!res.headersSent) {
-        res.status(500).json({ error: error.message || 'Server Error' });
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Server Error' });
     } else {
-        res.end();
+      res.end();
     }
   }
 }

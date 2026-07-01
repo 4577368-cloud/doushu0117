@@ -323,9 +323,8 @@ ${JSON.stringify(enhancedData.keyPalaces, null, 2)}
             content: userPrompt 
           }
         ],
-        model: 'deepseek-chat',
         temperature: 0.7, 
-        stream: true // 强制开启流式，防止 504 超时
+        stream: true
       })
     });
 

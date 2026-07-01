@@ -99,7 +99,6 @@ JSON 结构规范：
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: 'deepseek-chat',
         temperature: 1.0,
         response_format: { type: 'json_object' },
         stream: true
@@ -206,7 +205,6 @@ export const analyzeLiuYaoStructured = async (
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: 'deepseek-chat',
         temperature: 1.0,
         response_format: { type: 'json_object' },
         stream: true
@@ -301,7 +299,6 @@ ${JSON.stringify(chartData, null, 2)}`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: 'deepseek-chat',
         temperature: 1.0,
         response_format: { type: 'json_object' },
         stream: true

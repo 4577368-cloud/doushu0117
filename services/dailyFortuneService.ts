@@ -109,29 +109,18 @@ JSON 结构：
 `;
 
   try {
-    const finalKey = apiKey || sessionStorage.getItem('ai_api_key');
-    
-    // 构建请求体
-    const requestBody: any = {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        model: 'deepseek-chat',
         temperature: 0.8,
         response_format: { type: 'json_object' },
-        stream: true 
-    };
-
-    // 只有当有 key 时才放入 body (避免覆盖后端 VIP 逻辑)
-    if (finalKey) {
-        requestBody.apiKey = finalKey;
-    }
-
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+        stream: true,
+      })
     });
 
     if (!response.ok) {

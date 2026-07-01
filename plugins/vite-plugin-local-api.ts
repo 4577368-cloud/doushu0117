@@ -1,106 +1,87 @@
 
 import type { Plugin, ViteDevServer } from 'vite';
+import { loadEnv } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { callLLMWithFallback, pipeStreamResponse } from '../api/lib/llmChain';
+
+async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  const buffers: Buffer[] = [];
+  for await (const chunk of req) {
+    buffers.push(Buffer.from(chunk));
+  }
+  const raw = Buffer.concat(buffers).toString('utf-8');
+  return JSON.parse(raw);
+}
+
+function handleLLMRoute(
+  routeName: string,
+  env: Record<string, string>,
+  buildOptions: (body: Record<string, unknown>) => Parameters<typeof callLLMWithFallback>[0]
+) {
+  return async (req: IncomingMessage, res: ServerResponse) => {
+    try {
+      const body = await readJsonBody(req);
+      console.log(`[Local API] ${routeName} — 开始 LLM 调用链`);
+
+      const { response, model } = await callLLMWithFallback(buildOptions(body), env);
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-LLM-Model', model.modelId);
+      res.setHeader('X-LLM-Name', encodeURIComponent(model.name));
+
+      await pipeStreamResponse(
+        response,
+        (chunk) => res.write(chunk),
+        () => res.end()
+      );
+      console.log(`[Local API] ${routeName} — 完成 (${model.modelId})`);
+    } catch (error: unknown) {
+      console.error(`[Local API] ${routeName} Error:`, error);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Local Server Error' }));
+      } else {
+        res.end();
+      }
+    }
+  };
+}
 
 /**
- * Local API Middleware Plugin
- * Intercepts /api/analyze requests and handles them locally to bypass remote server issues.
+ * 本地开发 API 中间件
+ * 拦截 /api/analyze 和 /api/chat，使用 .env.local 中的 LLM 配置走优先级降级链路
  */
 export function localApiPlugin(): Plugin {
   return {
     name: 'vite-plugin-local-api',
     configureServer(server: ViteDevServer) {
-      server.middlewares.use('/api/analyze', async (req: IncomingMessage, res: ServerResponse, next) => {
-        if (req.method !== 'POST') {
-          return next();
-        }
+      const env = loadEnv(server.config.mode, server.config.root, '');
 
-        console.log('[Local API] Intercepting /api/analyze request...');
+      const analyzeHandler = handleLLMRoute('analyze', env, (body) => ({
+        messages: body.messages as Array<{ role: string; content: string }>,
+        temperature: 0.7,
+        stream: true,
+        response_format: body.response_format as { type: string } | undefined,
+      }));
 
-        try {
-          // 1. Parse Request Body
-          const buffers: Buffer[] = [];
-          for await (const chunk of req) {
-            buffers.push(Buffer.from(chunk));
-          }
-          const rawBody = Buffer.concat(buffers).toString('utf-8');
-          
-          let body;
-          try {
-            body = JSON.parse(rawBody);
-          } catch (e) {
-            res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Invalid JSON body' }));
-            return;
-          }
+      const chatHandler = handleLLMRoute('chat', env, (body) => ({
+        messages: body.messages as Array<{ role: string; content: string }>,
+        temperature: 0.7,
+        max_tokens: 2000,
+        stream: true,
+      }));
 
-          const { messages, model, response_format, apiKey: userApiKey } = body;
-          // Note: In local dev, we might not have process.env.DEEPSEEK_API_KEY populated 
-          // unless we load .env. Vite loads it into import.meta.env but not process.env automatically here.
-          // But usually the client sends the key if configured.
-          const finalApiKey = userApiKey; // || process.env.DEEPSEEK_API_KEY; 
-
-          if (!finalApiKey) {
-            console.error('[Local API] No API Key provided');
-            res.statusCode = 401;
-            res.end(JSON.stringify({ error: '未配置 API Key。请在设置中输入 DeepSeek API Key。' }));
-            return;
-          }
-
-          console.log('[Local API] Forwarding to DeepSeek...');
-
-          // 2. Call DeepSeek API
-          const response = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${finalApiKey.trim()}`
-            },
-            body: JSON.stringify({
-              model: model || 'deepseek-chat',
-              messages: messages,
-              temperature: 0.7,
-              stream: true,
-              response_format: response_format
-            })
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('[Local API] DeepSeek Error:', response.status, errorText);
-            throw new Error(`DeepSeek API Error: ${response.status} - ${errorText}`);
-          }
-
-          // 3. Stream Response
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
-
-          if (response.body) {
-             // @ts-ignore
-             const reader = response.body.getReader();
-             const decoder = new TextDecoder();
-             
-             while (true) {
-               const { done, value } = await reader.read();
-               if (done) break;
-               const chunk = decoder.decode(value, { stream: true });
-               res.write(chunk);
-             }
-          }
-          res.end();
-          console.log('[Local API] Request completed successfully.');
-
-        } catch (error: any) {
-          console.error('[Local API] Handler Error:', error);
-          if (!res.headersSent) {
-            res.statusCode = 500;
-            res.end(JSON.stringify({ error: error.message || 'Local Server Error' }));
-          } else {
-            res.end();
-          }
-        }
+      server.middlewares.use('/api/analyze', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        await analyzeHandler(req, res);
       });
-    }
+
+      server.middlewares.use('/api/chat', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        await chatHandler(req, res);
+      });
+    },
   };
 }

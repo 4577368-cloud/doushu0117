@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     ScrollText, MessageCircle, MoonStar, Grid3x3, Layers,
-    Crown, Sparkles, ChevronRight, User, X
+    Crown, ChevronRight, User, X
 } from 'lucide-react';
 import { UserProfile, AppTab } from '../types';
 import type { AnalysisType } from '../App';
@@ -37,12 +37,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
     const recentArchives = archives.slice(0, 3);
     const isGuest = !session?.user;
     const [dismissLoginBanner, setDismissLoginBanner] = useState(false);
-
-    useEffect(() => {
-        if (!isGuest || !onShowLogin) return;
-        const timer = setTimeout(() => onShowLogin(), 8000);
-        return () => clearTimeout(timer);
-    }, [isGuest, onShowLogin]);
 
     const handleToolClick = (type: AnalysisType | 'liuyao') => {
         if (type === 'liuyao') {
