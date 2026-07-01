@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Crown, RefreshCw, LogOut, ShieldCheck, ChevronRight, Activity, Cloud, User, Sparkles, Lock, Mail, Database, Globe } from 'lucide-react';
 import { getSyncMeta, syncArchivesFromCloud } from '../services/storageService';
-import { supabase } from '../services/supabase';
+import { safeRefreshSession, isAuthAbortError } from '../services/supabase';
 import { PolicyModal } from '../components/modals/PolicyModals';
 
 interface ProfileViewProps {
@@ -43,7 +43,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         if (!session?.user) return onLogin();
         setSyncStatus('loading');
         try {
-            await supabase.auth.refreshSession();
+            const { error } = await safeRefreshSession();
+            if (error && !isAuthAbortError(error)) throw error;
             const newList = await syncArchivesFromCloud(session.user.id);
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 2000);

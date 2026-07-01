@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { loadLLMConfigs } from '../lib/llmChain';
+import { loadLLMConfigs } from './_lib/llmChain';
 
 /** 诊断接口：检查 Vercel 是否正确加载了 LLM 环境变量（不发起真实请求） */
 export default function handler(_req: VercelRequest, res: VercelResponse) {

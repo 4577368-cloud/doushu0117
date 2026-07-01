@@ -36,6 +36,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const supabaseReady = !!rawUrl && !!rawKey;
 
+/** 忽略 StrictMode 或并发调用导致的 AbortError */
+export function isAuthAbortError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { name?: string; message?: string };
+  return e.name === 'AbortError' || !!e.message?.toLowerCase().includes('abort');
+}
+
+export const safeRefreshSession = async () => {
+  if (!supabaseReady) return { data: { session: null }, error: null } as any;
+  try {
+    return await supabase.auth.refreshSession();
+  } catch (err) {
+    if (isAuthAbortError(err)) return { data: { session: null }, error: null } as any;
+    throw err;
+  }
+};
+
 export const safeSignOut = async () => {
   if (!supabaseReady) {
     try {

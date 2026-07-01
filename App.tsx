@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RotateCcw, Crown, Activity, Sparkles, Compass, CheckCircle, Lock as LockIcon, KeyRound, LayoutGrid, MessageCircle } from 'lucide-react';
-import { supabase, safeSignOut, safeAuth } from './services/supabase';
+import { supabase, safeSignOut, safeAuth, isAuthAbortError } from './services/supabase';
 import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
 import { calculateBazi } from './services/baziService';
@@ -246,20 +246,15 @@ const App: React.FC = () => {
             setSession(initialSession);
             if (!initialSession?.user) return;
 
-            let currentSession = initialSession;
-            try {
-                const { data } = await supabase.auth.refreshSession();
-                if (data.session) {
-                    currentSession = data.session;
-                    setSession(data.session);
-                }
-            } catch (e) { console.warn('refreshSession on startup failed:', e); }
+            const currentSession = initialSession;
 
             try { await mergeGuestArchives(currentSession.user.id); } catch (e) { console.error('Merge guest archives on startup failed:', e); }
 
             const data = await syncArchivesFromCloud(currentSession.user.id);
             if (data) setArchives(data);
-        } catch (e) { console.error('Startup auth/sync failed:', e); }
+        } catch (e) {
+            if (!isAuthAbortError(e)) console.error('Startup auth/sync failed:', e);
+        }
     };
     hydrateAuthAndSync();
 
@@ -267,18 +262,13 @@ const App: React.FC = () => {
         setSession(session);
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
-                let currentSession = session;
-                if (event === 'SIGNED_IN') {
-                    const { data } = await supabase.auth.refreshSession();
-                    if (data.session) {
-                        currentSession = data.session;
-                        setSession(data.session);
-                    }
-                }
+                const currentSession = session;
                 if (event === 'SIGNED_IN') {
                     try { await mergeGuestArchives(currentSession.user.id); } catch (e) { console.error('Merge guest archives failed:', e); }
                 }
-                syncArchivesFromCloud(currentSession.user.id).then(data => { if (data) setArchives(data); });
+                syncArchivesFromCloud(currentSession.user.id).then(data => { if (data) setArchives(data); }).catch(e => {
+                    if (!isAuthAbortError(e)) console.error('Sync archives failed:', e);
+                });
 
                 if (event === 'SIGNED_IN' && window.location.hash.includes('access_token') && !window.location.hash.includes('type=recovery')) {
                      setShowWelcomeModal(true);
