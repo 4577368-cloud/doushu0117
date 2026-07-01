@@ -1,74 +1,87 @@
-export const playShakeSound = () => {
-    try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
-        
-        const ctx = new AudioContext();
-        
-        // Create noise buffer for rattle
-        const bufferSize = ctx.sampleRate * 0.5; // 0.5 seconds
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
+let sharedCtx: AudioContext | null = null;
 
-        const noise = ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        // Filter to make it sound more like coins rattling (bandpass)
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 1000;
-        filter.Q.value = 1;
-
-        // Gain envelope
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-        
-        noise.start();
-        noise.stop(ctx.currentTime + 0.5);
-    } catch (e) {
-        console.error('Audio play failed', e);
+function getAudioContext(): AudioContext | null {
+  try {
+    if (!sharedCtx) {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      sharedCtx = new Ctx();
     }
+    if (sharedCtx.state === 'suspended') {
+      void sharedCtx.resume();
+    }
+    return sharedCtx;
+  } catch {
+    return null;
+  }
+}
+
+/** 摇卦：轻柔低频嗡鸣，模拟铜钱在掌心轻晃 */
+export const playShakeSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(140, t);
+  osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.06, t + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.25);
 };
 
+/** 落卦：清脆短促的铜磬声，三音递进 */
 export const playCoinDropSound = () => {
-    try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
-        
-        const ctx = new AudioContext();
-        const t = ctx.currentTime;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const freqs = [660, 880, 1100];
 
-        // Create 3 distinct "clinks" slightly offset
-        [0, 0.05, 0.1].forEach((offset, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            
-            // Metallic frequencies
-            osc.frequency.setValueAtTime(2000 + Math.random() * 500, t + offset);
-            osc.frequency.exponentialRampToValueAtTime(500, t + offset + 0.1);
-            
-            // Envelope
-            gain.gain.setValueAtTime(0, t + offset);
-            gain.gain.linearRampToValueAtTime(0.3, t + offset + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.3);
+  freqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const start = t + i * 0.04;
 
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            
-            osc.start(t + offset);
-            osc.stop(t + offset + 0.3);
-        });
-    } catch (e) {
-        console.error('Audio play failed', e);
-    }
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.12 - i * 0.02, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.4);
+  });
+};
+
+/** 爻成：一声确认音 */
+export const playLineCompleteSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(440, t);
+  osc.frequency.exponentialRampToValueAtTime(520, t + 0.1);
+
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.1, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.3);
 };

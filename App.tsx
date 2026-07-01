@@ -4,6 +4,8 @@ import { supabase, safeSignOut, safeAuth, isAuthAbortError } from './services/su
 import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
 import { calculateBazi } from './services/baziService';
+import { loadChartFromProfile } from './utils/chartLoader';
+import { getChatHistoryKey } from './utils/chatHistory';
 import { analyzeBaziStructured } from './services/geminiService';
 import type { LlmPriority } from './utils/llmPriority';
 import { 
@@ -32,6 +34,7 @@ import { BaziChartView } from './views/BaziChartView';
 import { AiChatView } from './views/AiChatView';
 import { LiuYaoView } from './views/LiuYaoView';
 import { ProfileView } from './views/ProfileView';
+import { ChatProfilePicker } from './views/ChatProfilePicker';
 import ZiweiView from './components/ZiweiView'; 
 import QimenView from './components/QimenView';
 
@@ -314,7 +317,6 @@ const App: React.FC = () => {
     loadData();
   }, [session]);
 
-  // --- 核心业务逻辑 ---
   const handleGenerate = (profile: UserProfile) => {
     if (!isVip) {
         try {
@@ -346,11 +348,7 @@ const App: React.FC = () => {
     }
 
     try {
-        let safeDate = profile.birthDate; 
-        if (safeDate.length === 8 && !safeDate.includes('-')) {
-            safeDate = `${safeDate.slice(0, 4)}-${safeDate.slice(4, 6)}-${safeDate.slice(6, 8)}`;
-        }
-        const newBazi = calculateBazi({ ...profile, birthDate: safeDate });
+        const newBazi = loadChartFromProfile(profile);
         setCurrentProfile(profile); 
         setBaziChart(newBazi); 
         setAiReport(null); 
@@ -369,6 +367,16 @@ const App: React.FC = () => {
         }).catch(err => console.error(err)).finally(() => setIsGlobalSaving(false));
     } catch (e) { 
         alert("排盘失败，请检查出生日期格式"); 
+    }
+  };
+
+  const handleSelectProfileForChat = (profile: UserProfile) => {
+    try {
+      const chart = loadChartFromProfile(profile);
+      setCurrentProfile(profile);
+      setBaziChart(chart);
+    } catch {
+      alert('命盘加载失败，请检查档案信息');
     }
   };
 
@@ -500,18 +508,28 @@ const App: React.FC = () => {
                   </div>
               );
               if (!baziChart || !currentProfile) return (
-                  <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
-                      <div className="bg-stone-200 p-4 rounded-full"><MessageCircle size={48} className="text-stone-300" /></div>
-                      <h3 className="font-bold text-lg text-stone-700">数据缺失</h3>
-                      <p className="text-sm text-stone-500 font-medium">AI 需要命盘数据作为依据。<br/>请先进行排盘。</p>
-                      <button onClick={() => setCurrentTab(AppTab.CHART)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
-                          <Compass size={18} /> 去排盘
-                      </button>
-                  </div>
+                  <ChatProfilePicker
+                      archives={archives}
+                      onSelect={handleSelectProfileForChat}
+                      onNewChart={() => {
+                          setBaziChart(null);
+                          setCurrentProfile(null);
+                          setTargetAnalysis(null);
+                          setCurrentTab(AppTab.CHART);
+                      }}
+                  />
               );
               return (
                   <ErrorBoundary>
-                      <AiChatView chart={baziChart} profile={currentProfile} isVip={isVip} onVipClick={() => setShowVipModal(true)} />
+                      <AiChatView
+                          key={getChatHistoryKey(currentProfile)}
+                          chart={baziChart}
+                          profile={currentProfile}
+                          archives={archives}
+                          onSwitchProfile={handleSelectProfileForChat}
+                          isVip={isVip}
+                          onVipClick={() => setShowVipModal(true)}
+                      />
                   </ErrorBoundary>
               );
           
@@ -634,15 +652,17 @@ const App: React.FC = () => {
       {currentTab !== AppTab.HOME && (
           <AppHeader 
               title={getHeaderTitle()} 
-              rightAction={(currentTab === AppTab.CHART && baziChart && currentProfile) ? (
-                  <button 
-                      onClick={()=>{setCurrentProfile(null); setBaziChart(null); setAiReport(null);}} 
-                      className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`} 
-                      title="重新排盘"
-                  >
-                      <RotateCcw size={18} />
-                  </button>
-              ) : undefined} 
+              rightAction={
+                  currentTab === AppTab.CHART && baziChart && currentProfile ? (
+                      <button
+                          onClick={() => { setCurrentProfile(null); setBaziChart(null); setAiReport(null); }}
+                          className={`p-2 rounded-full transition-colors ${isVip ? 'hover:bg-white/10 text-stone-300' : 'hover:bg-stone-100 text-stone-700'}`}
+                          title="重新排盘"
+                      >
+                          <RotateCcw size={18} />
+                      </button>
+                  ) : undefined
+              }
               isVip={isVip} 
               guestUsage={{ count: guestUsageCount, limit: 3 }}
           />

@@ -27,3 +27,8 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes liuyao-toss {
+  0%, 100% { transform: translateY(0) rotateX(0deg); }
+  50% { transform: translateY(-48px) rotateX(360deg); }
+}

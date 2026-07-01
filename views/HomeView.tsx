@@ -50,35 +50,35 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="flex h-full flex-col bg-[#fafaf9]">
             {/* 可滚动主内容 */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
-                <div className="mx-auto max-w-md px-5 pt-[calc(2rem+env(safe-area-inset-top))] pb-6 space-y-10">
+                <div className="mx-auto max-w-md px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-24 space-y-6">
 
                     {/* ① 顶部 Logo + 文案 */}
                     <header className="text-center">
-                        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-stone-200 bg-white p-2 shadow-sm">
+                        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-stone-200 bg-white p-2 shadow-sm">
                             <img src={LOGO_URL} alt="玄枢" className="h-full w-full rounded-xl object-cover" />
                         </div>
-                        <h2 className="font-serif text-2xl font-black tracking-wide text-stone-900">
+                        <h2 className="font-serif text-xl font-black tracking-wide text-stone-900">
                             玄枢命理
                         </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-stone-500">
+                        <p className="mt-1.5 text-xs leading-relaxed text-stone-500">
                             输入一次生辰，八字、紫微、奇门自由切换
                         </p>
                     </header>
 
                     {/* ② 四个命理工具 */}
                     <section>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             {TOOLS.map((tool) => (
                                 <button
                                     key={tool.id}
                                     onClick={() => handleToolClick(tool.type)}
-                                    className="flex flex-col items-center rounded-2xl border border-stone-200/80 bg-white px-4 py-5 text-center shadow-sm active:scale-[0.98] transition-transform"
+                                    className="flex flex-col items-center rounded-xl border border-stone-200/80 bg-white px-3 py-3 text-center shadow-sm active:scale-[0.98] transition-transform"
                                 >
-                                    <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${tool.iconBg}`}>
-                                        <tool.icon size={22} className={tool.iconColor} strokeWidth={1.75} />
+                                    <div className={`mb-1.5 flex h-9 w-9 items-center justify-center rounded-lg ${tool.iconBg}`}>
+                                        <tool.icon size={18} className={tool.iconColor} strokeWidth={1.75} />
                                     </div>
-                                    <p className="text-sm font-bold text-stone-900">{tool.title}</p>
-                                    <p className="mt-1 text-xs leading-snug text-stone-400">{tool.subtitle}</p>
+                                    <p className="text-[13px] font-bold text-stone-900">{tool.title}</p>
+                                    <p className="mt-0.5 text-[10px] leading-tight text-stone-400">{tool.subtitle}</p>
                                 </button>
                             ))}
                         </div>
@@ -91,31 +91,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 if (!isVip) { onVipClick(); return; }
                                 onTabChange(AppTab.CHAT);
                             }}
-                            className="flex w-full items-center gap-4 rounded-2xl border border-stone-200/80 bg-white px-5 py-4 text-left shadow-sm active:bg-stone-50 transition-colors"
+                            className="flex w-full items-center gap-3 rounded-xl border border-stone-200/80 bg-white px-4 py-3 text-left shadow-sm active:bg-stone-50 transition-colors"
                         >
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
-                                <MessageCircle size={22} className="text-indigo-600" strokeWidth={1.75} />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+                                <MessageCircle size={20} className="text-indigo-600" strokeWidth={1.75} />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm font-bold text-stone-900">AI 命理对话</p>
+                                    <p className="text-[13px] font-bold text-stone-900">AI 命理对话</p>
                                     {!isVip && (
                                         <span className="flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
                                             <Crown size={9} /> VIP
                                         </span>
                                     )}
                                 </div>
-                                <p className="mt-0.5 text-xs text-stone-400">随问随答 · 事业财运感情健康</p>
+                                <p className="mt-0.5 text-[10px] text-stone-400">随问随答 · 事业财运感情健康</p>
                             </div>
-                            <ChevronRight size={18} className="shrink-0 text-stone-300" />
+                            <ChevronRight size={16} className="shrink-0 text-stone-300" />
                         </button>
                     </section>
 
-                    {/* ④ 最近查看 */}
+                    {/* ④ 历史档案 */}
                     {recentArchives.length > 0 && (
                         <section>
-                            <div className="mb-4 flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-stone-700">最近查看</h3>
+                            <div className="mb-2.5 flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-stone-700">历史档案</h3>
                                 <button
                                     onClick={() => onTabChange(AppTab.ARCHIVE)}
                                     className="flex items-center gap-0.5 text-xs font-medium text-stone-500"
@@ -123,14 +123,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                     全部 <ChevronRight size={14} />
                                 </button>
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {recentArchives.map(p => (
                                     <button
                                         key={p.id}
                                         onClick={() => onSelectCapability('bazi')}
-                                        className="flex w-full items-center gap-3.5 rounded-2xl border border-stone-200/80 bg-white px-4 py-3.5 text-left shadow-sm active:bg-stone-50 transition-colors"
+                                        className="flex w-full items-center gap-3 rounded-xl border border-stone-200/80 bg-white px-3.5 py-2.5 text-left shadow-sm active:bg-stone-50 transition-colors"
                                     >
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 text-lg">
+                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 text-base">
                                             {p.avatar
                                                 ? <img src={p.avatar} alt="" className="h-full w-full object-cover" />
                                                 : (p.gender === 'female' ? '👩' : '🧑')
@@ -138,9 +138,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-bold text-stone-800">{p.name}</p>
-                                            <p className="text-xs text-stone-400">{p.birthDate} · {p.birthTime}</p>
+                                            <p className="text-[11px] text-stone-400">{p.birthDate} · {p.birthTime}</p>
                                         </div>
-                                        <ChevronRight size={16} className="shrink-0 text-stone-300" />
+                                        <ChevronRight size={14} className="shrink-0 text-stone-300" />
                                     </button>
                                 ))}
                             </div>

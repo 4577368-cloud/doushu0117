@@ -1,154 +1,125 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Smartphone } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import { Coin } from './Coin';
-import { playShakeSound, playCoinDropSound } from '../../utils/soundUtils';
+import { playShakeSound, playCoinDropSound, playLineCompleteSound } from '../../utils/soundUtils';
 
 interface LiuYaoShakePanelProps {
-    onShakeComplete: (result: number) => void; // Returns 6,7,8,9
-    step: number; // 1 to 6
+    onShakeComplete: (result: number) => void;
+    step: number;
     isProcessing: boolean;
 }
 
 export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeComplete, step, isProcessing }) => {
-    const [isShaking, setIsShaking] = useState(false);
-    const [isTossing, setIsTossing] = useState(false);
-    const [coins, setCoins] = useState<number[]>([0, 0, 0]); // 0=Tail(Yin/Flower), 1=Head(Yang/Word)
-    const [showCoins, setShowCoins] = useState(false);
+    const [phase, setPhase] = useState<'idle' | 'shaking' | 'tossing' | 'result'>('idle');
+    const [coins, setCoins] = useState<number[]>([0, 0, 0]);
 
-    // Shake Detection
+    const shakeLock = useRef(false);
+    const processingRef = useRef(false);
     const lastX = useRef(0);
     const lastY = useRef(0);
     const lastZ = useRef(0);
     const lastTime = useRef(0);
-    const shakeLock = useRef(false); // Immediate lock to prevent double triggers
-    const processingRef = useRef(false); // Persist lock across state changes until step updates
 
-    // Reset locks when step changes
     useEffect(() => {
         shakeLock.current = false;
         processingRef.current = false;
+        setPhase('idle');
     }, [step]);
 
     useEffect(() => {
-        const SHAKE_THRESHOLD = 8; // Adjusted to 8 for better responsiveness (was 15)
-        // Easier steady requirements: high threshold (allow jitter), short duration
-        const STEADY_THRESHOLD = 30; 
-        const STEADY_DURATION = 100; // 100ms steady to reset trigger
+        const SHAKE_THRESHOLD = 10;
+        const STEADY_THRESHOLD = 30;
+        const STEADY_DURATION = 100;
 
         let isFirst = true;
         let isReady = false;
         let steadyStart = 0;
 
         const handleMotion = (event: DeviceMotionEvent) => {
-            // Check processingRef.current to ensure we don't re-trigger during animation/processing
-            if (isProcessing || processingRef.current || isShaking || isTossing || showCoins || shakeLock.current) return;
-            
+            if (isProcessing || processingRef.current || phase !== 'idle' || shakeLock.current) return;
+
             const current = event.accelerationIncludingGravity;
             if (!current) return;
 
             const now = Date.now();
-            if ((now - lastTime.current) > 100) {
-                const diffTime = now - lastTime.current;
-                lastTime.current = now;
+            if (now - lastTime.current <= 100) return;
+            const diffTime = now - lastTime.current;
+            lastTime.current = now;
 
-                if (isFirst) {
-                    lastX.current = current.x!;
-                    lastY.current = current.y!;
-                    lastZ.current = current.z!;
-                    isFirst = false;
-                    steadyStart = now; // Start tracking steady state immediately
-                    return;
-                }
-
-                const speed = Math.abs(current.x! + current.y! + current.z! - lastX.current - lastY.current - lastZ.current) / diffTime * 10000;
-
-                if (!isReady) {
-                    // Check if device is steady enough to arm the trigger
-                    if (speed < STEADY_THRESHOLD) {
-                        if (steadyStart === 0) steadyStart = now;
-                        else if (now - steadyStart > STEADY_DURATION) {
-                            isReady = true;
-                            // console.log("Ready to shake!");
-                        }
-                    } else {
-                        steadyStart = 0; // Reset steady timer if moving too much
-                    }
-                } else {
-                    // Once ready, listen for shake
-                    if (speed > SHAKE_THRESHOLD) {
-                        triggerShake();
-                    }
-                }
-
+            if (isFirst) {
                 lastX.current = current.x!;
                 lastY.current = current.y!;
                 lastZ.current = current.z!;
+                isFirst = false;
+                steadyStart = now;
+                return;
             }
+
+            const speed = Math.abs(current.x! + current.y! + current.z! - lastX.current - lastY.current - lastZ.current) / diffTime * 10000;
+
+            if (!isReady) {
+                if (speed < STEADY_THRESHOLD) {
+                    if (steadyStart === 0) steadyStart = now;
+                    else if (now - steadyStart > STEADY_DURATION) isReady = true;
+                } else {
+                    steadyStart = 0;
+                }
+            } else if (speed > SHAKE_THRESHOLD) {
+                triggerShake();
+            }
+
+            lastX.current = current.x!;
+            lastY.current = current.y!;
+            lastZ.current = current.z!;
         };
 
         window.addEventListener('devicemotion', handleMotion);
         return () => window.removeEventListener('devicemotion', handleMotion);
-    }, [isProcessing, isShaking, isTossing, showCoins, step]);
+    }, [isProcessing, phase, step]);
 
     const triggerShake = () => {
-        if (isShaking || isProcessing || processingRef.current || isTossing || showCoins || shakeLock.current) return;
-        
-        shakeLock.current = true; // Immediate lock
-        processingRef.current = true; // Lock until step changes
-        
-        // 1. Start Shaking
-        setIsShaking(true);
-        setShowCoins(false);
+        if (shakeLock.current || processingRef.current || phase !== 'idle') return;
+
+        shakeLock.current = true;
+        processingRef.current = true;
+        setPhase('shaking');
         playShakeSound();
-        
-        // Vibration if supported
-        if (navigator.vibrate) navigator.vibrate(200);
+        if (navigator.vibrate) navigator.vibrate(80);
 
-        // 2. Simulate shake duration
         setTimeout(() => {
-            setIsShaking(false);
-            setIsTossing(true);
+            setPhase('tossing');
 
-            // 3. Tossing Animation Phase
             setTimeout(() => {
                 const c1 = Math.random() < 0.5 ? 0 : 1;
                 const c2 = Math.random() < 0.5 ? 0 : 1;
                 const c3 = Math.random() < 0.5 ? 0 : 1;
                 setCoins([c1, c2, c3]);
-                
-                setIsTossing(false);
-                setShowCoins(true);
+                setPhase('result');
                 playCoinDropSound();
 
-                // Calculate sum: 3 Heads(1+1+1=3) -> 9, 3 Tails(0) -> 6, etc.
                 const sum = c1 + c2 + c3;
                 let val = 0;
-                if (sum === 3) val = 9; // Old Yang (Circle)
-                else if (sum === 0) val = 6; // Old Yin (Cross)
-                else if (sum === 1) val = 7; // Young Yang (1 Head, 2 Tails)
-                else val = 8; // Young Yin (2 Heads, 1 Tail)
-                
-                // Wait a bit to show coins then complete
+                if (sum === 3) val = 9;
+                else if (sum === 0) val = 6;
+                else if (sum === 1) val = 7;
+                else val = 8;
+
                 setTimeout(() => {
+                    playLineCompleteSound();
                     onShakeComplete(val);
-                    setShowCoins(false);
-                }, 2000);
-            }, 600); // Tossing duration
-        }, 800); // Shake duration
+                    setPhase('idle');
+                }, 1400);
+            }, 500);
+        }, 600);
     };
 
     const requestPermissionAndShake = async () => {
-        if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        if (typeof (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === 'function') {
             try {
-                const state = await (DeviceMotionEvent as any).requestPermission();
-                if (state === 'granted') {
-                    triggerShake();
-                } else {
-                    alert('需要动作传感器权限来检测摇一摇');
-                    triggerShake(); // Fallback to click
-                }
-            } catch (e) {
-                console.error(e);
+                const state = await (DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
+                if (state === 'granted') triggerShake();
+                else triggerShake();
+            } catch {
                 triggerShake();
             }
         } else {
@@ -156,119 +127,91 @@ export const LiuYaoShakePanel: React.FC<LiuYaoShakePanelProps> = ({ onShakeCompl
         }
     };
 
+    const yaoLabels = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+
     return (
-        <div className="flex flex-col items-center justify-center py-8">
-            <div className="relative w-64 h-64 flex items-center justify-center mb-6">
-                {/* Shake Animation Circle - Only show when idle or shaking */}
-                {!showCoins && !isTossing && (
-                    <>
-                        <div className={`absolute inset-0 rounded-full border-4 border-[#002FA7]/20 ${isShaking ? 'animate-ping' : ''}`}></div>
-                        <div className={`absolute inset-4 rounded-full border-4 border-[#002FA7]/40 ${isShaking ? 'animate-pulse' : ''}`}></div>
-                    </>
-                )}
-                
-                {/* Interaction Area */}
-                <div 
-                    onClick={requestPermissionAndShake}
-                    className={`relative z-10 w-48 h-48 flex flex-col items-center justify-center transition-all duration-300 ${
-                        (isTossing || showCoins) 
-                            ? '' 
-                            : 'rounded-full bg-white/20 backdrop-blur-sm shadow-[0_0_40px_-10px_rgba(0,47,167,0.2)] border border-white/30'
-                    } ${
-                        isProcessing 
-                            ? 'opacity-50 scale-95' 
-                            : ((isTossing || showCoins) ? '' : 'hover:scale-105 active:scale-95 hover:shadow-[#002FA7]/30')
-                    }`}
-                >
-                    {isTossing ? (
-                        // Tossing Animation
-                        <div className="relative w-full h-full [perspective:1000px]">
-                            <div className="absolute top-0 left-10 animate-toss-1">
-                                <Coin side="yang" className="w-12 h-12" />
-                            </div>
-                            <div className="absolute top-10 right-10 animate-toss-2">
-                                <Coin side="yin" className="w-12 h-12" />
-                            </div>
-                            <div className="absolute bottom-10 left-16 animate-toss-3">
-                                <Coin side="yang" className="w-12 h-12" />
-                            </div>
-                        </div>
-                    ) : showCoins ? (
-                        // Result Display
-                        <div className="grid grid-cols-2 gap-4 p-4 animate-land">
-                            {/* Arrange 3 coins in a triangle or row */}
-                            <div className="col-span-2 flex justify-center">
-                                <Coin side={coins[0] === 1 ? 'yang' : 'yin'} className="w-14 h-14" />
-                            </div>
-                            <div className="flex justify-end">
-                                <Coin side={coins[1] === 1 ? 'yang' : 'yin'} className="w-14 h-14" />
-                            </div>
-                            <div className="flex justify-start">
-                                <Coin side={coins[2] === 1 ? 'yang' : 'yin'} className="w-14 h-14" />
-                            </div>
-                        </div>
-                    ) : (
-                        // Idle / Shaking State
-                        <button 
-                            disabled={isProcessing}
-                            className={`w-32 h-32 bg-white/40 backdrop-blur-md rounded-full flex flex-col items-center justify-center shadow-lg border-4 border-[#002FA7]/20 hover:border-[#002FA7]/40 transition-all ${isShaking ? 'animate-shake' : ''}`}
-                        >
-                            <Smartphone size={32} className={`text-[#002FA7] mb-2 opacity-80 ${isShaking ? 'animate-wiggle' : ''}`} />
-                            <span className="text-xs text-[#002FA7] font-medium opacity-80">
-                                {isShaking ? '摇卦中...' : '摇一摇 / 点击'}
-                            </span>
-                        </button>
-                    )}
-                </div>
-            </div>
-            
-            <div className="text-center">
-                <p className="text-stone-400 text-sm mb-1">
-                    第 <span className="text-[#002FA7] font-bold text-lg">{step}</span> / 6 爻
-                </p>
-                <p className="text-stone-500 text-xs opacity-70">
-                    请诚心默念所测之事，摇动手机或点击铜钱
-                </p>
+        <div className="flex w-full max-w-sm flex-col items-center px-4">
+            {/* 进度 */}
+            <div className="mb-8 flex w-full items-center justify-between gap-1">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <div key={n} className="flex flex-1 flex-col items-center gap-1">
+                        <div
+                            className={`h-1.5 w-full rounded-full transition-all duration-500 ${
+                                n < step ? 'bg-amber-500' : n === step ? 'bg-amber-400 animate-pulse' : 'bg-stone-200'
+                            }`}
+                        />
+                        <span className={`text-[9px] font-medium ${n === step ? 'text-amber-700' : 'text-stone-400'}`}>
+                            {n < step ? '✓' : n}
+                        </span>
+                    </div>
+                ))}
             </div>
 
-            <style>{`
-                @keyframes shake {
-                    0%, 100% { transform: rotate(0deg); }
-                    25% { transform: rotate(-10deg); }
-                    75% { transform: rotate(10deg); }
-                }
-                @keyframes wiggle {
-                    0%, 100% { transform: rotate(0deg); }
-                    25% { transform: rotate(-20deg); }
-                    75% { transform: rotate(20deg); }
-                }
-                @keyframes toss-1 {
-                    0% { transform: translateY(0) rotateX(0); }
-                    50% { transform: translateY(-100px) rotateX(720deg); }
-                    100% { transform: translateY(0) rotateX(1080deg); }
-                }
-                @keyframes toss-2 {
-                    0% { transform: translateY(0) rotateX(0); }
-                    50% { transform: translateY(-80px) rotateX(-720deg); }
-                    100% { transform: translateY(0) rotateX(-1080deg); }
-                }
-                @keyframes toss-3 {
-                    0% { transform: translateY(0) rotateX(0); }
-                    50% { transform: translateY(-120px) rotateX(900deg); }
-                    100% { transform: translateY(0) rotateX(1440deg); }
-                }
-                @keyframes land {
-                    0% { transform: scale(1.1); opacity: 0; }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                .animate-shake { animation: shake 0.2s infinite; }
-                .animate-wiggle { animation: wiggle 0.2s infinite; }
-                .animate-toss-1 { animation: toss-1 0.6s ease-in-out infinite; }
-                .animate-toss-2 { animation: toss-2 0.6s ease-in-out infinite; }
-                .animate-toss-3 { animation: toss-3 0.6s ease-in-out infinite; }
-                .animate-land { animation: land 0.3s ease-out forwards; }
-            `}</style>
+            {/* 摇卦区 */}
+            <button
+                type="button"
+                disabled={isProcessing || phase !== 'idle'}
+                onClick={requestPermissionAndShake}
+                className={`relative flex h-56 w-56 items-center justify-center rounded-full border transition-all duration-300 ${
+                    phase === 'idle'
+                        ? 'border-stone-200 bg-white shadow-lg shadow-stone-900/5 active:scale-95'
+                        : 'border-transparent bg-transparent shadow-none'
+                } ${isProcessing ? 'opacity-60' : ''}`}
+            >
+                {phase === 'shaking' && (
+                    <div className="absolute inset-0 rounded-full border-2 border-amber-300/40 animate-ping" />
+                )}
+
+                {phase === 'tossing' && (
+                    <div className="relative h-full w-full [perspective:800px]">
+                        <div className="absolute left-1/2 top-4 -translate-x-1/2 animate-[liuyao-toss_0.5s_ease-in-out_infinite]">
+                            <Coin side="yang" className="h-14 w-14" />
+                        </div>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 animate-[liuyao-toss_0.5s_ease-in-out_infinite_0.1s]">
+                            <Coin side="yin" className="h-12 w-12" />
+                        </div>
+                        <div className="absolute bottom-6 left-8 animate-[liuyao-toss_0.5s_ease-in-out_infinite_0.2s]">
+                            <Coin side="yang" className="h-12 w-12" />
+                        </div>
+                    </div>
+                )}
+
+                {phase === 'result' && (
+                    <div className="flex flex-col items-center gap-3 animate-in zoom-in-90 fade-in duration-300">
+                        <div className="flex items-end justify-center gap-4">
+                            {coins.map((c, i) => (
+                                <Coin key={i} side={c === 1 ? 'yang' : 'yin'} className="h-[4.5rem] w-[4.5rem]" />
+                            ))}
+                        </div>
+                        <p className="text-[11px] text-stone-400">
+                            <span className="text-amber-700 font-medium">字</span> 为阳（字面）
+                            <span className="mx-1.5 text-stone-300">·</span>
+                            <span className="text-stone-600 font-medium">花</span> 为阴（背面）
+                        </p>
+                    </div>
+                )}
+
+                {phase === 'idle' && (
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-100">
+                            <Coins size={28} className="text-amber-600" strokeWidth={1.5} />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm font-bold text-stone-800">摇一摇起卦</p>
+                            <p className="mt-1 text-xs text-stone-400">或点击此处</p>
+                        </div>
+                    </div>
+                )}
+            </button>
+
+            <div className="mt-8 text-center">
+                <p className="text-sm font-bold text-stone-800">
+                    第 {step} 爻 · {yaoLabels[step - 1]}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                    {phase === 'shaking' ? '铜钱摇动中…' : phase === 'tossing' ? '铜钱抛起…' : phase === 'result' ? '落卦定局…' : '默念所问之事'}
+                </p>
+            </div>
         </div>
     );
 };
-

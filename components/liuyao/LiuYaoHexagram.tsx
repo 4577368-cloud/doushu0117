@@ -2,18 +2,23 @@ import React from 'react';
 import { YaoValue } from '../../services/liuyaoService';
 
 interface LiuYaoHexagramProps {
-    lines: YaoValue[]; // Index 0 is Bottom
-    animatingIndex?: number | null; // Currently generating line index
-    showMoving?: boolean; // Highlight moving lines
+    lines: YaoValue[];
+    animatingIndex?: number | null;
+    showMoving?: boolean;
+    compact?: boolean;
 }
 
-export const LiuYaoHexagram: React.FC<LiuYaoHexagramProps> = ({ lines, animatingIndex, showMoving = true }) => {
-    // Render from Top (index 5) to Bottom (index 0)
-    const displayLines = [...lines].reverse();
+export const LiuYaoHexagram: React.FC<LiuYaoHexagramProps> = ({
+    lines,
+    animatingIndex,
+    showMoving = true,
+    compact = false,
+}) => {
+    const gap = compact ? 'gap-2' : 'gap-3';
+    const lineH = compact ? 'h-2' : 'h-2.5';
 
     return (
-        <div className="flex flex-col gap-3 w-32 sm:w-40 mx-auto p-4 bg-white/50 rounded-xl border border-stone-200 shadow-sm">
-            {/* Placeholders if lines are missing (during animation) */}
+        <div className={`flex flex-col ${gap} w-full max-w-[120px] mx-auto`}>
             {Array.from({ length: 6 }).map((_, i) => {
                 const realIndex = 5 - i;
                 const value = lines[realIndex];
@@ -21,42 +26,35 @@ export const LiuYaoHexagram: React.FC<LiuYaoHexagramProps> = ({ lines, animating
                 const hasValue = value !== undefined;
 
                 if (!hasValue && !isAnimating) {
-                    return (
-                        <div key={realIndex} className="h-3 w-full bg-stone-200 rounded opacity-50" />
-                    );
+                    return <div key={realIndex} className={`${lineH} w-full rounded-full bg-stone-200/60`} />;
                 }
 
                 if (isAnimating) {
                     return (
-                        <div key={realIndex} className="h-3 w-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
+                        <div key={realIndex} className={`${lineH} w-full flex items-center justify-center`}>
+                            <div className="h-3 w-3 animate-pulse rounded-full bg-amber-400/60" />
                         </div>
                     );
                 }
 
                 const isYang = value === 7 || value === 9;
                 const isMoving = value === 6 || value === 9;
-                const isOld = isMoving && showMoving;
+                const color = isMoving && showMoving ? 'bg-amber-400' : 'bg-stone-800';
 
                 return (
-                    <div key={realIndex} className={`relative flex items-center justify-center h-3 w-full transition-all duration-500 ${isAnimating ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-                        {/* Line Visual */}
+                    <div key={realIndex} className={`relative flex h-2.5 w-full items-center justify-center animate-in fade-in duration-300`}>
                         {isYang ? (
-                            // Yang Line (Solid)
-                            <div className={`w-full h-full rounded-sm ${isOld ? 'bg-amber-400 animate-pulse' : 'bg-amber-600'}`}></div>
+                            <div className={`h-full w-full rounded-full ${color}`} />
                         ) : (
-                            // Yin Line (Broken)
-                            <div className="w-full h-full flex justify-between">
-                                <div className={`w-[42%] h-full rounded-sm ${isOld ? 'bg-amber-400 animate-pulse' : 'bg-amber-600'}`}></div>
-                                <div className={`w-[42%] h-full rounded-sm ${isOld ? 'bg-amber-400 animate-pulse' : 'bg-amber-600'}`}></div>
+                            <div className="flex h-full w-full justify-between">
+                                <div className={`w-[44%] rounded-full ${color}`} />
+                                <div className={`w-[44%] rounded-full ${color}`} />
                             </div>
                         )}
-                        
-                        {/* Moving Indicator */}
-                        {isOld && (
-                            <div className="absolute -right-6 text-[10px] text-red-400 font-bold">
-                                {value === 9 ? '○' : '✕'}
-                            </div>
+                        {isMoving && showMoving && (
+                            <span className="absolute -right-5 text-[9px] font-bold text-amber-600">
+                                {value === 9 ? '○' : '×'}
+                            </span>
                         )}
                     </div>
                 );
