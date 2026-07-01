@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 're
 import { Send, Crown, HelpCircle, Activity, Sparkles, User, Copy, Check, Trash2, ArrowDown, Lightbulb, Grid3x3 } from 'lucide-react';
 import { BaziChart, UserProfile } from '../types';
 import { ChatMessage, sendChatMessage, ChatMode } from '../services/chatService';
+import { LlmPriorityBadge } from '../components/ui/LlmPriorityBadge';
+import type { LlmPriority } from '../utils/llmPriority';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
 import { calculateChart } from '../ziwei/services/astrologyService';
 import { calculateBazi } from '../services/baziService'; 
@@ -99,6 +101,7 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState<ChatMode>('bazi');
+    const [llmPriority, setLlmPriority] = useState<LlmPriority | null>(null);
 
     const activeSuggestions = useMemo(() => {
         if (loading) return [];
@@ -206,7 +209,8 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setLoading(true);
-        setIsUserScrolledUp(false); 
+        setLlmPriority(null);
+        setIsUserScrolledUp(false);
 
         try {
             setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -233,7 +237,8 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                     });
                 },
                 isVip,
-                timeContext
+                timeContext,
+                setLlmPriority
             );
 
         } catch (error: any) {
@@ -289,7 +294,13 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
                     </div>
                 ))}
                 
-                {loading && <div className="flex items-center gap-2 p-4 text-xs text-stone-400 animate-pulse"><Activity size={14} className="animate-spin"/> <span>大师正在推演中...</span></div>}
+                {loading && (
+                    <div className="flex items-center gap-2 p-4 text-xs text-stone-400 animate-pulse">
+                        <Activity size={14} className="animate-spin"/>
+                        <span>大师正在推演中...</span>
+                        <LlmPriorityBadge priority={llmPriority} />
+                    </div>
+                )}
                 <div ref={messagesEndRef} className="h-2"/>
             </div>
 
@@ -304,6 +315,11 @@ export const AiChatView: React.FC<{ chart: BaziChart; profile: UserProfile; isVi
 
             {/* 底部输入区 */}
             <div className="p-3 bg-white border-t border-stone-200 z-20 pb-safe">
+                {!loading && llmPriority && (
+                    <div className="flex justify-end mb-2 px-1">
+                        <LlmPriorityBadge priority={llmPriority} />
+                    </div>
+                )}
                 {activeSuggestions.length > 0 && !loading && (
                     <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 px-1">
                         {activeSuggestions.map((s,i) => (<button key={i} onClick={()=>handleSend(s)} className="whitespace-nowrap px-3 py-1.5 text-xs font-bold rounded-full bg-stone-50 border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors flex items-center gap-1 active:scale-95"><HelpCircle size={12}/>{s}</button>))}

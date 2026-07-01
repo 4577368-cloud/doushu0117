@@ -1,4 +1,5 @@
 import { BaziChart, UserProfile } from "../types";
+import { notifyLlmPriority, type LlmPriority } from "../utils/llmPriority";
 
 export type ChatMode = 'bazi' | 'ziwei' | 'qimen';
 
@@ -200,7 +201,8 @@ export const sendChatMessage = async (
   mode: ChatMode,
   onStream: (chunk: string) => void,
   isVip: boolean = false,
-  timeContext: string = ''
+  timeContext: string = '',
+  onLlmPriority?: (priority: LlmPriority) => void
 ) => {
   // 统一权限管理：移除 API Key 逻辑，所有 AI 功能需 VIP
   if (!isVip) {
@@ -239,6 +241,8 @@ export const sendChatMessage = async (
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || `请求失败: ${response.status}`);
     }
+
+    notifyLlmPriority(response, onLlmPriority);
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder('utf-8');

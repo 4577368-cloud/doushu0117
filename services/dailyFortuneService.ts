@@ -1,4 +1,5 @@
 import { BaziChart, UserProfile } from '../types';
+import { notifyLlmPriority, type LlmPriority } from '../utils/llmPriority';
 
 export interface DailyFortuneResult {
   auspiciousness: '大吉' | '中吉' | '小吉' | '平' | '凶';
@@ -57,7 +58,8 @@ const readStreamResponse = async (response: Response): Promise<string> => {
 export const generateDailyFortuneAi = async (
   profile: UserProfile, 
   chart: BaziChart,
-  apiKey?: string
+  apiKey?: string,
+  onLlmPriority?: (priority: LlmPriority) => void
 ): Promise<DailyFortuneResult> => {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
@@ -128,6 +130,8 @@ JSON 结构：
         console.error("Daily Fortune API Error:", response.status, errorText);
         throw new Error(`请求失败: ${response.status} - ${errorText}`);
     }
+
+    notifyLlmPriority(response, onLlmPriority);
 
     // 使用流式读取 helper 获取完整内容
     let content = await readStreamResponse(response);

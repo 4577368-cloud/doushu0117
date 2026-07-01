@@ -1,4 +1,5 @@
 import { BaziChart, BaziReport } from "../types";
+import { notifyLlmPriority, type LlmPriority } from "../utils/llmPriority";
 
 /**
  * 使用 DeepSeek 生成结构化八字财富报告
@@ -41,7 +42,8 @@ const readStreamResponse = async (response: Response): Promise<string> => {
 export const analyzeBaziStructured = async (
   chart: BaziChart,
   apiKey?: string,
-  isVip: boolean = false
+  isVip: boolean = false,
+  onLlmPriority?: (priority: LlmPriority) => void
 ): Promise<BaziReport> => {
 
   // 3. 构建动态上下文数据
@@ -107,6 +109,8 @@ JSON 结构规范：
 
     if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
+    notifyLlmPriority(response, onLlmPriority);
+
     let rawContent = await readStreamResponse(response);
 
     // 6. 解析 JSON 结果
@@ -171,7 +175,8 @@ export interface LiuYaoAiReport {
 
 export const analyzeLiuYaoStructured = async (
   hexagramData: any,
-  isVip: boolean = false
+  isVip: boolean = false,
+  onLlmPriority?: (priority: LlmPriority) => void
 ): Promise<LiuYaoAiReport> => {
   const systemPrompt = `你是一位精通六爻纳甲与《增删卜易》的占卜大师。
 请基于用户提供的卦象（本卦、变卦、动爻），进行多维度的深度解读。
@@ -213,6 +218,8 @@ export const analyzeLiuYaoStructured = async (
 
     if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
+    notifyLlmPriority(response, onLlmPriority);
+
     const rawContent = await readStreamResponse(response);
     
     // 解析 JSON
@@ -252,7 +259,8 @@ export interface QimenAiReport {
 export const analyzeQimenStructured = async (
   chartData: any, // 简化的奇门局数据
   question: { category: string; affair: string; industry?: string },
-  isVip: boolean = false
+  isVip: boolean = false,
+  onLlmPriority?: (priority: LlmPriority) => void
 ): Promise<QimenAiReport> => {
   const systemPrompt = `你是一位精通《奇门遁甲》的时空决策顾问。
 请基于用户提供的奇门局（时家奇门拆补法）和具体问事事项，进行临机断事。
@@ -306,6 +314,8 @@ ${JSON.stringify(chartData, null, 2)}`;
     });
 
     if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    notifyLlmPriority(response, onLlmPriority);
 
     const rawContent = await readStreamResponse(response);
     

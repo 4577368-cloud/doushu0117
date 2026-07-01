@@ -249,7 +249,8 @@ export const callDeepSeekAPI = async (
   chartData: any, 
   age: number, 
   gender: string, 
-  currentYear: number
+  currentYear: number,
+  onLlmPriority?: (priority: import('../../utils/llmPriority').LlmPriority) => void
 ): Promise<string> => {
   
   // 1. 清洗并增强数据
@@ -329,6 +330,9 @@ ${JSON.stringify(enhancedData.keyPalaces, null, 2)}
     });
 
     if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    const { notifyLlmPriority } = await import('../../utils/llmPriority');
+    notifyLlmPriority(response, onLlmPriority);
 
     let content = await readStreamResponse(response);
     content = content.replace(/```html/g, '').replace(/```/g, '').trim();

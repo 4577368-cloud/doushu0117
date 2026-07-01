@@ -3,6 +3,8 @@ import { Calendar, RefreshCcw, Sparkles, TrendingUp, Heart, Briefcase, Smile, Lo
 import { BaziChart } from '../../types';
 import { calculateDailyFortuneBasic } from '../../services/dailyFortune'; // 引入上一轮写的本地算法
 import { getFullDateGanZhi } from '../../services/ganzhi';
+import { LlmPriorityBadge } from '../ui/LlmPriorityBadge';
+import type { LlmPriority } from '../../utils/llmPriority';
 
 // 定义 UI 所需的数据结构
 export interface DailyFortuneData {
@@ -31,10 +33,11 @@ interface DailyFortuneCardProps {
   loading: boolean;
   onGenerate: () => void;
   isVip: boolean;
-  aiError?: boolean; // 新增：AI 生成失败状态
+  aiError?: boolean;
+  llmPriority?: LlmPriority | null;
 }
 
-export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiData, loading, onGenerate, isVip, aiError }) => {
+export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiData, loading, onGenerate, isVip, aiError, llmPriority }) => {
   const [mode, setMode] = useState<'basic' | 'ai'>('basic');
 
   // 使用 useMemo 替代 useEffect + useState，避免首次渲染闪烁
@@ -208,6 +211,7 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
                     <RefreshCcw size={32} className="text-indigo-500 animate-spin relative z-10" />
                  </div>
                  <p className="text-xs text-stone-500 font-medium animate-pulse">正在连接天机，推演流日...</p>
+                 <LlmPriorityBadge priority={llmPriority ?? null} />
             </div>
          );
       }

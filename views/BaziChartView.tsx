@@ -17,13 +17,16 @@ import { calculateDailyFortuneBasic } from '../services/dailyFortune';
 import { getFullDateGanZhi } from '../services/ganzhi';
 import { BRANCH_CLASHES, BRANCH_XING, BRANCH_HAI, EARTHLY_BRANCHES, BRANCH_COMBINES } from '../services/constants';
 import { getGanZhiForMonth } from '../services/baziService';
+import { LlmPriorityBadge } from '../components/ui/LlmPriorityBadge';
+import type { LlmPriority } from '../utils/llmPriority';
 
-export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; aiReport: AiBaziReport | null; isVip: boolean; onVipClick: () => void; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, aiReport, isVip, onVipClick, onManualSave, isSaving, archives }) => {
+export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; llmPriority?: LlmPriority | null; aiReport: AiBaziReport | null; isVip: boolean; onVipClick: () => void; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, llmPriority, aiReport, isVip, onVipClick, onManualSave, isSaving, archives }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState<any | null>(null);
   const [copiedCombo, setCopiedCombo] = useState(false);
   const [dailyFortune, setDailyFortune] = useState<DailyFortuneData | null>(null);
   const [loadingFortune, setLoadingFortune] = useState(false);
+  const [fortuneLlmPriority, setFortuneLlmPriority] = useState<LlmPriority | null>(null);
   const [fortuneError, setFortuneError] = useState(false);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
   const [showMilestones, setShowMilestones] = useState(false);
@@ -62,10 +65,11 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
     }
     
     setLoadingFortune(true);
+    setFortuneLlmPriority(null);
     setFortuneError(false);
     try {
         const apiKey = sessionStorage.getItem('ai_api_key') || undefined;
-        const result = await generateDailyFortuneAi(profile, chart, apiKey);
+        const result = await generateDailyFortuneAi(profile, chart, apiKey, setFortuneLlmPriority);
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
         const fullData = {
@@ -168,6 +172,7 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                     onGenerate={handleGenerateFortune} 
                     isVip={isVip} 
                     aiError={fortuneError}
+                    llmPriority={fortuneLlmPriority}
                  />
              </div>
          )}
@@ -358,6 +363,11 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                             <button onClick={handleAiAnalysisWrapper} disabled={loadingAi} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${loadingAi ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-amber-400 active:scale-95 shadow-lg'}`}>
                               {loadingAi ? <Activity className="animate-spin" size={20}/> : <BrainCircuit size={20}/>} {loadingAi ? '正在深度推演...' : '生成大师解盘报告'}
                             </button>
+                            {(loadingAi || llmPriority) && (
+                                <div className="mt-2 flex justify-center">
+                                    <LlmPriorityBadge priority={loadingAi ? llmPriority ?? null : llmPriority ?? null} />
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 bg-stone-50 rounded-2xl border border-stone-100">
@@ -376,7 +386,10 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                  </div>
                  {aiReport && (
                      <div className="bg-white border border-stone-300 p-6 rounded-3xl space-y-4 shadow-sm animate-slide-up">
-                         <div className="flex items-center gap-2 text-emerald-600 font-black border-b border-stone-100 pb-3"><Sparkles size={18}/> <span>本次生成结果</span></div>
+                         <div className="flex items-center gap-2 text-emerald-600 font-black border-b border-stone-100 pb-3">
+                            <Sparkles size={18}/> <span>本次生成结果</span>
+                            <LlmPriorityBadge priority={llmPriority ?? null} className="ml-auto" />
+                         </div>
                          <div className="bg-stone-50 p-4 rounded-xl text-sm leading-relaxed text-stone-700 max-h-[300px] overflow-y-auto custom-scrollbar"><SmartTextRenderer content={aiReport.copyText} /></div>
                          <button onClick={() => {navigator.clipboard.writeText(aiReport.copyText); alert("已复制");}} className="w-full bg-emerald-50 text-emerald-700 py-3 rounded-xl text-xs font-black border border-emerald-100 shadow-sm flex items-center justify-center gap-2"><ClipboardCopy size={14}/> 复制内容</button>
                      </div>

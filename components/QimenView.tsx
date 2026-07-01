@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, QM_Ju, QM_Palace } from '../types';
 import { initializeQM_Ju, getYearGan } from '../services/qimenService';
 import { analyzeQimenStructured, QimenAiReport } from '../services/geminiService';
+import { LlmPriorityBadge } from './ui/LlmPriorityBadge';
+import type { LlmPriority } from '../utils/llmPriority';
 import { QM_STACK_ORDER, QM_NAMES_MAP, QM_ELEMENT_TEXT_MAP, QM_STATE_MAP } from '../services/qimenConstants';
 import { QM_AFFAIR_SYMBOLS, QM_AFFAIR_CATEGORIES, QM_SymbolKey, QM_AffairCategory, QM_INDUSTRIES, QM_IndustryKey, QM_INDUSTRY_DEFAULTS } from '../services/qimenAffairs';
 import { analyzePalacePatterns } from '../services/qimenPatterns';
@@ -67,6 +69,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
 
   // AI Analysis State
   const [loadingAi, setLoadingAi] = useState(false);
+  const [llmPriority, setLlmPriority] = useState<LlmPriority | null>(null);
   const [aiReport, setAiReport] = useState<QimenAiReport | null>(null);
 
   // Clear AI report when affair changes
@@ -83,6 +86,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
     }
 
     setLoadingAi(true);
+    setLlmPriority(null);
     try {
       // Serialize Chart Data for AI
       const chartData = {
@@ -112,7 +116,7 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
         industry: divinationState.industry
       };
 
-      const report = await analyzeQimenStructured(chartData, question, isVip);
+      const report = await analyzeQimenStructured(chartData, question, isVip, setLlmPriority);
       setAiReport(report);
     } catch (e: any) {
       alert(e.message || "分析失败");
@@ -464,6 +468,11 @@ const QimenView: React.FC<QimenViewProps> = ({ profile, onSaveReport, isVip, onV
                    {loadingAi ? <Loader2 size={14} className="animate-spin" /> : <ScrollText size={14} />}
                    {loadingAi ? '大师推演中...' : '开始深度推演'}
                  </button>
+                 {(loadingAi || llmPriority) && (
+                   <div className="mt-2 flex justify-center">
+                     <LlmPriorityBadge priority={llmPriority} />
+                   </div>
+                 )}
                </div>
              )}
           </div>

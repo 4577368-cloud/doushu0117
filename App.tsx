@@ -5,6 +5,7 @@ import { Auth } from './Auth';
 import { AppTab, UserProfile, BaziChart, ModalData, BaziReport as AiBaziReport } from './types';
 import { calculateBazi } from './services/baziService';
 import { analyzeBaziStructured } from './services/geminiService';
+import type { LlmPriority } from './utils/llmPriority';
 import { 
   getArchives, 
   saveArchive, 
@@ -173,6 +174,7 @@ const App: React.FC = () => {
   
   const [archives, setArchives] = useState<UserProfile[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [llmPriority, setLlmPriority] = useState<LlmPriority | null>(null);
   const [aiReport, setAiReport] = useState<AiBaziReport | null>(null);
   
   const [session, setSession] = useState<any>(null);
@@ -401,8 +403,9 @@ const App: React.FC = () => {
     if (!baziChart) return;
     const key = sessionStorage.getItem('ai_api_key');
     setLoadingAi(true);
+    setLlmPriority(null);
     try {
-      const result = await analyzeBaziStructured(baziChart!, key || undefined, isVip);
+      const result = await analyzeBaziStructured(baziChart!, key || undefined, isVip, setLlmPriority);
       setAiReport(result);
       if (currentProfile) {
         const updated = await saveAiReportToArchive(currentProfile.id, result.copyText, 'bazi');
@@ -475,7 +478,8 @@ const App: React.FC = () => {
                               setArchives(updated); 
                           }} 
                           onAiAnalysis={handleAiAnalysis} 
-                          loadingAi={loadingAi} 
+                          loadingAi={loadingAi}
+                          llmPriority={llmPriority} 
                           aiReport={aiReport} 
                           isVip={isVip} 
                           onVipClick={() => setShowVipModal(true)}

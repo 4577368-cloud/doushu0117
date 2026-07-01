@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { calculateChart } from '../ziwei/services/astrologyService';
 import { generateRuleBasedAnalysis } from '../ziwei/services/interpretationService';
 import { callDeepSeekAPI } from '../ziwei/services/aiService';
+import { LlmPriorityBadge } from './ui/LlmPriorityBadge';
+import type { LlmPriority } from '../utils/llmPriority';
 import { UserProfile } from '../types';
 import { BrainCircuit, Activity, Sparkles, ClipboardCopy, Crown, HelpCircle, X } from 'lucide-react';
 import { ZiweiChartView } from './ZiweiChartView'; 
@@ -158,6 +160,7 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip, onV
   const [activePalaceName, setActivePalaceName] = useState('命宫');
   const [deepSeekContent, setDeepSeekContent] = useState<string>('');
   const [isDeepSeekLoading, setIsDeepSeekLoading] = useState(false);
+  const [llmPriority, setLlmPriority] = useState<LlmPriority | null>(null);
   const [analysisTab, setAnalysisTab] = useState<'rule' | 'ai'>('rule');
 
   // 3. 图表数据
@@ -170,13 +173,14 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip, onV
     }
 
     setIsDeepSeekLoading(true);
+    setLlmPriority(null);
     setAnalysisTab('ai');
     
     try {
         const birthYear = parseInt(profile.birthDate.split('-')[0]);
         const age = new Date().getFullYear() - birthYear + 1;
         
-        const text = await callDeepSeekAPI(chartData, age, profile.gender === 'male' ? 'male' : 'female', new Date().getFullYear());
+        const text = await callDeepSeekAPI(chartData, age, profile.gender === 'male' ? 'male' : 'female', new Date().getFullYear(), setLlmPriority);
         setDeepSeekContent(text);
         onSaveReport(text);
     } catch (e: any) { 
@@ -299,10 +303,12 @@ const ZiweiView: React.FC<ZiweiViewProps> = ({ profile, onSaveReport, isVip, onV
                               <div className="text-center py-20 animate-pulse">
                                   <Activity className="mx-auto animate-spin text-indigo-600 mb-4" size={28} />
                                   <p className="font-serif text-stone-500 tracking-widest text-xs">正在通过星曜矩阵建立财富模型...</p>
+                                  <div className="mt-3 flex justify-center"><LlmPriorityBadge priority={llmPriority} /></div>
                               </div>
                           ) : (
                               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                  <div className="flex justify-end mb-3">
+                                  <div className="flex justify-end mb-3 items-center gap-2">
+                                    <LlmPriorityBadge priority={llmPriority} />
                                     <button onClick={()=>{navigator.clipboard.writeText(deepSeekContent);alert('已复制');}} className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100"><ClipboardCopy size={12}/>一键复制报告</button>
                                   </div>
                                   <div className="text-xs leading-relaxed text-stone-700 bg-stone-50 p-5 rounded-2xl border border-stone-100 whitespace-pre-wrap font-serif shadow-inner">

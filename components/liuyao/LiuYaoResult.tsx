@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { LiuYaoResult as ResultType, getYaoText, analyzeHexagram } from '../../services/liuyaoService';
 import { analyzeLiuYaoStructured, LiuYaoAiReport } from '../../services/geminiService';
+import { LlmPriorityBadge } from '../ui/LlmPriorityBadge';
+import type { LlmPriority } from '../../utils/llmPriority';
 import { LiuYaoHexagram } from './LiuYaoHexagram';
 import { BookOpen, Loader2, Lock, Lightbulb, TrendingUp, Briefcase, Heart, Activity, AlertCircle, ScrollText } from 'lucide-react';
 
@@ -14,6 +16,7 @@ interface LiuYaoResultProps {
 export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isVip = false, onVipClick }) => {
     const { base, changed, movingLines } = analyzeResult(result);
     const [loadingAi, setLoadingAi] = useState(false);
+    const [llmPriority, setLlmPriority] = useState<LlmPriority | null>(null);
     const [aiReport, setAiReport] = useState<LiuYaoAiReport | null>(null);
 
     // Check for Use Nine / Use Six
@@ -29,6 +32,7 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
         }
         
         setLoadingAi(true);
+        setLlmPriority(null);
         try {
             // Construct a comprehensive data object for AI
             const hexagramData = {
@@ -49,7 +53,7 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                 questionTime: result.timestamp
             };
 
-            const report = await analyzeLiuYaoStructured(hexagramData, isVip);
+            const report = await analyzeLiuYaoStructured(hexagramData, isVip, setLlmPriority);
             setAiReport(report);
         } catch (e) {
             alert(e instanceof Error ? e.message : '分析失败，请重试');
@@ -121,6 +125,11 @@ export const LiuYaoResult: React.FC<LiuYaoResultProps> = ({ result, onReset, isV
                             <span className="absolute right-4 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">VIP</span>
                         )}
                     </button>
+                    {(loadingAi || llmPriority) && (
+                        <div className="flex justify-center mt-2">
+                            <LlmPriorityBadge priority={llmPriority} />
+                        </div>
+                    )}
                     <p className="text-xs text-center text-stone-400 mt-2 mb-1">
                         包含：求财 · 事业 · 健康 · 感情 · 趋吉避凶建议
                     </p>

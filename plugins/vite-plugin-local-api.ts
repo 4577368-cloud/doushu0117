@@ -29,6 +29,7 @@ function handleLLMRoute(
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-LLM-Model', model.modelId);
+      res.setHeader('X-LLM-Priority', String(model.priority));
       res.setHeader('X-LLM-Name', encodeURIComponent(model.name));
 
       await pipeStreamResponse(
