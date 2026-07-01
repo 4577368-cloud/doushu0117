@@ -19,10 +19,10 @@ interface HomeViewProps {
 const LOGO_URL = 'https://imgus.tangbuy.com/static/images/2026-01-10/631ac4d3602b4f508bb0cad516683714-176803435086117897846087613804795.png';
 
 const TOOLS = [
-    { id: 'bazi', type: 'bazi' as AnalysisType, title: '八字精批', subtitle: '四柱格局 · 大运流年', icon: ScrollText },
-    { id: 'ziwei', type: 'ziwei' as AnalysisType, title: '紫微斗数', subtitle: '十二宫位 · 主星四化', icon: MoonStar },
-    { id: 'qimen', type: 'qimen' as AnalysisType, title: '奇门遁甲', subtitle: '九宫排盘 · 择吉决策', icon: Grid3x3 },
-    { id: 'liuyao', type: 'liuyao' as const, title: '六爻卜卦', subtitle: '一事一占 · 摇卦起爻', icon: Layers },
+    { id: 'bazi', type: 'bazi' as AnalysisType, title: '八字精批', subtitle: '四柱格局 · 大运流年', icon: ScrollText, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+    { id: 'ziwei', type: 'ziwei' as AnalysisType, title: '紫微斗数', subtitle: '十二宫位 · 主星四化', icon: MoonStar, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
+    { id: 'qimen', type: 'qimen' as AnalysisType, title: '奇门遁甲', subtitle: '九宫排盘 · 择吉决策', icon: Grid3x3, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    { id: 'liuyao', type: 'liuyao' as const, title: '六爻卜卦', subtitle: '一事一占 · 摇卦起爻', icon: Layers, iconBg: 'bg-sky-50', iconColor: 'text-sky-600' },
 ];
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -74,8 +74,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                     onClick={() => handleToolClick(tool.type)}
                                     className="flex flex-col items-center rounded-2xl border border-stone-200/80 bg-white px-4 py-5 text-center shadow-sm active:scale-[0.98] transition-transform"
                                 >
-                                    <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-stone-100">
-                                        <tool.icon size={22} className="text-stone-700" strokeWidth={1.75} />
+                                    <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl ${tool.iconBg}`}>
+                                        <tool.icon size={22} className={tool.iconColor} strokeWidth={1.75} />
                                     </div>
                                     <p className="text-sm font-bold text-stone-900">{tool.title}</p>
                                     <p className="mt-1 text-xs leading-snug text-stone-400">{tool.subtitle}</p>
@@ -93,8 +93,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             }}
                             className="flex w-full items-center gap-4 rounded-2xl border border-stone-200/80 bg-white px-5 py-4 text-left shadow-sm active:bg-stone-50 transition-colors"
                         >
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-stone-900">
-                                <MessageCircle size={22} className="text-amber-400" strokeWidth={1.75} />
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
+                                <MessageCircle size={22} className="text-indigo-600" strokeWidth={1.75} />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">

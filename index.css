@@ -7,6 +7,8 @@
     -moz-osx-font-smoothing: grayscale;
     background-color: rgb(245 245 244);
     color: rgb(28 25 23);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
   }
 }
 

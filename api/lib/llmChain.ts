@@ -25,18 +25,23 @@ export interface LLMCallResult {
   model: LLMModelConfig;
 }
 
+/** 读取第 N 个模型的环境变量（兼容 LLM_1_* 与 LLM_MODEL1_* 两种命名） */
+function readModelEnv(env: Record<string, string | undefined>, i: number, field: string): string | undefined {
+  return env[`LLM_${i}_${field}`] ?? env[`LLM_MODEL${i}_${field}`];
+}
+
 /** 从环境变量加载已配置的模型列表（按优先级排序） */
 export function loadLLMConfigs(env: Record<string, string | undefined> = process.env): LLMModelConfig[] {
   const configs: LLMModelConfig[] = [];
 
   for (let i = 1; i <= 3; i++) {
-    const modelId = env[`LLM_${i}_MODEL_ID`];
-    const apiKey = env[`LLM_${i}_API_KEY`];
-    const baseUrl = env[`LLM_${i}_BASE_URL`];
+    const modelId = readModelEnv(env, i, 'MODEL_ID');
+    const apiKey = readModelEnv(env, i, 'API_KEY');
+    const baseUrl = readModelEnv(env, i, 'BASE_URL');
     if (modelId && apiKey && baseUrl) {
       configs.push({
         priority: i,
-        name: env[`LLM_${i}_NAME`] || `模型 ${i}`,
+        name: readModelEnv(env, i, 'NAME') ?? readModelEnv(env, i, 'LABEL') ?? `模型 ${i}`,
         modelId,
         apiKey,
         baseUrl,
