@@ -24,7 +24,7 @@ export default defineConfig({
     },
     // api/lib 变更走本地中间件，无需重启 dev server（避免 WebSocket 断开）
     watch: {
-      ignored: ['**/api/**', '!**/api/_lib/**'],
+      ignored: ['**/api/**', '!**/lib/**'],
     },
     proxy: {
       '/api': {

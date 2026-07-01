@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { callLLMWithFallback, pipeStreamResponse } from './_lib/llmChain';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -7,6 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const { callLLMWithFallback, pipeStreamResponse } = await import('../lib/llmChain.js');
     const { messages, response_format } = req.body;
 
     const { response, model } = await callLLMWithFallback({
@@ -24,13 +24,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await pipeStreamResponse(
       response,
-      (chunk) => res.write(chunk),
+      (chunk: Uint8Array | Buffer) => res.write(chunk),
       () => res.end()
     );
   } catch (error: unknown) {
     console.error('Analyze Error:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Server Error' });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Server Error',
+        type: error instanceof Error ? error.name : 'Unknown',
+      });
     } else {
       res.end();
     }
