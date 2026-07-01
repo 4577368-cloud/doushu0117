@@ -447,3 +447,63 @@ export const setArchiveAsSelf = async (id: string): Promise<void> => {
 };
 
 export const updateArchive = saveArchive; // Alias
+
+// --- 免费试用额度管理 ---
+const TRIAL_KEY = 'xuan_shu_trial';
+
+export type TrialUsage = {
+  masterReportUsed: boolean;
+  chatCount: number;
+};
+
+const getTrialStorageKey = async (userId?: string): Promise<string> => {
+  if (userId) return `${TRIAL_KEY}:${userId}`;
+  const { data: { session } } = await supabase.auth.getSession();
+  const uid = session?.user?.id;
+  return uid ? `${TRIAL_KEY}:${uid}` : `${TRIAL_KEY}:guest`;
+};
+
+export const getTrialUsage = async (userId?: string): Promise<TrialUsage> => {
+  if (typeof window === 'undefined') return { masterReportUsed: false, chatCount: 0 };
+  try {
+    const key = await getTrialStorageKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return { masterReportUsed: false, chatCount: 0 };
+    const parsed = JSON.parse(raw);
+    return {
+      masterReportUsed: !!parsed.masterReportUsed,
+      chatCount: typeof parsed.chatCount === 'number' ? parsed.chatCount : 0
+    };
+  } catch {
+    return { masterReportUsed: false, chatCount: 0 };
+  }
+};
+
+const writeTrialUsage = async (usage: TrialUsage, userId?: string) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = await getTrialStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(usage));
+  } catch {}
+};
+
+export const useTrialMasterReport = async (userId?: string): Promise<boolean> => {
+  const usage = await getTrialUsage(userId);
+  if (usage.masterReportUsed) return false;
+  usage.masterReportUsed = true;
+  await writeTrialUsage(usage, userId);
+  return true;
+};
+
+export const useTrialChat = async (userId?: string): Promise<boolean> => {
+  const usage = await getTrialUsage(userId);
+  if (usage.chatCount >= 10) return false;
+  usage.chatCount += 1;
+  await writeTrialUsage(usage, userId);
+  return true;
+};
+
+export const getTrialChatRemaining = async (userId?: string): Promise<number> => {
+  const usage = await getTrialUsage(userId);
+  return Math.max(0, 10 - usage.chatCount);
+};

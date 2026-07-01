@@ -189,6 +189,27 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
       </div>
   );
 
+  const renderAiActions = () => (
+      <div className="mt-3 flex items-center justify-between bg-white rounded-xl border border-stone-100 p-3 shadow-sm">
+          <div className="flex items-center gap-2 text-[10px] text-stone-400">
+              <Sparkles size={12} className="text-indigo-500" />
+              <span>深度版由 AI 结合八字格局实时推演</span>
+          </div>
+          <button
+              onClick={onGenerate}
+              disabled={loading}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                  loading
+                      ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                      : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 active:scale-95'
+              }`}
+          >
+              {loading ? <RefreshCcw size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
+              {loading ? '重新生成中...' : '重新生成'}
+          </button>
+      </div>
+  );
+
   const renderContent = () => {
     // 1. 基础模式
     if (mode === 'basic') {
@@ -205,13 +226,17 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
       // 正在加载
       if (loading) {
          return (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white rounded-2xl border border-stone-100 h-[300px]">
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-white rounded-2xl border border-stone-100 h-[300px]">
                  <div className="relative">
                     <div className="absolute inset-0 bg-indigo-500 rounded-full animate-ping opacity-20"></div>
                     <RefreshCcw size={32} className="text-indigo-500 animate-spin relative z-10" />
                  </div>
-                 <p className="text-xs text-stone-500 font-medium animate-pulse">正在连接天机，推演流日...</p>
+                 <div className="space-y-1">
+                    <p className="text-sm font-bold text-stone-800">正在生成今日深度运势</p>
+                    <p className="text-xs text-stone-500 font-medium animate-pulse">AI 正在结合您的八字格局推演流日...</p>
+                 </div>
                  <LlmPriorityBadge priority={llmPriority ?? null} />
+                 <p className="text-[10px] text-stone-400">首次进入本页面会自动生成，请稍候</p>
             </div>
          );
       }
@@ -277,10 +302,15 @@ export const DailyFortuneCard: React.FC<DailyFortuneCardProps> = ({ chart, aiDat
 
       // 已有数据
       if (aiData) {
-        return renderCard(aiData);
+        return (
+            <div className="animate-fade-in">
+                {renderCard(aiData)}
+                {renderAiActions()}
+            </div>
+        );
       }
     }
-    
+
     return null;
   };
 

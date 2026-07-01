@@ -108,7 +108,10 @@ export const AiChatView: React.FC<{
     onSwitchProfile?: (profile: UserProfile) => void;
     isVip: boolean;
     onVipClick: () => void;
-}> = ({ chart, profile, archives = [], onSwitchProfile, isVip, onVipClick }) => {
+    trialUsage?: { chatCount: number };
+    chatRemaining?: number;
+    onUseTrialChat?: () => Promise<boolean>;
+}> = ({ chart, profile, archives = [], onSwitchProfile, isVip, onVipClick, trialUsage, chatRemaining = 0, onUseTrialChat }) => {
     const timeContext = useMemo(() => getTimeContext(), []);
 
     const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -199,6 +202,14 @@ export const AiChatView: React.FC<{
     const handleSend = async (contentOverride?: string) => {
         const msgContent = contentOverride || input;
         if (!msgContent.trim() || loading) return;
+
+        if (!isVip) {
+            const ok = await onUseTrialChat?.();
+            if (!ok) {
+                onVipClick();
+                return;
+            }
+        }
 
         const userMsg: ChatMessage = { role: 'user', content: msgContent };
         const nextMessages = [...messagesRef.current, userMsg];
@@ -316,6 +327,20 @@ export const AiChatView: React.FC<{
             )}
 
             <div className="p-3 bg-white border-t border-stone-200 z-20 pb-safe">
+                {!isVip && (
+                    <div className="flex items-center justify-between mb-2 px-1">
+                        <span className="text-[11px] text-stone-500">
+                            免费体验剩余 <span className={`font-black ${chatRemaining > 3 ? 'text-emerald-600' : chatRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>{chatRemaining}</span> 次
+                        </span>
+                        {chatRemaining === 0 ? (
+                            <button onClick={onVipClick} className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-0.5">
+                                <Crown size={12} /> 升级 VIP 无限畅聊
+                            </button>
+                        ) : (
+                            <span className="text-[10px] text-stone-400">VIP 可无限次对话</span>
+                        )}
+                    </div>
+                )}
                 {!loading && llmPriority && (
                     <div className="flex justify-end mb-2 px-1">
                         <LlmPriorityBadge priority={llmPriority} />
@@ -331,9 +356,9 @@ export const AiChatView: React.FC<{
                     </div>
                 )}
                 <div className="flex gap-2 items-end">
-                    <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder={mode === 'bazi' ? `问问${profile.name}的八字运势…` : mode === 'ziwei' ? `问问${profile.name}的紫微星象…` : `问问${profile.name}的奇门…`} className="flex-1 bg-stone-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none max-h-24 transition-colors focus:bg-white focus:ring-2 focus:ring-stone-200" rows={1} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                    <button onClick={() => handleSend()} disabled={loading || !input.trim()} className={`p-3 rounded-full flex items-center justify-center transition-all ${loading || !input.trim() ? 'bg-stone-200 text-stone-400' : 'bg-stone-900 text-amber-400 shadow-lg active:scale-95'}`}>
-                        {loading ? <Activity size={20} className="animate-spin" /> : <Send size={20} />}
+                    <textarea value={input} onChange={(e) => setInput(e.target.value)} disabled={!isVip && chatRemaining <= 0} placeholder={!isVip && chatRemaining <= 0 ? '免费体验已用完，升级 VIP 继续对话' : mode === 'bazi' ? `问问${profile.name}的八字运势…` : mode === 'ziwei' ? `问问${profile.name}的紫微星象…` : `问问${profile.name}的奇门…`} className={`flex-1 bg-stone-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none max-h-24 transition-colors focus:bg-white focus:ring-2 focus:ring-stone-200 ${!isVip && chatRemaining <= 0 ? 'opacity-60 cursor-not-allowed' : ''}`} rows={1} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                    <button onClick={() => !isVip && chatRemaining <= 0 ? onVipClick() : handleSend()} disabled={loading || (!isVip && chatRemaining <= 0 ? false : !input.trim())} className={`p-3 rounded-full flex items-center justify-center transition-all ${loading || (!isVip && chatRemaining <= 0 ? false : !input.trim()) ? 'bg-stone-200 text-stone-400' : 'bg-stone-900 text-amber-400 shadow-lg active:scale-95'}`}>
+                        {loading ? <Activity size={20} className="animate-spin" /> : !isVip && chatRemaining <= 0 ? <Crown size={20} /> : <Send size={20} />}
                     </button>
                 </div>
             </div>

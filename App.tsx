@@ -16,8 +16,13 @@ import {
   getVipStatus, 
   activateVipOnCloud, 
   syncArchivesFromCloud,
-  mergeGuestArchives
+  mergeGuestArchives,
+  getTrialUsage,
+  useTrialMasterReport,
+  useTrialChat,
+  TrialUsage
 } from './services/storageService';
+import { applyReferralBonus } from './services/shareService';
 
 import { BottomNav } from './components/Layout';
 import { AppHeader } from './components/ui/AppHeader'; 
@@ -191,6 +196,7 @@ const App: React.FC = () => {
   const [showLimitHint, setShowLimitHint] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [guestUsageCount, setGuestUsageCount] = useState(0);
+  const [trialUsage, setTrialUsage] = useState<TrialUsage>({ masterReportUsed: false, chatCount: 0 });
 
   const updateGuestUsage = () => {
       try {
@@ -230,6 +236,10 @@ const App: React.FC = () => {
   // --- 初始化数据加载与同步 ---
   useEffect(() => {
     updateGuestUsage();
+    getTrialUsage().then(setTrialUsage).catch(console.error);
+    applyReferralBonus().then((bonusApplied) => {
+      if (bonusApplied) getTrialUsage().then(setTrialUsage).catch(console.error);
+    }).catch(console.error);
     try {
         const today = new Date();
         Object.keys(localStorage).forEach(key => {
@@ -268,6 +278,7 @@ const App: React.FC = () => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
                 const currentSession = session;
+                getTrialUsage().then(setTrialUsage).catch(console.error);
                 if (event === 'SIGNED_IN') {
                     try { await mergeGuestArchives(currentSession.user.id); } catch (e) { console.error('Merge guest archives failed:', e); }
                 }
@@ -283,11 +294,12 @@ const App: React.FC = () => {
         }
         if (event === 'PASSWORD_RECOVERY') setShowPasswordResetModal(true);
         if (event === 'SIGNED_OUT') {
-            setArchives([]); 
-            setIsVip(false); 
-            setBaziChart(null); 
+            setArchives([]);
+            setIsVip(false);
+            setBaziChart(null);
             setCurrentProfile(null);
             setCurrentTab(AppTab.HOME);
+            setTrialUsage({ masterReportUsed: false, chatCount: 0 });
             try { localStorage.removeItem('is_vip_user'); localStorage.removeItem('bazi_archives:guest'); } catch {}
         }
     });
@@ -336,7 +348,6 @@ const App: React.FC = () => {
             if (!usage.hashes.includes(profileHash)) {
                 if (usage.count >= 3) {
                     setShowLimitHint(true);
-                    setTimeout(() => setShowVipModal(true), 800);
                     return;
                 }
                 usage.count += 1;
@@ -460,9 +471,14 @@ const App: React.FC = () => {
                       onVipClick={() => setShowVipModal(true)}
                       session={session}
                       onShowLogin={() => setShowAuthModal(true)}
+                      currentProfile={currentProfile}
+                      onContinueLast={(profile) => {
+                          handleSelectProfileForChat(profile);
+                          setCurrentTab(AppTab.CHART);
+                      }}
                   />
               );
-          
+
           case AppTab.CHART:
               if (!baziChart || !currentProfile) {
                   return (
@@ -494,16 +510,22 @@ const App: React.FC = () => {
                           onManualSave={handleManualSave} 
                           isSaving={isGlobalSaving} 
                           archives={archives}
+                          trialUsage={trialUsage}
+                          onUseTrialMasterReport={async () => {
+                              const ok = await useTrialMasterReport();
+                              if (ok) setTrialUsage(prev => ({ ...prev, masterReportUsed: true }));
+                              return ok;
+                          }}
                       />
                   </ErrorBoundary>
               );
           
           case AppTab.CHAT:
-              if (!isVip) return (
+              if (!isVip && trialUsage.chatCount >= 10) return (
                   <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-[#f5f5f4] space-y-4">
                       <div className="bg-stone-200 p-4 rounded-full"><Crown size={48} className="text-stone-400" /></div>
-                      <h3 className="font-bold text-lg text-stone-700">VIP 尊享功能</h3>
-                      <p className="text-sm text-stone-500">升级 VIP 解锁无限次 AI 深度对话，<br/>探索更多命理奥秘。</p>
+                      <h3 className="font-bold text-lg text-stone-700">AI 对话体验已用完</h3>
+                      <p className="text-sm text-stone-500">您已用完 10 次免费 AI 对话体验。<br/>升级 VIP 解锁无限次深度对话。</p>
                       <button onClick={() => setShowVipModal(true)} className="px-6 py-3 bg-stone-900 text-amber-400 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">立即解锁</button>
                   </div>
               );
@@ -529,6 +551,13 @@ const App: React.FC = () => {
                           onSwitchProfile={handleSelectProfileForChat}
                           isVip={isVip}
                           onVipClick={() => setShowVipModal(true)}
+                          trialUsage={trialUsage}
+                          chatRemaining={Math.max(0, 10 - trialUsage.chatCount)}
+                          onUseTrialChat={async () => {
+                              const ok = await useTrialChat();
+                              if (ok) setTrialUsage(prev => ({ ...prev, chatCount: prev.chatCount + 1 }));
+                              return ok;
+                          }}
                       />
                   </ErrorBoundary>
               );
@@ -625,6 +654,11 @@ const App: React.FC = () => {
                       onVipClick={() => setShowVipModal(true)}
                       session={session}
                       onShowLogin={() => setShowAuthModal(true)}
+                      currentProfile={currentProfile}
+                      onContinueLast={(profile) => {
+                          handleSelectProfileForChat(profile);
+                          setCurrentTab(AppTab.CHART);
+                      }}
                   />
               );
       }
@@ -684,7 +718,7 @@ const App: React.FC = () => {
       {showPayResultModal && <PayResultModal onClose={() => { setShowPayResultModal(false); try { window.history.replaceState(null, '', window.location.pathname); } catch {} }} />}
       {showWelcomeModal && <WelcomeModal onClose={() => setShowWelcomeModal(false)} />}
       {showPasswordResetModal && <PasswordResetModal onClose={() => setShowPasswordResetModal(false)} />}
-      {showLimitHint && <QuotaLimitModal onClose={() => setShowLimitHint(false)} />}
+      {showLimitHint && <QuotaLimitModal onClose={() => setShowLimitHint(false)} onUpgrade={() => setShowVipModal(true)} />}
       
       {showAuthModal && (
           <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">

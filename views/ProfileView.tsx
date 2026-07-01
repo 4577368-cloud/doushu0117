@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Crown, RefreshCw, LogOut, ShieldCheck, ChevronRight, Activity, Cloud, User, Sparkles, Lock, Mail, Database, Globe } from 'lucide-react';
+import { Crown, RefreshCw, LogOut, ShieldCheck, ChevronRight, Activity, Cloud, User, Sparkles, Lock, Mail, Database, Globe, Gift } from 'lucide-react';
 import { getSyncMeta, syncArchivesFromCloud } from '../services/storageService';
+import { inviteFriends } from '../services/shareService';
 import { safeRefreshSession, isAuthAbortError } from '../services/supabase';
 import { PolicyModal } from '../components/modals/PolicyModals';
 
@@ -15,6 +16,7 @@ interface ProfileViewProps {
 
 const MENU_ITEMS = [
     { icon: Sparkles, label: 'VIP 会员', desc: '解锁无限 AI 解读与云备份', action: 'vip', color: 'text-amber-500' },
+    { icon: Gift, label: '邀请好友得额度', desc: '每邀请 1 位好友 +5 次 AI 对话', action: 'invite', color: 'text-rose-500' },
     { icon: Cloud, label: '数据同步', desc: '同步档案到云端', action: 'sync', color: 'text-indigo-500' },
     { icon: ShieldCheck, label: '用户协议', action: 'user-policy', color: 'text-stone-500' },
     { icon: Lock, label: '隐私政策', action: 'privacy-policy', color: 'text-stone-500' },
@@ -31,6 +33,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [syncMeta, setSyncMeta] = useState(getSyncMeta());
     const [showPolicyModal, setShowPolicyModal] = useState<'user' | 'privacy' | null>(null);
+    const [inviteStatus, setInviteStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
     useEffect(() => {
         const refreshMeta = () => setSyncMeta(getSyncMeta());
@@ -69,8 +72,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     const userEmail = session?.user?.email;
 
+    const handleInvite = async () => {
+        const result = await inviteFriends();
+        setInviteStatus(result.ok ? 'success' : 'error');
+        setTimeout(() => setInviteStatus('idle'), 2000);
+    };
+
     const handleMenuClick = (action: string) => {
         if (action === 'vip') onVipClick();
+        else if (action === 'invite') handleInvite();
         else if (action === 'sync') handleSync();
         else if (action === 'user-policy') setShowPolicyModal('user');
         else if (action === 'privacy-policy') setShowPolicyModal('privacy');
@@ -145,7 +155,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             <div className="text-sm font-black text-stone-800">{item.label}</div>
                             {item.desc && <div className="text-[10px] text-stone-400 mt-0.5">{item.desc}</div>}
                         </div>
-                        <ChevronRight size={16} className="text-stone-300" />
+                        {item.action === 'invite' ? (
+                            inviteStatus === 'success' ? (
+                                <span className="text-[10px] font-bold text-emerald-600">已复制</span>
+                            ) : inviteStatus === 'error' ? (
+                                <span className="text-[10px] font-bold text-rose-600">失败</span>
+                            ) : (
+                                <ChevronRight size={16} className="text-stone-300" />
+                            )
+                        ) : (
+                            <ChevronRight size={16} className="text-stone-300" />
+                        )}
                     </button>
                 ))}
 

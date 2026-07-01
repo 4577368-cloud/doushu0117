@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle, ChevronDown, ChevronUp, Lock as LockIcon } from 'lucide-react';
+import { Sparkles, Crown, Eye, EyeOff, ShieldCheck, Activity, BrainCircuit, History, Maximize2, ClipboardCopy, Check, Cloud, Info, CheckCircle, ChevronDown, ChevronUp, Lock as LockIcon, BarChart3, Share2 } from 'lucide-react';
 import { UserProfile, BaziChart, ChartSubTab, BaziReport as AiBaziReport } from '../types';
 import { getArchives, saveAiReportToArchive } from '../services/storageService';
+import { shareProfile } from '../services/shareService';
 import { SmartTextRenderer } from '../components/ui/BaziUI';
 import { BalancePanel } from '../components/business/BalancePanel';
 import { CoreInfoCard } from '../components/business/CoreInfoCard';
@@ -20,7 +21,23 @@ import { getGanZhiForMonth } from '../services/baziService';
 import { LlmPriorityBadge } from '../components/ui/LlmPriorityBadge';
 import type { LlmPriority } from '../utils/llmPriority';
 
-export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; onShowModal: any; onSaveReport: any; onAiAnalysis: any; loadingAi: boolean; llmPriority?: LlmPriority | null; aiReport: AiBaziReport | null; isVip: boolean; onVipClick: () => void; onManualSave: () => void; isSaving: boolean; archives: UserProfile[] }> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, llmPriority, aiReport, isVip, onVipClick, onManualSave, isSaving, archives }) => {
+export const BaziChartView: React.FC<{
+  profile: UserProfile;
+  chart: BaziChart;
+  onShowModal: any;
+  onSaveReport: any;
+  onAiAnalysis: any;
+  loadingAi: boolean;
+  llmPriority?: LlmPriority | null;
+  aiReport: AiBaziReport | null;
+  isVip: boolean;
+  onVipClick: () => void;
+  onManualSave: () => void;
+  isSaving: boolean;
+  archives: UserProfile[];
+  trialUsage?: { masterReportUsed: boolean };
+  onUseTrialMasterReport?: () => Promise<boolean>;
+}> = ({ profile, chart, onShowModal, onSaveReport, onAiAnalysis, loadingAi, llmPriority, aiReport, isVip, onVipClick, onManualSave, isSaving, archives, trialUsage, onUseTrialMasterReport }) => {
   const [activeSubTab, setActiveSubTab] = useState<ChartSubTab>(ChartSubTab.DETAIL);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState<any | null>(null);
   const [copiedCombo, setCopiedCombo] = useState(false);
@@ -29,7 +46,17 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
   const [fortuneLlmPriority, setFortuneLlmPriority] = useState<LlmPriority | null>(null);
   const [fortuneError, setFortuneError] = useState(false);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
-  const [showMilestones, setShowMilestones] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+      balance: false,
+      dayHourCombo: false,
+      wealthPath: false,
+      milestones: false,
+  });
+
+  const toggleSection = (key: keyof typeof expandedSections) => {
+      setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const allHistoryReports = useMemo(() => {
       const all: any[] = [];
@@ -43,6 +70,48 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
 
   const openDetailedModal = (title: string, gz: any, name: string, ss: string[]) => onShowModal({ title, pillarName: name, ganZhi: gz, shenSha: ss });
 
+  // 可折叠区块组件
+  const CollapseSection: React.FC<{
+      title: string;
+      icon: React.ReactNode;
+      expanded: boolean;
+      onToggle: () => void;
+      children: React.ReactNode;
+      priority?: 'high' | 'medium' | 'low';
+  }> = ({ title, icon, expanded, onToggle, children, priority = 'medium' }) => {
+      const priorityCls = {
+          high: 'border-l-4 border-l-amber-500',
+          medium: 'border-l-4 border-l-indigo-400',
+          low: 'border-l-4 border-l-stone-300'
+      }[priority];
+      return (
+          <div className={`bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden ${priorityCls}`}>
+              <button
+                  onClick={onToggle}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-colors"
+              >
+                  <div className="flex items-center gap-2">
+                      {icon}
+                      <h4 className="text-sm font-black text-stone-900">{title}</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-stone-400 font-medium">
+                          {expanded ? '收起' : '展开'}
+                      </span>
+                      {expanded ? <ChevronUp size={16} className="text-stone-400" /> : <ChevronDown size={16} className="text-stone-400" />}
+                  </div>
+              </button>
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className="px-5 pb-5 border-t border-stone-100">
+                      <div className="pt-4">
+                          {children}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
+  };
+
   // 🔥 修改点：移除了 'AI 对话' 选项，现在它在底部导航栏
   const tabs = [
       { id: ChartSubTab.DETAIL, label: '流年大运' }, 
@@ -50,12 +119,27 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
       { id: ChartSubTab.ANALYSIS, label: '大师解读' }
   ];
 
-  const handleAiAnalysisWrapper = () => { 
-      if (!isVip) { 
-          onVipClick();
-          return; 
-      } 
-      onAiAnalysis(); 
+  const handleAiAnalysisWrapper = async () => { 
+      if (!isVip) {
+          if (trialUsage?.masterReportUsed) {
+              onVipClick();
+              return;
+          }
+          const ok = await onUseTrialMasterReport?.();
+          if (!ok) {
+              onVipClick();
+              return;
+          }
+      }
+      onAiAnalysis();
+  };
+
+  const handleShare = async () => {
+      const result = await shareProfile(profile, chart);
+      if (result.ok) {
+          setShareCopied(true);
+          setTimeout(() => setShareCopied(false), 2000);
+      }
   };
 
   const handleGenerateFortune = async () => {
@@ -153,6 +237,12 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
             </button>
             ))}
         </div>
+        {/* 分享命盘按钮 */}
+        <button onClick={handleShare} className={`ml-2 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all ${shareCopied ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+            {shareCopied ? <Check size={12}/> : <Share2 size={12}/>}
+            {shareCopied ? '已复制' : '分享命盘'}
+        </button>
+
         {/* 手动保存按钮 */}
         <button onClick={onManualSave} disabled={isSaving} className={`ml-2 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all ${isSaving ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
             {isSaving ? <Activity size={12} className="animate-spin"/> : <Cloud size={12}/>}
@@ -179,21 +269,49 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
 
          {activeSubTab === ChartSubTab.DETAIL && (
              <div className="animate-fade-in space-y-4">
+                 {/* 高优先级：核心命盘 + 流年大运，默认完整展示 */}
                  <CoreInfoCard profile={profile} chart={chart} />
                  <BaziAnalysisView chart={chart} onShowModal={openDetailedModal} />
-                <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
-                <div className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-indigo-100/50 bg-gradient-to-r from-indigo-50 to-white">
-                    <div className="flex items-center gap-2"><Info size={16} className="text-indigo-500"/><h4 className="text-sm font-black text-stone-900">日时组合</h4></div>
-                    <button onClick={() => { navigator.clipboard.writeText(getDayHourComboText(chart)); setCopiedCombo(true); setTimeout(() => setCopiedCombo(false), 2000); }} className={`p-2 rounded-full transition-colors ${copiedCombo ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-stone-200 text-stone-400 hover:text-stone-700'}`}>{copiedCombo ? <CheckCircle size={16}/> : <ClipboardCopy size={16}/>}</button>
-                  </div>
-                  <div className="p-5 text-xs text-stone-700 leading-relaxed whitespace-pre-wrap">
-                    {getDayHourComboText(chart)}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm">
-                     <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-emerald-600"/><h4 className="text-sm font-black text-stone-900">生财路径建议</h4></div>
+
+                 {/* 中优先级：默认折叠，减少首屏信息密度 */}
+                 <CollapseSection
+                     title="五行能量与喜用"
+                     icon={<BarChart3 size={16} className="text-indigo-500" />}
+                     expanded={expandedSections.balance}
+                     onToggle={() => toggleSection('balance')}
+                     priority="medium"
+                 >
+                     <BalancePanel balance={chart.balance} wuxing={chart.wuxingCounts} dm={chart.dayMaster} />
+                 </CollapseSection>
+
+                 <CollapseSection
+                     title="日时组合详解"
+                     icon={<Info size={16} className="text-indigo-500" />}
+                     expanded={expandedSections.dayHourCombo}
+                     onToggle={() => toggleSection('dayHourCombo')}
+                     priority="medium"
+                 >
+                     <div className="flex items-center justify-end mb-3">
+                         <button
+                             onClick={() => { navigator.clipboard.writeText(getDayHourComboText(chart)); setCopiedCombo(true); setTimeout(() => setCopiedCombo(false), 2000); }}
+                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${copiedCombo ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                         >
+                             {copiedCombo ? <CheckCircle size={12} /> : <ClipboardCopy size={12} />}
+                             {copiedCombo ? '已复制' : '复制'}
+                         </button>
+                     </div>
+                     <div className="text-xs text-stone-700 leading-relaxed whitespace-pre-wrap">
+                         {getDayHourComboText(chart)}
+                     </div>
+                 </CollapseSection>
+
+                 <CollapseSection
+                     title="生财路径建议"
+                     icon={<Sparkles size={16} className="text-emerald-500" />}
+                     expanded={expandedSections.wealthPath}
+                     onToggle={() => toggleSection('wealthPath')}
+                     priority="medium"
+                 >
                      {(() => {
                        const names = ['食神','伤官','正财','偏财','正官','七杀','正印','偏印','比肩','劫财'];
                        const count: Record<string, number> = {};
@@ -203,45 +321,40 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                        const cai = (count['正财']||0)+(count['偏财']||0);
                        const guan = (count['正官']||0)+(count['七杀']||0);
                        const yin = (count['正印']||0)+(count['偏印']||0);
-                       
+
                        const lines: string[] = [];
                        if (sx>=2 && cai>=1) lines.push('以输出与变现为主线（内容/技术/销售），结合现金流产品与小额复利');
                        if (cai>=2 && guan>=1) lines.push('稳中求财（龙头+ETF），兼顾合规路径与职业上行');
                        if (yin>=2) lines.push('先增能后求财（学习认证/工具升级/内功积累）');
                        if (sx===0 && cai===0) lines.push('避免高频试错，采用指数定投与多元现金流');
-                       
+
                        const present = names.filter(n => (count[n]||0) > 0);
                        return (
-                        <div className="space-y-2 text-[12px] text-stone-700">
+                        <div className="space-y-3 text-[12px] text-stone-700">
                           <div className="flex flex-wrap gap-2">
                             {present.map(n => (
                               <span key={n} className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 font-bold">{n} × {count[n]}</span>
                             ))}
                           </div>
                           {lines.length > 0 && (
-                            <div className="mt-2 p-3 bg-stone-50 rounded-xl border border-stone-100 text-stone-600 text-[11px] leading-relaxed">
+                            <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-stone-600 text-[11px] leading-relaxed">
                               {lines[0]}
                             </div>
                           )}
                         </div>
                        );
                      })()}
-                   </div>
+                 </CollapseSection>
 
-                   <div className="bg-white border border-stone-200 p-5 rounded-2xl shadow-sm transition-all">
-                     <div 
-                        className="flex items-center justify-between mb-2 cursor-pointer select-none"
-                        onClick={() => setShowMilestones(!showMilestones)}
-                     >
-                        <div className="flex items-center gap-2">
-                            <Check size={16} className="text-stone-700"/>
-                            <h4 className="text-sm font-black text-stone-900">重大节点提醒清单</h4>
-                            {!showMilestones && <span className="text-[10px] text-stone-400 font-normal ml-2">(点击展开)</span>}
-                        </div>
-                        {showMilestones ? <ChevronUp size={16} className="text-stone-400"/> : <ChevronDown size={16} className="text-stone-400"/>}
-                     </div>
-                     
-                     {showMilestones && (() => {
+                 {/* 低优先级：默认折叠 */}
+                 <CollapseSection
+                     title="重大节点提醒清单（未来6个月）"
+                     icon={<Check size={16} className="text-stone-500" />}
+                     expanded={expandedSections.milestones}
+                     onToggle={() => toggleSection('milestones')}
+                     priority="low"
+                 >
+                     {(() => {
                        const now = new Date();
                        const dayZhi = chart.pillars.day.ganZhi.zhi;
                        const monthBaseZhi = chart.pillars.month.ganZhi.zhi;
@@ -345,23 +458,22 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                          </div>
                        );
                      })()}
-                   </div>
-                </div>
+                 </CollapseSection>
              </div>
          )}
 
          {activeSubTab === ChartSubTab.ANALYSIS && (
             <div className="space-y-6 animate-fade-in">
                 <div className="bg-white border border-stone-300 p-5 rounded-2xl shadow-sm relative overflow-hidden">
-                    {isVip ? (
+                    {isVip || aiReport ? (
                         <>
                             <div className="mb-4 bg-gradient-to-r from-stone-900 to-stone-700 text-amber-400 p-4 rounded-xl flex items-center justify-between shadow-lg">
-                                <div className="flex items-center gap-2"><Crown size={20} fill="currentColor" /><span className="text-xs font-black tracking-wider">VIP 尊享通道已激活</span></div>
-                                <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white">无限畅享</span>
+                                <div className="flex items-center gap-2"><Crown size={20} fill="currentColor" /><span className="text-xs font-black tracking-wider">{isVip ? 'VIP 尊享通道已激活' : '免费体验大师解读'}</span></div>
+                                <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white">{isVip ? '无限畅享' : '剩余 1 次'}</span>
                             </div>
 
                             <button onClick={handleAiAnalysisWrapper} disabled={loadingAi} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${loadingAi ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-amber-400 active:scale-95 shadow-lg'}`}>
-                              {loadingAi ? <Activity className="animate-spin" size={20}/> : <BrainCircuit size={20}/>} {loadingAi ? '正在深度推演...' : '生成大师解盘报告'}
+                              {loadingAi ? <Activity className="animate-spin" size={20}/> : <BrainCircuit size={20}/>} {loadingAi ? '正在深度推演...' : (isVip ? '生成大师解盘报告' : '免费生成大师解盘报告')}
                             </button>
                             {(loadingAi || llmPriority) && (
                                 <div className="mt-2 flex justify-center">
@@ -375,11 +487,15 @@ export const BaziChartView: React.FC<{ profile: UserProfile; chart: BaziChart; o
                                 <Crown className="text-amber-400" size={24} />
                              </div>
                              <div className="space-y-1">
-                                <h3 className="font-bold text-stone-800">VIP 尊享大师解读</h3>
-                                <p className="text-xs text-stone-500 max-w-[200px] mx-auto leading-relaxed">升级 VIP 解锁无限次 AI 深度八字分析，洞察人生真谛</p>
+                                <h3 className="font-bold text-stone-800">{trialUsage?.masterReportUsed ? 'VIP 尊享大师解读' : '免费体验大师解读'}</h3>
+                                <p className="text-xs text-stone-500 max-w-[200px] mx-auto leading-relaxed">
+                                    {trialUsage?.masterReportUsed
+                                        ? '升级 VIP 解锁无限次 AI 深度八字分析，洞察人生真谛'
+                                        : '新用户可免费体验 1 次大师解读，感受 AI 推演质量'}
+                                </p>
                              </div>
-                             <button onClick={onVipClick} className="bg-stone-900 text-amber-400 px-8 py-3 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
-                                <LockIcon size={14} /> 立即解锁
+                             <button onClick={trialUsage?.masterReportUsed ? onVipClick : handleAiAnalysisWrapper} className="bg-stone-900 text-amber-400 px-8 py-3 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                                {trialUsage?.masterReportUsed ? <><LockIcon size={14} /> 立即解锁</> : <><Sparkles size={14} /> 免费体验一次</>}
                              </button>
                          </div>
                     )}

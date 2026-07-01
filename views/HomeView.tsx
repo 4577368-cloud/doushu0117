@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     ScrollText, MessageCircle, MoonStar, Grid3x3, Layers,
-    Crown, ChevronRight, User, X
+    Crown, ChevronRight, User, X, History, Compass
 } from 'lucide-react';
 import { UserProfile, AppTab } from '../types';
 import type { AnalysisType } from '../App';
@@ -14,6 +14,8 @@ interface HomeViewProps {
     onVipClick: () => void;
     session?: any;
     onShowLogin?: () => void;
+    currentProfile?: UserProfile | null;
+    onContinueLast?: (profile: UserProfile) => void;
 }
 
 const LOGO_URL = 'https://imgus.tangbuy.com/static/images/2026-01-10/631ac4d3602b4f508bb0cad516683714-176803435086117897846087613804795.png';
@@ -32,11 +34,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
     isVip,
     onVipClick,
     session,
-    onShowLogin
+    onShowLogin,
+    currentProfile,
+    onContinueLast
 }) => {
     const recentArchives = archives.slice(0, 3);
     const isGuest = !session?.user;
     const [dismissLoginBanner, setDismissLoginBanner] = useState(false);
+    const [showNeedChartToast, setShowNeedChartToast] = useState(false);
 
     const handleToolClick = (type: AnalysisType | 'liuyao') => {
         if (type === 'liuyao') {
@@ -85,10 +90,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </section>
 
                     {/* ③ AI 对话 */}
-                    <section>
+                    <section className="relative">
                         <button
                             onClick={() => {
                                 if (!isVip) { onVipClick(); return; }
+                                if (!currentProfile) {
+                                    setShowNeedChartToast(true);
+                                    setTimeout(() => setShowNeedChartToast(false), 2000);
+                                    onTabChange(AppTab.CHART);
+                                    return;
+                                }
                                 onTabChange(AppTab.CHAT);
                             }}
                             className="flex w-full items-center gap-3 rounded-xl border border-stone-200/80 bg-white px-4 py-3 text-left shadow-sm active:bg-stone-50 transition-colors"
@@ -99,16 +110,37 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                     <p className="text-[13px] font-bold text-stone-900">AI 命理对话</p>
-                                    {!isVip && (
+                                    {!isVip ? (
                                         <span className="flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
                                             <Crown size={9} /> VIP
                                         </span>
-                                    )}
+                                    ) : !currentProfile ? (
+                                        <span className="flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                                            <Compass size={9} /> 需先排盘
+                                        </span>
+                                    ) : null}
                                 </div>
-                                <p className="mt-0.5 text-[10px] text-stone-400">随问随答 · 事业财运感情健康</p>
+                                <p className="mt-0.5 text-[10px] text-stone-400">
+                                    {!isVip
+                                        ? '随问随答 · 事业财运感情健康'
+                                        : !currentProfile
+                                            ? '请先完成一次八字排盘，再开始 AI 对话'
+                                            : `当前命盘：${currentProfile.name} · 随问随答`
+                                    }
+                                </p>
                             </div>
                             <ChevronRight size={16} className="shrink-0 text-stone-300" />
                         </button>
+
+                        {/* 无命盘提示 */}
+                        {showNeedChartToast && (
+                            <div className="absolute -top-10 left-0 right-0 z-20 mx-auto w-max max-w-[90%] animate-fade-in">
+                                <div className="flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2 text-xs font-bold text-amber-50 shadow-lg">
+                                    <Compass size={14} />
+                                    请先排盘，再使用 AI 对话
+                                </div>
+                            </div>
+                        )}
                     </section>
 
                     {/* ④ 历史档案 */}
@@ -124,25 +156,47 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 </button>
                             </div>
                             <div className="space-y-2">
-                                {recentArchives.map(p => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => onSelectCapability('bazi')}
-                                        className="flex w-full items-center gap-3 rounded-xl border border-stone-200/80 bg-white px-3.5 py-2.5 text-left shadow-sm active:bg-stone-50 transition-colors"
-                                    >
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 text-base">
-                                            {p.avatar
-                                                ? <img src={p.avatar} alt="" className="h-full w-full object-cover" />
-                                                : (p.gender === 'female' ? '👩' : '🧑')
-                                            }
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-bold text-stone-800">{p.name}</p>
-                                            <p className="text-[11px] text-stone-400">{p.birthDate} · {p.birthTime}</p>
-                                        </div>
-                                        <ChevronRight size={14} className="shrink-0 text-stone-300" />
-                                    </button>
-                                ))}
+                                {recentArchives.map((p, index) => {
+                                    const isLast = index === 0;
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => {
+                                                if (isLast && onContinueLast) {
+                                                    onContinueLast(p);
+                                                } else {
+                                                    onSelectCapability('bazi');
+                                                }
+                                            }}
+                                            className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left shadow-sm transition-colors ${
+                                                isLast
+                                                    ? 'border-indigo-100 bg-gradient-to-r from-indigo-50 to-white active:bg-indigo-100/50'
+                                                    : 'border-stone-200/80 bg-white active:bg-stone-50'
+                                            }`}
+                                        >
+                                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-base ${
+                                                isLast ? 'bg-white shadow-sm' : 'bg-stone-100'
+                                            }`}>
+                                                {p.avatar
+                                                    ? <img src={p.avatar} alt="" className="h-full w-full object-cover" />
+                                                    : (p.gender === 'female' ? '👩' : '🧑')
+                                                }
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="truncate text-sm font-bold text-stone-800">{p.name}</p>
+                                                    {isLast && (
+                                                        <span className="flex items-center gap-0.5 text-[10px] font-bold text-indigo-600">
+                                                            <History size={10} /> 上次
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px] text-stone-400">{p.birthDate} · {p.birthTime}</p>
+                                            </div>
+                                            <ChevronRight size={14} className={`shrink-0 ${isLast ? 'text-indigo-300' : 'text-stone-300'}`} />
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </section>
                     )}
